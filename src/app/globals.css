@@ -630,12 +630,22 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    /* Never wider than its container: on a 390 px phone a long label wraps instead of being cut
+       off at the screen edge (and instead of widening the layout viewport for fixed elements). */
+    max-width: 100%;
     transition:
       transform 0.14s var(--ease-soft),
       background-color 0.2s ease,
       box-shadow 0.2s ease,
       color 0.2s ease,
       opacity 0.2s ease;
+  }
+  .btn .btn-label {
+    min-width: 0;
+    white-space: normal;
+    text-wrap: balance;
+    line-height: 1.2;
+    text-align: center;
   }
   .btn:active:not(:disabled):not([aria-disabled="true"]),
   .btn[data-pressed="true"] {
