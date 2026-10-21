@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Globe, Plug, ShieldCheck } from "lucide-react";
+import { Bell, ChartNoAxesColumn, Globe, Plug, ShieldCheck } from "lucide-react";
+import { CookieSettingsButton } from "@/components/Consent";
 import { useTranslations } from "next-intl";
 import { useRef, useState, type ReactNode } from "react";
 import { ButtonLink, Callout, Pane, Switch, Tag, cx } from "@/components/ui";
@@ -9,6 +10,7 @@ import { switchLocaleHref } from "@/i18n/paths";
 import { LOCALE_COOKIE, LOCALE_NAMES, LOCALES, type Locale } from "@/i18n/routing";
 import type { AutoSubmitGroup, NotificationPrefs } from "@/lib/authorizations";
 import { DataSection } from "./DataSection";
+import { radioKeys } from "@/components/radio-keys";
 
 /*
  * /app/settings (P6). Every switch flips on press; the PATCH answers with the whole settings
@@ -142,6 +144,7 @@ export function SettingsClient({ locale, savedLocale, email, groups, initial, pe
     { id: "authorizations", label: t("nav.authorizations") },
     { id: "notifications", label: t("nav.notifications") },
     { id: "integrations", label: t("nav.integrations") },
+    { id: "analytics", label: t("nav.analytics") },
     { id: "data", label: t("nav.data") },
   ];
 
@@ -175,7 +178,7 @@ export function SettingsClient({ locale, savedLocale, email, groups, initial, pe
           {t("language.body")}
         </SectionTitle>
         <div role="radiogroup" aria-label={t("language.title")} className="mt-5 grid grid-cols-2 gap-2 sm:max-w-sm">
-          {LOCALES.map((l) => {
+          {LOCALES.map((l, i) => {
             const selected = shownLocale === l;
             return (
               <button
@@ -183,6 +186,7 @@ export function SettingsClient({ locale, savedLocale, email, groups, initial, pe
                 type="button"
                 role="radio"
                 aria-checked={selected}
+                {...radioKeys(i, LOCALES.length, LOCALES.indexOf(shownLocale), null)}
                 aria-busy={langPending === l || undefined}
                 lang={l === "zh" ? "zh-CN" : "en"}
                 onClick={() => void chooseLanguage(l)}
@@ -326,6 +330,16 @@ export function SettingsClient({ locale, savedLocale, email, groups, initial, pe
           <ButtonLink href="/app/integrations" variant="ghost" size="sm" prefetch={false} className="shrink-0">
             {t("integrations.manage")}
           </ButtonLink>
+        </div>
+      </Pane>
+
+      {/* ---------------------------------------------------------------- analytics */}
+      <Pane as="section" id="analytics" pad="md" className="scroll-mt-28">
+        <SectionTitle icon={<ChartNoAxesColumn size={19} />} title={t("analytics.title")}>
+          {t("analytics.body")}
+        </SectionTitle>
+        <div className="mt-4">
+          <CookieSettingsButton className="!bg-pane-2 !px-4 !text-ink-2 !no-underline shadow-[inset_0_0_0_1px_var(--line)]" />
         </div>
       </Pane>
 

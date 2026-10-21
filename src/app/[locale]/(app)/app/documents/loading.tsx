@@ -1,9 +1,12 @@
+import { useTranslations } from "next-intl";
 import { ListSkeleton } from "@/components/Skeletons";
 
 /** /app/documents while it loads: sources and generated documents. */
 export default function DocumentsLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
-    <div className="min-w-0" aria-busy="true" role="status" aria-label="Loading">
+    <div className="min-w-0" aria-busy="true" role="status" aria-label={label}>
       <div className="pb-6 sm:pb-8" aria-hidden="true">
         <span className="skeleton block h-3 w-24 rounded-full" />
         <span className="skeleton mt-3 block h-9 w-2/3 max-w-[420px] rounded-[12px]" />

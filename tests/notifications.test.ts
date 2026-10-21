@@ -103,8 +103,8 @@ describe("sanitizeNotification", () => {
 
 describe("emailAllowed", () => {
   const prefs = { emailUpdates: true, emailDigest: true };
-  const pro = { autoFollowUps: true, weeklyDigest: true, priority: true };
-  const free = { autoFollowUps: false, weeklyDigest: false, priority: false };
+  const pro = { autoFollowUps: true, weeklyDigest: true };
+  const free = { autoFollowUps: false, weeklyDigest: false };
   it("sends updates by the updates preference", () => {
     expect(emailAllowed("needs_you", prefs, free)).toBe(true);
     expect(emailAllowed("needs_you", { ...prefs, emailUpdates: false }, pro)).toBe(false);

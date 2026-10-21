@@ -23,7 +23,39 @@ import type { HandoffPackage, PreparedPackage } from "./types";
  * Credits move only through src/lib/credits.ts.
  */
 
-export type ApplicationErrorCode = "not_found" | "conflict" | "insufficient_credits" | "not_ready" | "needs_confirmation" | "invalid_transition" | "not_submitted" | "busy" | "already_submitted" | "no_followup" | "invalid_answer";
+export type ApplicationErrorCode =
+  | "not_found"
+  | "conflict"
+  | "insufficient_credits"
+  | "not_ready"
+  | "needs_confirmation"
+  | "invalid_transition"
+  | "not_submitted"
+  | "busy"
+  | "already_submitted"
+  | "no_followup"
+  | "invalid_answer"
+  | "invalid_request"
+  | "outreach_blocked"
+  | "guardian_required";
+
+/** Every code, in the order the client's localized messages list them (applications.errors.*). */
+export const APPLICATION_ERROR_CODES: readonly ApplicationErrorCode[] = [
+  "not_found",
+  "conflict",
+  "insufficient_credits",
+  "not_ready",
+  "needs_confirmation",
+  "invalid_transition",
+  "not_submitted",
+  "busy",
+  "already_submitted",
+  "no_followup",
+  "invalid_answer",
+  "invalid_request",
+  "outreach_blocked",
+  "guardian_required",
+];
 
 export class ApplicationError extends Error {
   constructor(
@@ -49,6 +81,9 @@ const HUMAN: Record<ApplicationErrorCode, string> = {
   already_submitted: "This application was already submitted.",
   no_followup: "There is no follow-up waiting for this application.",
   invalid_answer: "That answer doesn't fit this question.",
+  invalid_request: "That request isn't valid. Reload the page and try again.",
+  outreach_blocked: "We can't send this email: the recipient can't be contacted right now.",
+  guardian_required: "Add a parent or guardian's email to your profile before your first submission.",
 };
 
 export function appError(code: ApplicationErrorCode, status = 409, extra: Record<string, unknown> = {}): ApplicationError {
@@ -224,7 +259,8 @@ export interface ExecuteResult {
 /**
  * Runs a plan's effects in order. A failed reservation stops before anything else moves
  * (ApplicationError "insufficient_credits", 402). Credit settlement after a submission never
- * undoes the submission: a failure there is captured for the reconcile job instead.
+ * undoes the submission: a failure there is captured (error inbox) and repaired by the daily
+ * credit reconciliation (`reconcileApplicationCredits`, run by /api/cron/expire).
  */
 export async function execute(start: ApplicationRow, effects: Effect[], opts: { href?: string } = {}): Promise<ExecuteResult> {
   let app = start;
@@ -246,7 +282,18 @@ export async function execute(start: ApplicationRow, effects: Effect[], opts: { 
         app = await transition(app, e.to, e.actor, { needsYouReason: e.needsYouReason });
         break;
       case "settle":
-        await safe("settle", () => settleApplication(app.id), { applicationId: app.id });
+        await safe(
+          "settle",
+          async () => {
+            const r = await settleApplication(app.id);
+            // A paid submission that debited nothing means the reservation was lost on the way:
+            // flag it so it never passes silently as a free submission.
+            if (r.debited === 0 && !app.practice) {
+              await captureError(new Error("settle debited 0 credits for a paid submission"), { route: "applications/settle", severity: "warn", context: { applicationId: app.id } });
+            }
+          },
+          { applicationId: app.id },
+        );
         break;
       case "release":
         await safe("release", () => releaseApplication(app.id), { applicationId: app.id });

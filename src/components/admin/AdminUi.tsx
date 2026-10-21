@@ -299,3 +299,28 @@ export function TableSkeleton({ rows = 6, filters = false, label }: { rows?: num
     </div>
   );
 }
+
+/** Previous / next links under an admin list (`?page=`); nothing when the list fits one page. */
+export function AdminPager({ page, hasNext, href, labels }: { page: number; hasNext: boolean; href: (page: number) => string; labels: { prev: string; next: string; page: string } }) {
+  if (page <= 1 && !hasNext) return null;
+  const link = "press inline-flex min-h-[40px] items-center rounded-full bg-pane-2 px-4 text-[0.88rem] font-medium text-ink-2 shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink";
+  return (
+    <nav aria-label={labels.page} className="flex items-center justify-between gap-3 pt-2">
+      {page > 1 ? (
+        <Link href={href(page - 1)} prefetch={false} className={link}>
+          ← {labels.prev}
+        </Link>
+      ) : (
+        <span />
+      )}
+      <span className="num text-[0.85rem] text-ink-3">{labels.page}</span>
+      {hasNext ? (
+        <Link href={href(page + 1)} prefetch={false} className={link}>
+          {labels.next} →
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
+  );
+}

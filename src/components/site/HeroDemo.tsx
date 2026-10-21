@@ -7,7 +7,7 @@ import "./hero-demo.css";
 
 /*
  * The home-page example: a résumé drops in, profile facts appear, three picks slide in with fit
- * scores, one is prepared and submitted after a tap, another becomes a 30-second handoff.
+ * scores, one is prepared and submitted after a tap, another becomes a handoff with every field ready.
  * Labelled "Example" with illustrative data; screen readers get one sentence instead of the
  * animation. It plays only while on screen, can be paused, and shows the finished state at
  * once when the visitor prefers reduced motion. Copy arrives as props (public pages give

@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Check } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs, type Crumb } from "@/components/seo/Breadcrumbs";
 import { ListingCard } from "@/components/seo/ListingCard";
@@ -12,13 +12,11 @@ import {
   OPPORTUNITIES_PATH,
   REGION_IDS,
   REGION_LABELS,
-  materialChecklist,
   opportunityPath,
   playbookPath,
   regionPath,
   regionPhrase,
   regionsOf,
-  timelineFor,
   typeCopy,
   typePath,
   type PublicListing,
@@ -35,8 +33,8 @@ export function regionCounts(listings: PublicListing[]): { region: RegionId; cou
 
 /**
  * /opportunities/<type>, its later pages and its region pages: intro, region filter (links to
- * static region pages, so filtering is instant and crawlable), the paginated grid, "how to win
- * these", the questions applicants meet, and the playbook link.
+ * static region pages, so filtering is instant and crawlable), the paginated grid and the link
+ * to the type's playbook (which alone carries the advice, so hub and playbook never duplicate).
  */
 export function TypeHubView({
   def,
@@ -67,8 +65,6 @@ export function TypeHubView({
     { name: plural, path: typePath(def.slug) },
     ...(region ? [{ name: REGION_LABELS[region], path: selfPath }] : page > 1 ? [{ name: `Page ${page}`, path: selfPath }] : []),
   ];
-  const checklist = materialChecklist(def.materials);
-  const steps = timelineFor(def.id);
   const offset = (page - 1) * LIST_PAGE_SIZE;
 
   return (
@@ -153,63 +149,19 @@ export function TypeHubView({
         )}
       </Section>
 
+      {/* The advice (what reviewers look for, materials, questions, timeline) lives on one page,
+          the playbook; the hub carries the listings and points there, so the two never duplicate. */}
       <Section className="!pt-14 sm:!pt-20">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <Pane pad="lg" className="min-w-0">
-            <p className="eyebrow eyebrow-accent">How to win these</p>
-            <h2 className="headline mt-3 text-[1.6rem] text-ink sm:text-[1.9rem]">What reviewers of {plural.toLowerCase()} look for</h2>
-            <ol className="mt-6 grid gap-3">
-              {copy.win.map((tip, i) => (
-                <li key={i} className="pane-inset flex gap-4 px-4 py-4 sm:px-5">
-                  <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[0.9rem] font-semibold tabular-nums text-accent-text">
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0 text-[0.98rem] leading-relaxed text-ink-2">{tip}</span>
-                </li>
-              ))}
-            </ol>
-          </Pane>
-          <Pane pad="lg" className="min-w-0">
-            <p className="eyebrow">What you will usually need</p>
-            <ul className="mt-4 grid gap-3">
-              {checklist.map((c) => (
-                <li key={c.id} className="flex gap-3">
-                  <Check size={18} aria-hidden className="mt-[3px] shrink-0 text-pine" />
-                  <span className="min-w-0">
-                    <span className="block font-medium text-ink">{c.label}</span>
-                    <span className="block text-[0.88rem] leading-snug text-ink-3">{c.note}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <Link href={playbookPath(def.slug)} locale="en" className="btn btn-ghost btn-sm mt-6">
-              <BookOpen size={16} aria-hidden />
-              <span className="btn-label">Full playbook for {plural.toLowerCase()}</span>
-            </Link>
-          </Pane>
-        </div>
-
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {copy.questions.map((qa) => (
-            <Pane key={qa.q} pad="md" className="min-w-0">
-              <p className="eyebrow">A question you will meet</p>
-              <h3 className="title mt-2 text-[1.12rem] text-ink">{qa.q}</h3>
-              <p className="mt-2 text-[0.96rem] leading-relaxed text-ink-2">{qa.a}</p>
-            </Pane>
-          ))}
-        </div>
-
-        <Pane pad="md" className="mt-4 min-w-0">
-          <p className="eyebrow">A typical preparation timeline</p>
-          <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((s) => (
-              <li key={s.title} className="pane-inset min-w-0 px-4 py-4">
-                <span className="num text-[0.82rem] font-semibold text-accent-text">{s.daysBefore > 0 ? `${s.daysBefore} days before` : "Deadline day"}</span>
-                <span className="mt-1 block font-semibold text-ink">{s.title}</span>
-                <span className="mt-1 block text-[0.9rem] leading-snug text-ink-3">{s.text}</span>
-              </li>
-            ))}
-          </ol>
+        <Pane pad="lg" className="min-w-0">
+          <p className="eyebrow eyebrow-accent">How to win these</p>
+          <h2 className="headline mt-3 text-[1.6rem] text-ink sm:text-[1.9rem]">The playbook for {plural.toLowerCase()}</h2>
+          <p className="mt-3 max-w-2xl text-[0.98rem] leading-relaxed text-ink-2">
+            What reviewers look for, the materials you will usually need, the questions you will meet and a preparation timeline, on one page.
+          </p>
+          <Link href={playbookPath(def.slug)} locale="en" className="btn btn-ghost btn-sm mt-6">
+            <BookOpen size={16} aria-hidden />
+            <span className="btn-label">Read the playbook for {plural.toLowerCase()}</span>
+          </Link>
         </Pane>
       </Section>
 

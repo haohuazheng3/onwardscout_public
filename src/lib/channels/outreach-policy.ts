@@ -5,7 +5,8 @@
  *  - at most 20 new conversations per person per rolling 24 hours, and 60 per rolling 7 days;
  *  - never write to the same contact again within 30 days (a follow-up in the same thread is
  *    not a new contact, see `checkFollowUpPolicy`);
- *  - a contact who asked not to be contacted is never written to again;
+ *  - a contact who asked not to be contacted is never written to again, by anyone (the global
+ *    list in outreach-blocks.ts);
  *  - minors (identity S1) get no outreach channel at all.
  */
 
@@ -42,6 +43,8 @@ export interface OutreachCheckInput {
   newContactsLastDay: number;
   newContactsLastWeek: number;
   isMinor: boolean;
+  /** The address is on the global opt-out list (another user's recipient asked us to stop). */
+  blocked?: boolean;
   now: Date;
 }
 
@@ -54,7 +57,7 @@ export function checkOutreachPolicy(input: OutreachCheckInput): PolicyResult {
   if (input.isMinor) {
     return { ok: false, code: "minor", message: "Email outreach isn't available for high-school students. Use the prepared text with a parent or teacher instead.", retryable: false };
   }
-  if (input.contact?.doNotContact) {
+  if (input.contact?.doNotContact || input.blocked) {
     return { ok: false, code: "do_not_contact", message: "This person asked not to be contacted, so we won't write to them.", retryable: false };
   }
   const last = input.contact?.lastContactedAt ?? null;
@@ -92,6 +95,7 @@ export function checkOutreachPolicy(input: OutreachCheckInput): PolicyResult {
 export interface FollowUpCheckInput {
   attempt: number;
   replied: boolean;
+  /** The contact opted out, or the address is on the global opt-out list. */
   doNotContact: boolean;
   lastSentAt: Date | null;
   now: Date;

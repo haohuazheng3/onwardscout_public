@@ -10,7 +10,8 @@
     "authorizations": "Permissions",
     "notifications": "Notifications",
     "integrations": "Connected accounts",
-    "data": "Your data"
+    "data": "Your data",
+    "analytics": "Analytics"
   },
   "language": {
     "title": "Language",
@@ -133,5 +134,9 @@
     "doneBody": "Everything still arrives in the app. Change it any time in Settings: {url}",
     "invalidTitle": "This link has expired or is not valid",
     "invalidBody": "Open Settings in Onward Scout to choose what we email you."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "body": "FlowGlance records page activity on our site and in the app, including text typed into forms and uploads, to show us where people get stuck. Turn it on or off here at any time; turning it off takes effect at once."
   }
 }

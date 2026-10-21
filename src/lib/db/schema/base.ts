@@ -36,6 +36,28 @@ export const users = pgTable(
   ],
 );
 
+/**
+ * Deleted accounts (one row per deletion, keyed by a keyed hash of the Clerk user id — never the
+ * id itself). `ensureUser` refuses to recreate a deleted person from a still-valid session, and
+ * billing never grants credits to them again from Stripe metadata.
+ */
+export const userTombstones = pgTable("user_tombstones", {
+  userHash: text("user_hash").primaryKey(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Recipients nobody on Onward Scout may email again (outreach honesty rule 4: opt-outs are
+ * permanent, across every user). Keyed by a keyed hash of the lowercased address (see
+ * `keyedHash("outreach", …)`), so the table never holds the address itself.
+ */
+export const outreachBlocks = pgTable("outreach_blocks", {
+  emailHash: text("email_hash").primaryKey(),
+  /** "opt_out" (a forwarded reply asked to stop) or "admin" (blocked by the operator). */
+  reason: text("reason").$type<"opt_out" | "admin">().notNull(),
+  createdAt: createdAt(),
+});
+
 /* ------------------------------------------------------------------ billing ledger */
 
 export type StripeEventStatus = "received" | "processed" | "ignored" | "failed";

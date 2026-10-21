@@ -59,13 +59,14 @@ export function Trail({ view }: { view: ApplicationView }) {
   );
 }
 
-export function RoomHeader({ room, locale }: { room: RoomApi; locale: string }) {
+export function RoomHeader({ room, locale, nowIso }: { room: RoomApi; locale: string; nowIso: string }) {
   const t = useTranslations("applications");
   const format = useFormatter();
   const v = room.view;
   const o = v.opportunity;
   const line = statusLine({ status: v.status, needsYouReason: v.needsYouReason, openQuestions: v.questions.filter((q) => q.required !== false).length, practice: v.practice });
-  const days = daysUntil(o.deadline);
+  // The server's clock (as on the board): the same day count during SSR and hydration.
+  const days = daysUntil(o.deadline, new Date(nowIso));
   const type = isOpportunityTypeId(o.type) ? opportunityTypeLabel(o.type, locale) : null;
   const channel = getChannel(v.channel);
   return (

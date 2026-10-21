@@ -30,6 +30,7 @@ export function DetailActions({ opportunityId, matchId, feedback, practice }: { 
   const [current, setCurrent] = useState<MatchFeedback | null>(feedback);
   const [target, setTarget] = useState(matchId ?? opportunityId);
   const [asking, setAsking] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
 
   async function toggleLater() {
     const prev = current;
@@ -48,12 +49,14 @@ export function DetailActions({ opportunityId, matchId, feedback, practice }: { 
     const prev = current;
     setCurrent("not_interested");
     setAsking(false);
+    setDismissing(true); // visible at once: the button says it is being removed until we leave
     try {
       await saveFeedback(target, "not_interested", reason, tc("errors.generic"));
       toast({ title: t("dismissed"), body: t("learns") });
       router.push("/app/scout");
     } catch (err) {
       setCurrent(prev);
+      setDismissing(false);
       toast.error(tc("errors.rolledBack"), { body: err instanceof Error ? err.message : undefined });
     }
   }
@@ -88,8 +91,8 @@ export function DetailActions({ opportunityId, matchId, feedback, practice }: { 
       >
         {current === "later" ? t("savedLaterShort") : t("later")}
       </Button>
-      <Button variant="quiet" size="sm" icon={<ThumbsDown size={15} aria-hidden />} onClick={() => setAsking(true)} aria-pressed={current === "not_interested"}>
-        {t("notInterested")}
+      <Button variant="quiet" size="sm" icon={<ThumbsDown size={15} aria-hidden />} loading={dismissing} onClick={() => setAsking(true)} aria-pressed={current === "not_interested"}>
+        {dismissing ? t("dismissing") : t("notInterested")}
       </Button>
     </div>
   );

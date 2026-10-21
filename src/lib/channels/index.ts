@@ -39,6 +39,8 @@ export { buildHandoff, buildMailtoHandoff, displayValue } from "./handoff";
 export { handoffReason, resolveChannelId } from "./select";
 export { OUTREACH_LIMITS, checkFollowUpPolicy, checkOutreachPolicy, isOptOut } from "./outreach-policy";
 export { browserAgentEnabled, runBrowserAgent } from "./ch3-browser";
+export { outreachPreflight } from "./ch4-email";
+export { blockOutreach, isOutreachBlocked, outreachHash } from "./outreach-blocks";
 
 export const CHANNEL_REGISTRY: Readonly<Record<ChannelId, Channel>> = {
   CH1: ch1Ats,

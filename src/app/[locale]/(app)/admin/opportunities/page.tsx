@@ -2,14 +2,14 @@ import { and, count, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { AdminSearch, SubmitButton } from "@/components/admin/AdminClient";
-import { AdminTable, AdminTitle, FilterPills, Mono, StatusTag, fmtDay, fmtInt, type Column } from "@/components/admin/AdminUi";
+import { AdminPager, AdminTable, AdminTitle, FilterPills, Mono, StatusTag, fmtDay, fmtInt, type Column } from "@/components/admin/AdminUi";
 import { ButtonLink, Tag } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { isOpportunityTypeId, opportunityTypeLabel } from "@/lib/core";
 import { db } from "@/lib/db";
 import { opportunities, sources } from "@/lib/db/schema";
 import { reviewOpportunityAction } from "../actions";
-import { ADMIN_PAGE, adminLocale, backQuery, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
+import { pageHref, pageRows, pageWindow, adminLocale, backQuery, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 import { AdminNotice } from "../_lib/notice";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,8 @@ export default async function AdminOpportunitiesPage({ params, searchParams }: {
   const [t, tc] = await Promise.all([getTranslations({ locale, namespace: "admin.opportunities" }), getTranslations({ locale, namespace: "admin.common" })]);
 
   const search = q ? sql`${opportunities.search} @@ websearch_to_tsquery('simple', ${q})` : undefined;
-  const [rows, counts] = await Promise.all([
+  const win = pageWindow(sp);
+  const [fetched, counts] = await Promise.all([
     db
       .select({
         id: opportunities.id,
@@ -71,7 +72,8 @@ export default async function AdminOpportunitiesPage({ params, searchParams }: {
       .leftJoin(sources, eq(sources.id, opportunities.sourceId))
       .where(and(tabWhere(tab), search))
       .orderBy(desc(opportunities.updatedAt))
-      .limit(ADMIN_PAGE),
+      .limit(win.limit)
+      .offset(win.offset),
     Promise.all(
       TABS.map((id) =>
         db
@@ -83,6 +85,7 @@ export default async function AdminOpportunitiesPage({ params, searchParams }: {
       ),
     ),
   ]);
+  const { rows, hasNext } = pageRows(fetched);
   const countOf = new Map(counts);
   const back = backQuery(sp, ["tab", "q"]);
   const path = "/admin/opportunities";
@@ -178,7 +181,7 @@ export default async function AdminOpportunitiesPage({ params, searchParams }: {
         clearLabel={tc("clear")}
       />
       <AdminTable columns={columns} rows={rows} keyOf={(r) => r.id} empty={tab === "review" && !q ? t("emptyReview") : t("empty")} />
-      {rows.length === ADMIN_PAGE ? <p className="text-[0.85rem] text-ink-4">{tc("showingNewest", { count: ADMIN_PAGE })}</p> : null}
+      <AdminPager page={win.page} hasNext={hasNext} href={(n) => pageHref("/admin/opportunities", sp, n)} labels={{ prev: tc("prevPage"), next: tc("nextPage"), page: tc("pageN", { page: win.page }) }} />
     </div>
   );
 }

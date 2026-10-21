@@ -20,7 +20,7 @@ import { isLive, useApplication } from "./useApplication";
  * answers with their sources, and the record (evidence, outcome). On phones the action comes
  * first; on desktop it sits in a sticky side column.
  */
-export function ApplicationRoom({ initial, balance, locale }: { initial: ApplicationView; balance: { available: number; reserved: number } | null; locale: string }) {
+export function ApplicationRoom({ initial, balance, locale, nowIso }: { initial: ApplicationView; balance: { available: number; reserved: number } | null; locale: string; nowIso: string }) {
   const t = useTranslations("applications");
   const room = useApplication(initial, balance);
   const v = room.view;
@@ -47,7 +47,7 @@ export function ApplicationRoom({ initial, balance, locale }: { initial: Applica
         <Pane pad="md" className="min-w-0">
           <p className="title text-[1.05rem] text-ink">{t("handoff.doneTitle")}</p>
           <p className="mt-1.5 text-[0.92rem] leading-relaxed text-ink-3">{t("handoff.doneLede")}</p>
-          {v.creditsReserved > 0 ? <p className="mt-3 text-[0.86rem] text-ink-4">{t("handoff.credit")}</p> : null}
+          {v.creditsReserved > 0 ? <p className="mt-3 text-[0.86rem] text-ink-3">{t("handoff.credit")}</p> : null}
         </Pane>
       );
     }
@@ -66,7 +66,7 @@ export function ApplicationRoom({ initial, balance, locale }: { initial: Applica
 
   return (
     <div className="grid min-w-0 gap-4 sm:gap-5">
-      <RoomHeader room={room} locale={locale} />
+      <RoomHeader room={room} locale={locale} nowIso={nowIso} />
       <div className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="order-2 grid min-w-0 gap-4 sm:gap-5 lg:order-1">
           {showWorking ? <WorkingPane room={room} /> : null}

@@ -3,10 +3,10 @@
 import { MapPin, Search, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
-import { Chip, Input, Select, Skeleton, Tag, cx } from "@/components/ui";
+import { Button, Chip, Input, Select, Skeleton, Tag, cx } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import { FUNCTIONS, functionLabel } from "@/lib/core/functions";
-import { IDENTITY_GROUP_DEFS, identitiesInGroup, identityLabel, stagesFor } from "@/lib/core/identities";
+import { IDENTITY_GROUP_DEFS, identitiesInGroup, identityLabel, isMinor, stagesFor } from "@/lib/core/identities";
 import { TOP_LEVEL_INDUSTRIES, industryLabel, isIndustryCode } from "@/lib/core/industries";
 import { localize } from "@/lib/core/labels";
 import { mapOccupation, occupationLabel, isOccupationCode } from "@/lib/core/occupations";
@@ -273,6 +273,15 @@ export function ProfileCard({
             </div>
           ) : null}
         </div>
+
+        {/* Under 18 (identity S1): a parent or guardian's email before the first submission (honesty rule 5). */}
+        {isMinor(selectedCodes) ? (
+          <GuardianEmail
+            key={profile.identity.guardianEmail ?? ""}
+            initial={profile.identity.guardianEmail ?? ""}
+            onSave={(email) => save({ op: "field", field: "guardianEmail", value: email }, { ...profile, identity: { ...profile.identity, guardianEmail: email || null } })}
+          />
+        ) : null}
       </section>
 
       {/* ---------------- field ---------------- */}
@@ -425,5 +434,65 @@ export function ProfileCard({
 
       <GapQuestions questions={gaps} locale={locale} onAnswer={answer} />
     </div>
+  );
+}
+
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** The guardian's email for a minor: typed once, saved with the same optimistic save as every chip. */
+function GuardianEmail({ initial, onSave }: { initial: string; onSave: (email: string) => Promise<PatchResponse | null> }) {
+  const t = useTranslations("onboarding.card");
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+  const [invalid, setInvalid] = useState(false);
+  const dirty = value.trim() !== initial;
+  return (
+    <form
+      className="pane-inset mt-5 grid gap-2 p-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const email = value.trim();
+        if (email && !EMAIL_SHAPE.test(email)) {
+          setInvalid(true);
+          return;
+        }
+        setInvalid(false);
+        setSaving(true);
+        const res = await onSave(email);
+        setSaving(false);
+        if (res) toast.success(t("guardianSaved"), { duration: 1800 });
+      }}
+    >
+      <label htmlFor="guardian-email" className="text-[0.92rem] font-medium text-ink">
+        {t("guardianTitle")}
+      </label>
+      <p id="guardian-email-hint" className="text-[0.85rem] leading-snug text-ink-3">
+        {t("guardianHint")}
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          id="guardian-email"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          value={value}
+          invalid={invalid}
+          aria-describedby="guardian-email-hint"
+          onChange={(e) => {
+            setValue(e.target.value);
+            setInvalid(false);
+          }}
+          className="min-w-0 flex-1"
+        />
+        <Button type="submit" variant="ghost" loading={saving} disabled={!dirty}>
+          {t("guardianSave")}
+        </Button>
+      </div>
+      {invalid ? (
+        <p className="text-[0.85rem] text-bad" role="alert">
+          {t("guardianInvalid")}
+        </p>
+      ) : null}
+    </form>
   );
 }

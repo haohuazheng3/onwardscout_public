@@ -66,7 +66,13 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     languages = Object.fromEntries(Object.entries(input.alternates).filter(([, v]) => Boolean(v)).map(([k, v]) => [k, absoluteUrl(v as string)]));
   } else languages = hreflangAlternates(input.path, input.englishOnly);
 
-  const noindex = input.noindex || !isIndexable();
+  // Not the indexable production site (preview, pre-launch): nothing indexed, nothing followed.
+  // A quality gate on a public page (`noindex`): out of the index, but its links still count.
+  const robots = !isIndexable()
+    ? { index: false, follow: false, googleBot: { index: false, follow: false } }
+    : input.noindex
+      ? { index: false, follow: true, googleBot: { index: false, follow: true } }
+      : null;
   return {
     title: input.absoluteTitle ? { absolute: input.title } : input.title,
     description: input.description,
@@ -89,7 +95,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       description: input.description,
       images: [image],
     },
-    ...(noindex ? { robots: { index: false, follow: false, googleBot: { index: false, follow: false } } } : {}),
+    ...(robots ? { robots } : {}),
   };
 }
 

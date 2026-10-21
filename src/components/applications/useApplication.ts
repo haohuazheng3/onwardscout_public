@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { track } from "@/components/Consent";
+import { analyticsDeclined, track } from "@/components/Consent";
 import { refreshAppStatus, updateAppStatus, useAppStatus } from "@/components/AppNav";
 import { toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
@@ -44,6 +44,32 @@ export function isLive(v: Pick<View, "status" | "working" | "stalled">): boolean
   return Boolean(v.working) || LIVE_STATUSES.includes(v.status);
 }
 
+type Translator = ((key: string, values?: Record<string, string | number>) => string) & { has: (key: string) => boolean };
+
+/**
+ * The server's error in the person's language: the engine sends a `code` with every refusal
+ * (insufficient credits, conflict, busy, outreach rules…) and the sentence comes from
+ * applications.errors.*; the server's English sentence is only the fallback for unknown codes.
+ */
+export function applicationErrorMessage(err: unknown, t: Translator, fallback: string): string {
+  if (err instanceof RequestError) {
+    const code = typeof err.data?.code === "string" ? err.data.code : null;
+    if (code === "outreach_blocked") {
+      const reason = typeof err.data?.reason === "string" ? err.data.reason : null;
+      const retryAt = typeof err.data?.retryAt === "string" ? err.data.retryAt.slice(0, 10) : "";
+      if (reason && t.has(`errors.outreach.${reason}`)) return t(`errors.outreach.${reason}`, { date: retryAt });
+    }
+    if (code && t.has(`errors.${code}`)) return t(`errors.${code}`);
+    return err.message || fallback;
+  }
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+interface EmailDraft {
+  subject: string;
+  body: string;
+}
+
 export function useApplication(initial: View, initialBalance: { available: number; reserved: number } | null) {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
@@ -62,6 +88,29 @@ export function useApplication(initial: View, initialBalance: { available: numbe
 
   const available = shell.state === "ready" && shell.available !== null ? shell.available : (balance?.available ?? null);
 
+  /*
+   * The outreach email being edited (EmailPane). Held here, not in the pane, so "Confirm & send"
+   * and "Send follow-up" save unsaved edits first, and a failed save or a refresh of the view
+   * never throws away what the person typed: the server copy only replaces the draft while the
+   * person hasn't touched it.
+   */
+  const [emailDraft, setEmailDraftState] = useState<EmailDraft>({ subject: initial.email?.subject ?? "", body: initial.email?.body ?? "" });
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [emailSeen, setEmailSeen] = useState(initial.email);
+  if (view.email !== emailSeen) {
+    setEmailSeen(view.email);
+    if (!emailTouched) setEmailDraftState({ subject: view.email?.subject ?? "", body: view.email?.body ?? "" });
+  }
+  const emailDirty = Boolean(view.email) && emailTouched && (emailDraft.subject !== view.email?.subject || emailDraft.body !== view.email?.body);
+  const setEmailDraft = useCallback((draft: EmailDraft) => {
+    setEmailDraftState(draft);
+    setEmailTouched(true);
+  }, []);
+  const emailDraftRef = useRef({ draft: emailDraft, dirty: emailDirty });
+  useEffect(() => {
+    emailDraftRef.current = { draft: emailDraft, dirty: emailDirty };
+  }, [emailDraft, emailDirty]);
+
   /** Side effects of a status change seen from the server (analytics, toasts, shell counters). */
   const settle = useCallback(
     (next: View) => {
@@ -79,7 +128,8 @@ export function useApplication(initial: View, initialBalance: { available: numbe
         }
         prevStatus.current = next.status;
       }
-      if (next.unlock && !next.practice && storageGet(UNLOCK_KEY) !== "1") {
+      // Remembered only when the event can actually be sent (analytics loaded and allowed).
+      if (next.unlock && !next.practice && window.fw && !analyticsDeclined() && storageGet(UNLOCK_KEY) !== "1") {
         track("unlock", { applicationId: next.id });
         storageSet(UNLOCK_KEY, "1");
       }
@@ -149,7 +199,7 @@ export function useApplication(initial: View, initialBalance: { available: numbe
         return r;
       } catch (err) {
         setView(before);
-        const message = err instanceof Error ? err.message : msgs.generic;
+        const message = applicationErrorMessage(err, t as unknown as Translator, msgs.generic);
         if (err instanceof RequestError && err.status === 402) {
           toast.error(t("confirm.noCredits"), { body: message, action: { label: t("confirm.buy"), onClick: () => router.push("/app/billing") } });
         } else {
@@ -183,7 +233,31 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     [msgs, mutate, t],
   );
 
+  const editEmail = useCallback(
+    async (documentId: string, subject: string, body: string) => {
+      const r = await mutate(
+        "email",
+        (v) => ({ ...v, email: v.email ? { ...v.email, subject, body } : v.email }),
+        () => call<Resp>(`/api/applications/${viewRef.current.id}`, { method: "PATCH", json: { email: { documentId, subject, body } } }, msgs),
+      );
+      // Saved: the server copy is the person's text now. Failed: the draft stays as typed.
+      if (r) setEmailTouched(false);
+      return r;
+    },
+    [msgs, mutate],
+  );
+
+  /** Saves the email draft when it has unsaved edits. False when the save failed (stop there). */
+  const saveEmailIfDirty = useCallback(async (): Promise<boolean> => {
+    const { draft, dirty } = emailDraftRef.current;
+    const documentId = viewRef.current.email?.documentId;
+    if (!dirty || !documentId) return true;
+    return Boolean(await editEmail(documentId, draft.subject, draft.body));
+  }, [editEmail]);
+
   const confirm = useCallback(async () => {
+    // What is sent is what the person sees: unsaved email edits are saved first.
+    if (!(await saveEmailIfDirty())) return null;
     const cost = viewRef.current.creditCost;
     const r = await mutate(
       "confirm",
@@ -193,15 +267,14 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     );
     if (r && cost > 0 && !r.balance && shell.available !== null) updateAppStatus({ available: Math.max(0, shell.available - cost), reserved: shell.reserved + cost });
     return r;
-  }, [msgs, mutate, shell.available, shell.reserved, t]);
+  }, [msgs, mutate, saveEmailIfDirty, shell.available, shell.reserved, t]);
 
   const handoffDone = useCallback(
     async (input: { url?: string; reference?: string; screenshotKey?: string }) => {
-      const r = await mutate(
-        "handoff",
-        (v) => ({ ...v, status: "submitted", column: boardColumn("submitted"), submittedAt: new Date().toISOString() }),
-        () => call<Resp>(`/api/applications/${viewRef.current.id}/handoff-done`, { json: input }, msgs),
-      );
+      // No optimistic status change: the handoff panel (with the link, reference and screenshot
+      // the person entered) stays on screen, busy, until the server has recorded it; a failure
+      // then leaves everything they typed in place.
+      const r = await mutate("handoff", null, () => call<Resp>(`/api/applications/${viewRef.current.id}/handoff-done`, { json: input }, msgs));
       if (r) {
         track("handoff_completed", { channel: viewRef.current.channel, practice: viewRef.current.practice });
         track("application_submitted", { channel: viewRef.current.channel, practice: viewRef.current.practice, handoff: true });
@@ -269,16 +342,6 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     [msgs, mutate],
   );
 
-  const editEmail = useCallback(
-    (documentId: string, subject: string, body: string) =>
-      mutate(
-        "email",
-        (v) => ({ ...v, email: v.email ? { ...v.email, subject, body } : v.email }),
-        () => call<Resp>(`/api/applications/${viewRef.current.id}`, { method: "PATCH", json: { email: { documentId, subject, body } } }, msgs),
-      ),
-    [msgs, mutate],
-  );
-
   const regenerateDocument = useCallback(
     (documentId: string) => mutate(`regen:${documentId}`, null, () => call<Resp & { documentId?: string }>(`/api/applications/${viewRef.current.id}/regenerate`, { json: { documentId } }, msgs)),
     [msgs, mutate],
@@ -300,13 +363,16 @@ export function useApplication(initial: View, initialBalance: { available: numbe
   );
 
   const followUp = useCallback(
-    (decision: "send" | "skip") =>
-      mutate(
+    async (decision: "send" | "skip") => {
+      // The follow-up the person approves is the one they see: save their edits first.
+      if (decision === "send" && !(await saveEmailIfDirty())) return null;
+      return mutate(
         `followup:${decision}`,
         (v) => (decision === "skip" ? { ...v, status: "waiting", column: boardColumn("waiting"), needsYouReason: null } : { ...v, working: { kind: "followup", step: "followup" } }),
         () => call<Resp>(`/api/applications/${viewRef.current.id}/followup`, { json: { decision } }, msgs),
-      ),
-    [msgs, mutate],
+      );
+    },
+    [msgs, mutate, saveEmailIfDirty],
   );
 
   const download = useCallback(
@@ -340,7 +406,31 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     [msgs, t],
   );
 
-  return { view, busy, slow, available, refresh, retryPreparation, answer, confirm, handoffDone, outcome, withdraw, editBlock, editAnswer, editEmail, regenerateDocument, regenerateDraft, followUp, download, downloadOwnFile, msgs };
+  return {
+    view,
+    busy,
+    slow,
+    available,
+    refresh,
+    retryPreparation,
+    answer,
+    confirm,
+    handoffDone,
+    outcome,
+    withdraw,
+    editBlock,
+    editAnswer,
+    editEmail,
+    emailDraft,
+    setEmailDraft,
+    emailDirty,
+    regenerateDocument,
+    regenerateDraft,
+    followUp,
+    download,
+    downloadOwnFile,
+    msgs,
+  };
 }
 
 export type RoomApi = ReturnType<typeof useApplication>;

@@ -10,7 +10,6 @@ import {
   STATIC_SITEMAP_PAGES,
   careerPath,
   getIndexableTargets,
-  getReadyProgramGuides,
   getSeoData,
   isPrivatePath,
   lastmodOf,
@@ -19,7 +18,6 @@ import {
   orgPath,
   organizationsOf,
   playbookPath,
-  programGuidePath,
   regionPath,
   typePath,
   zhPath,
@@ -36,7 +34,7 @@ import { CONTENT_UPDATED } from "@/lib/site";
  * or an article's updatedAt.
  */
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Entry = MetadataRoute.Sitemap[number];
 
@@ -95,11 +93,11 @@ async function organizationEntries(): Promise<Entry[]> {
 }
 
 async function guideEntries(): Promise<Entry[]> {
-  const [targets, programs] = await Promise.all([getIndexableTargets(), getReadyProgramGuides()]);
+  // Playbooks only: a program guide's canonical URL is its listing page (in the opportunities shard).
+  const targets = await getIndexableTargets();
   return [
-    entry(GUIDES_PATH, newest([...targets.types.map((t) => t.lastmod), ...programs.map(lastmodOf)]), 0.7, "weekly"),
+    entry(GUIDES_PATH, newest(targets.types.map((t) => t.lastmod)), 0.7, "weekly"),
     ...targets.types.map((t) => entry(playbookPath(t.slug), t.lastmod ?? CONTENT_UPDATED, 0.6, "monthly")),
-    ...programs.map((l) => entry(programGuidePath(l.slug), lastmodOf(l) ?? CONTENT_UPDATED, 0.6, "weekly")),
   ];
 }
 

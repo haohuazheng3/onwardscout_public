@@ -11,7 +11,8 @@ import { messageIdFor } from "@/lib/integrations/google/mime";
 import { loadPersonContext } from "./context";
 import { loadPreparedFile, loadPreparedFiles } from "./files";
 import { buildMailtoHandoff } from "./handoff";
-import { checkFollowUpPolicy, checkOutreachPolicy, isPlainEmail } from "./outreach-policy";
+import { isOutreachBlocked } from "./outreach-blocks";
+import { checkFollowUpPolicy, checkOutreachPolicy, isPlainEmail, type PolicyResult } from "./outreach-policy";
 import type { Channel, ChannelDeps, PersonContext, PreparedPackage, Requirements, SubmitContext, SubmitResult } from "./types";
 
 /*
@@ -213,11 +214,34 @@ async function recordMailtoDraft(ctx: SubmitContext, to: string, email: NonNulla
 
 /* ------------------------------------------------------------------ submit */
 
+/**
+ * The outreach rules that no retry can change (opt-out, global block list, 30-day rule, minor,
+ * unusable address), checked when the person confirms — before a credit is reserved — so a
+ * refused email is explained up front instead of failing after the tap. The daily/weekly caps
+ * are left to `submit` (they only delay the email).
+ */
+export async function outreachPreflight(userId: string, applicationId: string, rawTo: string): Promise<PolicyResult> {
+  const to = rawTo.trim().toLowerCase();
+  const history = await threadMessages(userId, applicationId);
+  if (history.some((m) => m.direction === "out" && m.status === "sent" && m.toAddr === to)) return { ok: true }; // a replay: already sent
+  const [person, contact, blocked] = await Promise.all([loadPersonContext(userId), findContact(userId, to), isOutreachBlocked(to)]);
+  const policy = checkOutreachPolicy({
+    to,
+    contact: contact ? { doNotContact: contact.doNotContact, lastContactedAt: contact.lastContactedAt } : null,
+    newContactsLastDay: 0,
+    newContactsLastWeek: 0,
+    isMinor: person.isMinor,
+    blocked,
+    now: new Date(),
+  });
+  return policy;
+}
+
 async function submit(ctx: SubmitContext, deps?: ChannelDeps): Promise<SubmitResult> {
   const email = ctx.prepared.email;
   if (!email || !email.to.trim() || !email.body.trim()) return { status: "failed", error: "No email has been prepared for this application yet.", retryable: false };
   const to = email.to.trim().toLowerCase();
-  if (!isPlainEmail(to)) return { status: "failed", error: `“${email.to.slice(0, 80)}” is not an email address we can write to.`, retryable: false };
+  if (!isPlainEmail(to)) return { status: "failed", error: `“${email.to.slice(0, 80)}” is not an email address we can write to.`, retryable: false, code: "invalid_email" };
 
   // Replays (a job retried after the email went out) never send twice.
   const history = await threadMessages(ctx.userId, ctx.application.id);
@@ -233,8 +257,16 @@ async function submit(ctx: SubmitContext, deps?: ChannelDeps): Promise<SubmitRes
     newConversationsSince(ctx.userId, new Date(now.getTime() - 24 * 3600_000)),
     newConversationsSince(ctx.userId, new Date(now.getTime() - 7 * 24 * 3600_000)),
   ]);
-  const policy = checkOutreachPolicy({ to, contact: contact ? { doNotContact: contact.doNotContact, lastContactedAt: contact.lastContactedAt } : null, newContactsLastDay: lastDay, newContactsLastWeek: lastWeek, isMinor: person.isMinor, now });
-  if (!policy.ok) return { status: "failed", error: policy.message, retryable: policy.retryable };
+  const policy = checkOutreachPolicy({
+    to,
+    contact: contact ? { doNotContact: contact.doNotContact, lastContactedAt: contact.lastContactedAt } : null,
+    newContactsLastDay: lastDay,
+    newContactsLastWeek: lastWeek,
+    isMinor: person.isMinor,
+    blocked: await isOutreachBlocked(to),
+    now,
+  });
+  if (!policy.ok) return { status: "failed", error: policy.message, retryable: policy.retryable, code: policy.code };
 
   const gmail = await gmailStatus(ctx.userId);
   if (!gmail.connected) {
@@ -317,7 +349,8 @@ async function followUp(ctx: SubmitContext & { attempt: number }, deps?: Channel
   const last = outgoing[outgoing.length - 1];
   const replied = history.some((m) => m.direction === "in");
   const contact = first?.contactId ? await findContact(ctx.userId, first.toAddr ?? "", first.contactId) : first?.toAddr ? await findContact(ctx.userId, first.toAddr) : null;
-  const check = checkFollowUpPolicy({ attempt: ctx.attempt, replied, doNotContact: contact?.doNotContact ?? false, lastSentAt: last?.sentAt ?? null, now: new Date() });
+  const blocked = await isOutreachBlocked(first?.toAddr);
+  const check = checkFollowUpPolicy({ attempt: ctx.attempt, replied, doNotContact: (contact?.doNotContact ?? false) || blocked, lastSentAt: last?.sentAt ?? null, now: new Date() });
   if (!check.ok) return { status: "failed", error: check.message, retryable: check.retryable };
   if (!first?.toAddr || !last) return { status: "failed", error: "There is no sent email to follow up on yet.", retryable: false };
 

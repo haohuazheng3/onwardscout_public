@@ -12,12 +12,11 @@ import type { OpportunityTypeId } from "@/lib/core/types";
 import { ORGANIZATIONS_PATH, getSeoData, isValidSlug, listingsOfOrg, opportunityPath, orgIndexable, orgPath, organizationsOf, renderTime } from "@/lib/programmatic";
 import { itemListLd, pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
+export async function generateStaticParams() {
   const { listings } = await getSeoData();
   return organizationsOf(listings).map((o) => ({ slug: o.slug }));
 }

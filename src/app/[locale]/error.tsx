@@ -31,7 +31,7 @@ function report(error: Error & { digest?: string }) {
 }
 
 /** Error boundary for every localized page: the layout (header, providers) stays, the page is replaced. */
-export default function LocaleError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function LocaleError({ error, reset, retry }: { error: Error & { digest?: string }; reset: () => void; retry?: () => void }) {
   const t = useTranslations("common");
 
   useEffect(() => {
@@ -49,9 +49,10 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
           <p className="eyebrow eyebrow-dot mt-6">{t("errors.pageEyebrow")}</p>
           <h1 className="display mt-4 text-[2.1rem] text-ink sm:text-[2.6rem]">{t("errors.pageTitle")}</h1>
           <p className="lede mx-auto mt-4 max-w-sm">{t("errors.pageBody")}</p>
-          {error.digest ? <p className="mt-3 font-mono text-[0.8rem] text-ink-4">{t("errors.reference", { digest: error.digest })}</p> : null}
+          {error.digest ? <p className="mt-3 font-mono text-[0.8rem] text-ink-3">{t("errors.reference", { digest: error.digest })}</p> : null}
           <div className="mt-8 flex flex-col justify-center gap-2.5 sm:flex-row">
-            <Button onClick={() => reset()} icon={<RotateCcw size={17} aria-hidden />}>
+            {/* retry() re-fetches the server render (refresh + reset); reset() alone would re-render the failed payload. */}
+            <Button onClick={() => (retry ? retry() : reset())} icon={<RotateCcw size={17} aria-hidden />}>
               {t("buttons.retry")}
             </Button>
             <ButtonLink href="/" variant="ghost">

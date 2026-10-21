@@ -10,7 +10,7 @@ import { absoluteUrl } from "@/lib/seo";
  * crawlers that guess /sitemap.xml find it too.
  */
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 export function GET() {
   const body = [

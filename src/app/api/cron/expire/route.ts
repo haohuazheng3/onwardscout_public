@@ -1,8 +1,10 @@
 import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
 import { bearerMatches } from "@/lib/admin";
+import { reconcileApplicationCredits } from "@/lib/applications/reconcile";
 import { deleteAnonymousDraft, staleAnonymousIds } from "@/lib/data-export";
 import { db } from "@/lib/db";
-import { appState, jobs, opportunities } from "@/lib/db/schema";
+import { appState, contactMessages, errorGroups, inboxMessages, jobs, opportunities, rateLimits, sandboxSubmissions } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { sweepExpired } from "@/lib/jobs/queue";
@@ -17,6 +19,19 @@ const STATE_KEY = "cron:expire:last";
 const ANON_DAYS = 7;
 /** …and any unclaimed draft once it is this old (privacy policy: "at most 30 days"; the os_anon cookie lives 30 days). */
 const ANON_MAX_AGE_DAYS = 30;
+/** Retention (privacy policy, "How long we keep data"). */
+const RETENTION = {
+  /** Catch-all / test@ mail (kind 'test'): a week is plenty to read a sign-in code or a test message. */
+  testMailDays: 7,
+  /** Rate-limit rows: the longest window in use is one day; keep two. */
+  rateLimitDays: 2,
+  /** Practice-form submissions (our own sandbox; anyone can post to it). */
+  sandboxDays: 90,
+  /** Error reports: "no longer than 12 months". */
+  errorMonths: 12,
+  /** Messages to us: "2 years after our last reply". */
+  contactYears: 2,
+} as const;
 
 /*
  * Nightly housekeeping (Vercel Cron 04:40 UTC, GET + Bearer CRON_SECRET). Each step runs on its
@@ -32,6 +47,12 @@ const ANON_MAX_AGE_DAYS = 30;
  *     left alone: a backlog after an outage is real work, and dedupe keys are kept forever.
  *  4. Credit lots need no marking: src/lib/credits.ts treats `expires_at` as authoritative
  *     (an expired lot is simply not usable), and lots only have the statuses active/revoked.
+ *  5. Application credits (src/lib/applications/reconcile.ts): held reservations of submitted
+ *     applications are settled, of ended ones released; applications waiting for the person
+ *     past their deadline expire and give the credit back.
+ *  6. Retention: test mail after 7 days, rate-limit rows after 2 days, practice-form
+ *     submissions after 90 days, error reports after 12 months, messages to us 2 years after
+ *     the last activity (privacy policy, "How long we keep data").
  */
 export async function GET(req: Request) {
   if (!bearerMatches(req, env("CRON_SECRET"))) {
@@ -63,6 +84,8 @@ export async function GET(req: Request) {
         .set({ status: "expired", updatedAt: sql`now()` })
         .where(and(eq(opportunities.status, "unverified"), eq(opportunities.rolling, false), isNotNull(opportunities.deadline), lt(opportunities.deadline, cutoff)))
         .returning({ id: opportunities.id });
+      // Public pages show the change at once (tag-based ISR; their caches otherwise live a day).
+      if (active + unverified.length > 0) revalidateTag("opportunities", "max");
       return active + unverified.length;
     },
     0,
@@ -108,7 +131,25 @@ export async function GET(req: Request) {
     { swept: 0, staleDigests: 0, staleEmails: 0 },
   );
 
-  const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, expiredOpportunities, anonymous, jobs: jobsReport, errors };
+  const credits = await step("credits", () => reconcileApplicationCredits({ now }), { checked: 0, settled: 0, released: 0, expired: 0 });
+
+  const retention = await step(
+    "retention",
+    async () => {
+      const days = (n: number) => sql`now() - make_interval(days => ${n})`;
+      const [mail, limits, sandbox, errorsDeleted, contact] = await db.batch([
+        db.delete(inboxMessages).where(and(eq(inboxMessages.kind, "test"), lt(inboxMessages.receivedAt, days(RETENTION.testMailDays)))).returning({ id: inboxMessages.id }),
+        db.delete(rateLimits).where(lt(rateLimits.windowStart, days(RETENTION.rateLimitDays))).returning({ key: rateLimits.key }),
+        db.delete(sandboxSubmissions).where(lt(sandboxSubmissions.createdAt, days(RETENTION.sandboxDays))).returning({ id: sandboxSubmissions.id }),
+        db.delete(errorGroups).where(lt(errorGroups.lastSeen, sql`now() - make_interval(months => ${RETENTION.errorMonths})`)).returning({ id: errorGroups.id }),
+        db.delete(contactMessages).where(lt(contactMessages.createdAt, sql`now() - make_interval(years => ${RETENTION.contactYears})`)).returning({ id: contactMessages.id }),
+      ]);
+      return { testMail: mail.length, rateLimits: limits.length, sandbox: sandbox.length, errors: errorsDeleted.length, contact: contact.length };
+    },
+    { testMail: 0, rateLimits: 0, sandbox: 0, errors: 0, contact: 0 },
+  );
+
+  const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, expiredOpportunities, anonymous, jobs: jobsReport, credits, retention, errors };
   await db
     .insert(appState)
     .values({ key: STATE_KEY, value: summary })

@@ -13,6 +13,7 @@ import { enqueueAndRun } from "@/lib/jobs/runner";
 import { signTicket, verifyTicket } from "./tickets";
 import { ensureProfile, setProfileStatus } from "./store";
 import { extensionFor, isUploadContentType, safeFilename, UPLOAD_LIMITS, uploadContentType } from "./uploads";
+import { rateLimit } from "@/lib/ratelimit";
 
 /*
  * The document pipeline shared by the signed-in routes (/api/uploads/*) and the signed-out
@@ -65,11 +66,29 @@ function sourcesStamp(rows: readonly Pick<DocumentRow, "id" | "status" | "extrac
  * Builds (or rebuilds) the profile from every source the owner has. Deduplicated by the set
  * of sources, so repeated calls with nothing new are free.
  */
+/** Full extractions per anonymous draft per day that may use the model (the rest run locally). */
+export const ANON_MODEL_EXTRACTIONS_PER_DAY = 5;
+
 export async function queueExtraction(ownerId: string, opts: { locale?: "en" | "zh"; force?: boolean } = {}): Promise<{ queued: boolean }> {
+  // One waiting extraction is enough: it reads every document when it runs, so a burst of
+  // uploads, notes or deletions collapses into it instead of queueing one full extraction each.
+  const waiting = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(and(eq(jobs.kind, "profile.extract"), eq(jobs.userId, ownerId), eq(jobs.status, "queued")))
+    .limit(1);
+  if (waiting[0]) return { queued: true };
   const rows = await db.select({ id: documents.id, status: documents.status, extraction: documents.extraction }).from(documents).where(eq(documents.userId, ownerId));
   const stamp = opts.force ? `${sourcesStamp(rows)}:${Date.now()}` : sourcesStamp(rows);
   await ensureHandlers();
-  const res = await enqueueAndRun("profile.extract", { userId: ownerId, locale: opts.locale ?? "en" }, { userId: ownerId, dedupeKey: `profile.extract:${ownerId}:${stamp}`, maxMs: 180_000 });
+  // Anonymous drafts: a few model-backed extractions a day (forced re-reads count too); later
+  // ones in the same day use the local engine, so the draft still updates at no model cost.
+  const local = ownerId.startsWith("anon_") && !(await rateLimit(`extract:anon:${ownerId}`, ANON_MODEL_EXTRACTIONS_PER_DAY, 24 * 3600)).ok;
+  const res = await enqueueAndRun(
+    "profile.extract",
+    { userId: ownerId, locale: opts.locale ?? "en", ...(local ? { local: true } : {}) },
+    { userId: ownerId, dedupeKey: `profile.extract:${ownerId}:${stamp}`, maxMs: 180_000 },
+  );
   if (res.created) await setProfileStatus(ownerId, "parsing");
   return { queued: res.created };
 }
@@ -110,6 +129,11 @@ export async function signUpload(ownerId: string, input: { filename: string; con
   if (input.bytes <= 0) throw new PipelineError("That file is empty.");
   if (input.bytes > UPLOAD_LIMITS.maxBytes) throw new PipelineError("Each file can be up to 20 MB.");
   if ((await fileCount(ownerId)) >= opts.maxFiles) throw new PipelineError(`You can add up to ${opts.maxFiles} files here. Remove one to add another.`, 409);
+  // Signed links count on their own (an upload that is never completed has no row to count):
+  // at most a few times the file quota per owner per day, so storage can't be filled by
+  // signing and never completing.
+  const signed = await rateLimit(`uploads:sign:owner:${ownerId}`, Math.max(10, opts.maxFiles * 3), 24 * 3600);
+  if (!signed.ok) throw new PipelineError("You've started a lot of uploads today. Please try again tomorrow, or remove a file first.", 429);
   const documentId = newId("doc");
   const ext = extensionFor(contentType);
   const key = docKey(ownerId, documentId, ext);

@@ -119,13 +119,12 @@ export function ApplicationsBoard({
       {/* Phones and tablets: one column at a time. */}
       {cards.length ? (
         <div className="grid min-w-0 gap-3 lg:hidden">
-          <div className="scroll-row gap-2" role="tablist" aria-label={t("board.columns")}>
+          {/* Toggle buttons (aria-pressed from Chip), not tabs: a tablist would promise arrow-key navigation. */}
+          <div className="scroll-row gap-2" role="group" aria-label={t("board.columns")}>
             {BOARD_COLUMNS.map((c) => (
               <Chip
                 key={c}
                 size="sm"
-                role="tab"
-                aria-selected={shown === c}
                 selected={shown === c}
                 count={count(c)}
                 onClick={() => {
@@ -137,11 +136,11 @@ export function ApplicationsBoard({
               </Chip>
             ))}
           </div>
-          <div className="grid gap-2.5" role="tabpanel">
+          <div className="grid gap-2.5" aria-live="polite">
             {(byColumn.get(shown) ?? []).map((card) => (
               <ApplicationCard key={card.id} card={card} locale={locale} now={now} />
             ))}
-            {!count(shown) ? <p className="pane-inset px-4 py-6 text-center text-[0.92rem] text-ink-4">{t("board.laneEmpty")}</p> : null}
+            {!count(shown) ? <p className="pane-inset px-4 py-6 text-center text-[0.92rem] text-ink-3">{t("board.laneEmpty")}</p> : null}
           </div>
         </div>
       ) : null}

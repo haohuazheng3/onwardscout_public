@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { grantTrial } from "./credits";
 import { db } from "./db";
-import { users, type UserRow } from "./db/schema";
+import { users, userTombstones, type UserRow } from "./db/schema";
+import { tombstoneHash } from "./crypto";
 import { env } from "./env";
 import { captureError } from "./errors";
 import { randomString } from "./ids";
@@ -172,7 +173,15 @@ const upsertUser = cache(async (userId: string, email: string, locale: Locale | 
         });
       const r = rows[0];
       if (!r) throw new Error("user row was not persisted");
-      if (r.isNew) await firstRun(r.id);
+      if (r.isNew) {
+        // A deleted account whose session is still valid for a few seconds must not come back
+        // as an empty account (with a fresh trial): undo the insert and refuse.
+        if (await isDeletedAccount(r.id)) {
+          await db.delete(users).where(eq(users.id, r.id));
+          throw new DeletedAccountError();
+        }
+        await firstRun(r.id);
+      }
       return r;
     } catch (err) {
       // An 80-bit token colliding is astronomically unlikely; one retry with a fresh token covers it.
@@ -181,6 +190,19 @@ const upsertUser = cache(async (userId: string, email: string, locale: Locale | 
     }
   }
 });
+
+export class DeletedAccountError extends Error {
+  constructor() {
+    super("This account was deleted.");
+    this.name = "DeletedAccountError";
+  }
+}
+
+/** The account was deleted (see `user_tombstones`). */
+export async function isDeletedAccount(userId: string): Promise<boolean> {
+  const rows = await db.select({ h: userTombstones.userHash }).from(userTombstones).where(eq(userTombstones.userHash, tombstoneHash(userId))).limit(1);
+  return rows.length > 0;
+}
 
 /**
  * First sign-in: the trial credits (contracts §2; idempotent on `trial:<userId>`, and

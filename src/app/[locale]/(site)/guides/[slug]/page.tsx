@@ -14,14 +14,12 @@ import {
   GUIDES_PATH,
   buildProgramGuide,
   formatDay,
-  getReadyProgramGuides,
   getSeoData,
   hubIndexable,
   materialChecklist,
   opportunityPath,
   playbookMeta,
   playbookPath,
-  programGuidePath,
   publicTypesInOrder,
   resolveGuide,
   timelineFor,
@@ -34,17 +32,14 @@ import {
 } from "@/lib/programmatic";
 import { howToLd, pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
-  const programs = await getReadyProgramGuides();
-  return [
-    ...publicTypesInOrder().map((t) => ({ slug: playbookPath(t.slug).slice("/guides/".length) })),
-    ...programs.map((l) => ({ slug: programGuidePath(l.slug).slice("/guides/".length) })),
-  ];
+export async function generateStaticParams() {
+  // Only the playbooks: a program guide is a companion of its listing page (canonical there),
+  // rendered on demand and kept out of the sitemap and the /guides hub.
+  return publicTypesInOrder().map((t) => ({ slug: playbookPath(t.slug).slice("/guides/".length) }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -57,7 +52,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return pageMetadata({ ...meta, path: r.path, englishOnly: true, noindex: !hubIndexable(counts[r.def.id] ?? 0) });
   }
   const g = buildProgramGuide(r.detail);
-  return pageMetadata({ title: g.title, description: g.description, path: r.path, englishOnly: true, image: `/og/opportunity/${r.detail.slug}` });
+  // A program guide repeats much of its listing page: the listing is the canonical URL (the
+  // guide stays reachable from it, but is not in the sitemap or the /guides hub).
+  return pageMetadata({ title: g.title, description: g.description, path: opportunityPath(r.detail.type, r.detail.slug), englishOnly: true, image: `/og/opportunity/${r.detail.slug}` });
 }
 
 function Checklist({ items }: { items: ChecklistItem[] }) {
@@ -122,9 +119,8 @@ export default async function GuidePage({ params }: Props) {
     const copy = typeCopy(def.id);
     const meta = playbookMeta(def);
     const steps: DatedStep[] = timelineFor(def.id).map((s) => ({ ...s, by: null }));
-    const [{ listings }, programs] = await Promise.all([getSeoData(), getReadyProgramGuides()]);
+    const { listings } = await getSeoData();
     const examples = listings.filter((l) => l.type === def.id).slice(0, 6);
-    const typePrograms = programs.filter((l) => l.type === def.id).slice(0, 8);
     return (
       <>
         <JsonLd
@@ -182,20 +178,9 @@ export default async function GuidePage({ params }: Props) {
           </Pane>
         </Section>
 
-        {typePrograms.length || examples.length ? (
+        {examples.length ? (
           <Section className="!pt-12 sm:!pt-14">
             <h2 className="headline text-[1.5rem] text-ink sm:text-[1.8rem]">Open now</h2>
-            {typePrograms.length ? (
-              <ul className="mt-4 flex flex-wrap gap-2">
-                {typePrograms.map((l) => (
-                  <li key={l.slug}>
-                    <Link href={programGuidePath(l.slug)} locale="en" className="chip">
-                      Guide: {l.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
             {examples.length ? (
               <ul className="pane-grid mt-5">
                 {examples.map((l) => (

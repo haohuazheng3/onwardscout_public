@@ -2,11 +2,11 @@ import { count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { AdminSearch } from "@/components/admin/AdminClient";
-import { AdminTable, AdminTitle, Mono, StatusTag, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
+import { AdminPager, AdminTable, AdminTitle, Mono, StatusTag, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
 import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
 import { applications, profiles, users, type UserRow } from "@/lib/db/schema";
-import { ADMIN_PAGE, adminLocale, availableCredits, likeEscape, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
+import { pageHref, pageRows, pageWindow, adminLocale, availableCredits, likeEscape, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +20,15 @@ export default async function UsersPage({ params, searchParams }: { params: Loca
   const q = parsed.success ? (parsed.data.q ?? "") : "";
   const [t, tc] = await Promise.all([getTranslations({ locale, namespace: "admin.users" }), getTranslations({ locale, namespace: "admin.common" })]);
 
-  const rows: UserRow[] = await db
+  const win = pageWindow(sp);
+  const fetched: UserRow[] = await db
     .select()
     .from(users)
     .where(q ? or(eq(users.id, q), ilike(users.email, `%${likeEscape(q)}%`)) : undefined)
     .orderBy(desc(users.createdAt))
-    .limit(ADMIN_PAGE);
+    .limit(win.limit)
+      .offset(win.offset);
+  const { rows, hasNext } = pageRows(fetched);
   const ids = rows.map((u) => u.id);
   const [profileRows, appCounts, credits] = await Promise.all([
     ids.length
@@ -88,7 +91,7 @@ export default async function UsersPage({ params, searchParams }: { params: Loca
         clearLabel={tc("clear")}
       />
       <AdminTable columns={columns} rows={rows} keyOf={(u) => u.id} empty={q ? t("emptySearch", { q }) : t("empty")} />
-      {rows.length === ADMIN_PAGE ? <p className="text-[0.85rem] text-ink-4">{tc("showingNewest", { count: ADMIN_PAGE })}</p> : null}
+      <AdminPager page={win.page} hasNext={hasNext} href={(n) => pageHref("/admin/users", sp, n)} labels={{ prev: tc("prevPage"), next: tc("nextPage"), page: tc("pageN", { page: win.page }) }} />
     </div>
   );
 }

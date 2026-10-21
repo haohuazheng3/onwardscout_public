@@ -1,6 +1,6 @@
 "use client";
 
-import { PenLine } from "lucide-react";
+import { ChevronDown, PenLine } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button, Input, Pane, Tag, Textarea } from "@/components/ui";
@@ -68,8 +68,14 @@ export function AnswersPane({ room, editable }: { room: RoomApi; editable: boole
                 </div>
               </form>
             ) : (
-              <button type="button" className="press mt-1 block w-full text-left" aria-expanded={open === a.key} onClick={() => setOpen(open === a.key ? null : a.key)}>
-                <p className="whitespace-pre-line break-words text-[0.97rem] leading-relaxed text-ink">{a.value}</p>
+              <button
+                type="button"
+                className="press -mx-2 mt-1 flex w-[calc(100%+1rem)] items-start gap-2 rounded-[14px] px-2 py-1 text-left hover:bg-pane-2"
+                aria-expanded={open === a.key}
+                onClick={() => setOpen(open === a.key ? null : a.key)}
+              >
+                <p className="min-w-0 flex-1 whitespace-pre-line break-words text-[0.97rem] leading-relaxed text-ink">{a.value}</p>
+                <ChevronDown size={16} className={`mt-1 shrink-0 text-ink-3 transition-transform ${open === a.key ? "rotate-180" : ""}`} aria-hidden />
               </button>
             )}
             {open === a.key && editing !== a.key ? (

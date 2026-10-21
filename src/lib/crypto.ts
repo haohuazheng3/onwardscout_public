@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes } from "node:crypto";
 import { INTEGRATION_KEY_PATTERN, requireEnv } from "./env";
 
 /*
@@ -80,4 +80,34 @@ export function decryptSecret(payload: string, context?: string): string {
 /** True for strings produced by `encryptSecret` (shape check only, no decryption). */
 export function isEncryptedSecret(v: unknown): v is string {
   return typeof v === "string" && /^v1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{22}$/.test(v);
+}
+
+/* ------------------------------------------------------------------ keyed hashes */
+
+/**
+ * A keyed one-way hash (HMAC-SHA256) for values we must recognise again but never store in the
+ * clear: IP addresses, outreach opt-out addresses. The key is derived (HKDF, one label per
+ * purpose) from a server-only secret, so a public copy of this code cannot brute-force an IPv4
+ * hash back to its address the way a constant salt allows. Production refuses to run without
+ * the secret; local development and tests use a fixed development key.
+ */
+export function keyedHash(purpose: string, value: string, length = 32): string {
+  return createHmac("sha256", hashKey(purpose)).update(value, "utf8").digest("hex").slice(0, length);
+}
+
+const hashKeys = new Map<string, Buffer>();
+
+function hashKey(purpose: string): Buffer {
+  const cached = hashKeys.get(purpose);
+  if (cached) return cached;
+  const secret = process.env.CRON_SECRET?.trim() || process.env.INTEGRATION_KEY?.trim();
+  if (!secret && process.env.VERCEL_ENV === "production") throw new Error("keyedHash: no server secret (CRON_SECRET) is configured");
+  const key = Buffer.from(hkdfSync("sha256", secret || "onwardscout-development-only", "onwardscout:keyed-hash", `purpose:${purpose}`, 32));
+  hashKeys.set(purpose, key);
+  return key;
+}
+
+/** The key of a deleted account in `user_tombstones` (never the Clerk id itself). */
+export function tombstoneHash(userId: string): string {
+  return keyedHash("user-tombstone", userId);
 }

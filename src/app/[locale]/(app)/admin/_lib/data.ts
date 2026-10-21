@@ -32,7 +32,32 @@ export function one(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined;
 }
 
-export const ADMIN_PAGE = 100;
+/** Rows per admin list page (lists are paged with `?page=`; a page of 300 rows weighed ~2 MB). */
+export const ADMIN_PAGE = 50;
+
+/** The `?page=` of an admin list (1-based, capped), and the window to query: one extra row tells whether a next page exists. */
+export function pageWindow(sp: Record<string, string | string[] | undefined>): { page: number; limit: number; offset: number } {
+  const raw = Number(one(sp.page) ?? "1");
+  const page = Number.isInteger(raw) && raw >= 1 && raw <= 2000 ? raw : 1;
+  return { page, limit: ADMIN_PAGE + 1, offset: (page - 1) * ADMIN_PAGE };
+}
+
+/** Splits the fetched rows (limit ADMIN_PAGE + 1) into the page and whether more follow. */
+export function pageRows<T>(rows: T[]): { rows: T[]; hasNext: boolean } {
+  return { rows: rows.slice(0, ADMIN_PAGE), hasNext: rows.length > ADMIN_PAGE };
+}
+
+/** The same list on another page, every other filter kept. */
+export function pageHref(path: string, sp: Record<string, string | string[] | undefined>, page: number): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    const value = one(v);
+    if (value && k !== "page" && k !== "notice") q.set(k, value);
+  }
+  if (page > 1) q.set("page", String(page));
+  const qs = q.toString();
+  return qs ? `${path}?${qs}` : path;
+}
 
 /** app_state keys written by the crons (theirs or ours), for the overview and diagnostics. */
 export const CRON_STATE_KEYS = {

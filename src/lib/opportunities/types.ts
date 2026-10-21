@@ -44,6 +44,8 @@ export interface OpportunityCard {
   estEffortMinutes: number | null;
   qualityScore: number | null;
   verifiedAt: string | null;
+  /** Last real change of the row (sitemap lastmod). */
+  updatedAt: string | null;
   status: OpportunityStatus;
   public: boolean;
   /** Added by this person from a link (private to them, not yet reviewed). */

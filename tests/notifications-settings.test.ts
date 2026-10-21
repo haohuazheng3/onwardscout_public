@@ -100,11 +100,11 @@ describe("notification preferences", () => {
 
 describe("perksFromSubscriptions", () => {
   it("grants Pro perks for an entitled Pro subscription", () => {
-    expect(perksFromSubscriptions([{ sku: "pro", status: "active" }])).toEqual({ autoFollowUps: true, weeklyDigest: true, priority: true });
+    expect(perksFromSubscriptions([{ sku: "pro", status: "active" }])).toEqual({ autoFollowUps: true, weeklyDigest: true });
     expect(perksFromSubscriptions([{ sku: "pro", status: "past_due" }]).weeklyDigest).toBe(true);
   });
   it("grants nothing for canceled plans, packs or unknown skus", () => {
-    const none = { autoFollowUps: false, weeklyDigest: false, priority: false };
+    const none = { autoFollowUps: false, weeklyDigest: false };
     expect(perksFromSubscriptions([])).toEqual(none);
     expect(perksFromSubscriptions([{ sku: "pro", status: "canceled" }])).toEqual(none);
     expect(perksFromSubscriptions([{ sku: "pack10", status: "active" }])).toEqual(none);

@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
 // Articles are static files; the hourly refresh only keeps their automatic internal links current.
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; category: string; slug: string }> };
 

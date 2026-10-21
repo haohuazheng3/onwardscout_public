@@ -144,12 +144,13 @@ export function prefsKey(userId: string): string {
 /* ------------------------------------------------------------------ plan perks (read-only) */
 
 export interface Perks {
+  /** `auto_followup` sends follow-ups without a tap (Pro). */
   autoFollowUps: boolean;
+  /** The weekly brief also arrives by email (Pro; the in-app brief is for everyone). */
   weeklyDigest: boolean;
-  priority: boolean;
 }
 
-export const NO_PERKS: Perks = { autoFollowUps: false, weeklyDigest: false, priority: false };
+export const NO_PERKS: Perks = { autoFollowUps: false, weeklyDigest: false };
 
 /** Stripe statuses under which the plan's perks apply. */
 export const ENTITLED_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"] as const;
@@ -162,7 +163,6 @@ export function perksFromSubscriptions(rows: readonly { sku: string; status: str
     const p = PLANS[r.sku].perks;
     out.autoFollowUps ||= p.autoFollowUps;
     out.weeklyDigest ||= p.weeklyDigest;
-    out.priority ||= p.priority;
   }
   return out;
 }

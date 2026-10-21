@@ -1,12 +1,12 @@
 import { and, count, desc, eq, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { AdminTable, AdminTitle, FilterPills, Mono, StatusTag, UserLink, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
+import { AdminPager, AdminTable, AdminTitle, FilterPills, Mono, StatusTag, UserLink, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
 import { Link } from "@/i18n/navigation";
 import { APPLICATION_STATUSES, CHANNEL_IDS, type ApplicationStatus, type ChannelId } from "@/lib/core";
 import { db } from "@/lib/db";
 import { applications, opportunities } from "@/lib/db/schema";
-import { ADMIN_PAGE, adminLocale, emailsForUsers, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
+import { pageHref, pageRows, pageWindow, adminLocale, emailsForUsers, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,8 @@ export default async function AdminApplicationsPage({ params, searchParams }: { 
   if (f.user) conds.push(eq(applications.userId, f.user));
   const where = conds.length ? and(...conds) : undefined;
 
-  const [rows, statusCounts] = await Promise.all([
+  const win = pageWindow(sp);
+  const [fetched, statusCounts] = await Promise.all([
     db
       .select({
         id: applications.id,
@@ -70,9 +71,11 @@ export default async function AdminApplicationsPage({ params, searchParams }: { 
       .leftJoin(opportunities, eq(opportunities.id, applications.opportunityId))
       .where(where)
       .orderBy(desc(applications.updatedAt))
-      .limit(ADMIN_PAGE),
+      .limit(win.limit)
+      .offset(win.offset),
     db.select({ status: applications.status, n: count() }).from(applications).groupBy(applications.status),
   ]);
+  const { rows, hasNext } = pageRows(fetched);
   const emails = await emailsForUsers(rows.map((r) => r.userId));
   const counts = new Map(statusCounts.map((r) => [r.status, Number(r.n)]));
   const base = { status: f.status, channel: f.channel, kind: f.kind, user: f.user };
@@ -136,7 +139,7 @@ export default async function AdminApplicationsPage({ params, searchParams }: { 
         />
       </div>
       <AdminTable columns={columns} rows={rows} keyOf={(r) => r.id} empty={t("empty")} />
-      {rows.length === ADMIN_PAGE ? <p className="text-[0.85rem] text-ink-4">{tc("showingNewest", { count: ADMIN_PAGE })}</p> : null}
+      <AdminPager page={win.page} hasNext={hasNext} href={(n) => pageHref("/admin/applications", sp, n)} labels={{ prev: tc("prevPage"), next: tc("nextPage"), page: tc("pageN", { page: win.page }) }} />
     </div>
   );
 }

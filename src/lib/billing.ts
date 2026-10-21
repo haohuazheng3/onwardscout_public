@@ -2,7 +2,7 @@ import "server-only";
 import type Stripe from "stripe";
 import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { db } from "./db";
-import { appState, orders, subscriptions, users, type OrderRow, type SubscriptionRow } from "./db/schema";
+import { appState, creditLots, orders, subscriptions, users, type OrderRow, type SubscriptionRow } from "./db/schema";
 import type { OrderStatus } from "./core/types";
 import { env } from "./env";
 import { captureError } from "./errors";
@@ -295,6 +295,29 @@ async function userExists(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** The money behind a payment was refunded in full, or is (or was) disputed. */
+export function chargeReversed(charge: Pick<Stripe.Charge, "refunded" | "amount" | "amount_refunded" | "disputed"> | null | undefined): "refunded" | "disputed" | null {
+  if (!charge) return null;
+  if (charge.refunded || (charge.amount > 0 && charge.amount_refunded >= charge.amount)) return "refunded";
+  if (charge.disputed) return "disputed";
+  return null;
+}
+
+/** The latest charge of a payment intent (expanded object or fetched), null when unknown. */
+async function latestCharge(pi: string | Stripe.PaymentIntent | null | undefined): Promise<Stripe.Charge | null> {
+  if (!pi) return null;
+  const intent = typeof pi === "string" ? await stripe().paymentIntents.retrieve(pi, { expand: ["latest_charge"] }) : pi;
+  const charge = intent.latest_charge;
+  if (charge && typeof charge !== "string") return charge;
+  if (typeof charge === "string") return stripe().charges.retrieve(charge);
+  return null;
+}
+
+async function lotExists(sourceKey: string): Promise<boolean> {
+  const rows = await db.select({ id: creditLots.id }).from(creditLots).where(eq(creditLots.sourceKey, sourceKey)).limit(1);
+  return rows.length > 0;
+}
+
 /* ------------------------------------------------------------------ subscriptions */
 
 /**
@@ -314,6 +337,8 @@ export async function syncSubscription(
   const userId = known.userId ?? meta.userId ?? existing?.userId ?? (await userIdByCustomer(idOf(sub.customer as string | { id: string } | null)));
   if (!userId) return { ok: false, reason: "no-user" };
   if (existing && existing.userId !== userId) return { ok: false, reason: "user-mismatch" };
+  // A deleted account is never recreated from Stripe metadata (its users row is gone).
+  if (!(await userExists(userId))) return { ok: false, reason: "no-user" };
 
   const sku = known.sku ?? subscriptionSku(sub) ?? (existing && isPlanSku(existing.sku) ? existing.sku : null);
   if (!sku) return { ok: false, reason: "unknown-plan" };
@@ -357,6 +382,7 @@ export async function grantFromInvoice(invoice: Stripe.Invoice, source: GrantSou
   }
   const userId = check.userId ?? row.userId;
   if (userId !== row.userId) return { ok: false, reason: "user-mismatch" };
+  if (!(await userExists(userId))) return { ok: false, reason: "unknown-user" };
   const sku = check.sku ?? (isPlanSku(row.sku) ? row.sku : null);
   if (!sku) return { ok: false, reason: "unknown-plan" };
 
@@ -364,6 +390,13 @@ export async function grantFromInvoice(invoice: Stripe.Invoice, source: GrantSou
   if (order && order.status !== "paid" && order.stripeInvoiceId === invoice.id) return { ok: false, reason: `order-${order.status}` };
 
   const sourceKey = subscriptionLotKey(check.subscriptionId, check.period.start);
+  // Before a period's lot is created: money already refunded or disputed buys nothing (a refund
+  // event that arrived before the grant found no lot to revoke, and renewals have no order row).
+  if (!(await lotExists(sourceKey))) {
+    const pi = invoicePaymentIntentId(invoice);
+    const reversed = pi ? chargeReversed(await latestCharge(pi)) : null;
+    if (reversed) return { ok: false, reason: `charge-${reversed}` };
+  }
   const expiresAt = lotExpiryFor(sku, { periodEnd: new Date(check.period.end * 1000) });
   const credits = OFFERS[sku].credits;
   const { created } = await grantLot({ userId, kind: "subscription", total: credits, sourceKey, expiresAt, orderId: order?.id ?? null });
@@ -448,6 +481,15 @@ export async function grantFromCheckoutSession(s: Stripe.Checkout.Session, sourc
 
   if (kind === "pack") {
     const sourceKey = packLotKey(s.id);
+    if (!(await lotExists(sourceKey))) {
+      // The session was fetched with payment_intent.latest_charge expanded: no extra call here.
+      const pi = s.payment_intent && typeof s.payment_intent !== "string" ? s.payment_intent : piId;
+      const reversed = chargeReversed(await latestCharge(pi));
+      if (reversed) {
+        await setOrderStatus(order.id, reversed);
+        return { ok: false, reason: `charge-${reversed}` };
+      }
+    }
     const expiresAt = lotExpiryFor(sku, { purchasedAt: new Date(s.created * 1000) });
     const credits = OFFERS[sku].credits;
     const { created } = await grantLot({ userId, kind: "pack", total: credits, sourceKey, expiresAt, orderId: order.id });
@@ -544,7 +586,8 @@ async function setOrderStatus(orderId: string, status: OrderStatus): Promise<voi
 export async function revokeByPaymentIntent(pi: string, reason: "refunded" | "disputed"): Promise<RevokeOutcome | null> {
   const hit = await locateByPaymentIntent(pi);
   if (!hit) return null;
-  if (hit.order) await setOrderStatus(hit.order.id, reason);
+  // A refund always wins; a dispute only marks a paid order (never turns "refunded" back into "disputed").
+  if (hit.order && (reason === "refunded" ? hit.order.status !== "refunded" : hit.order.status === "paid")) await setOrderStatus(hit.order.id, reason);
   let credits = 0;
   const sourceKeys: string[] = [];
   if (hit.sourceKey) {
@@ -568,6 +611,9 @@ export async function revokeByPaymentIntent(pi: string, reason: "refunded" | "di
 export async function reinstateByPaymentIntent(pi: string): Promise<RevokeOutcome | null> {
   const hit = await locateByPaymentIntent(pi);
   if (!hit) return null;
+  // Won a dispute over a payment that was refunded anyway: the money is gone, so are the credits.
+  const charge = await latestCharge(pi);
+  if (chargeReversed(charge ? { ...charge, disputed: false } : null) === "refunded") return { userId: hit.userId, sourceKeys: [], credits: 0 };
   if (hit.order && hit.order.status === "disputed") await setOrderStatus(hit.order.id, "paid");
   let credits = 0;
   const sourceKeys: string[] = [];

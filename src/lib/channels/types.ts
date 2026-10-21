@@ -8,6 +8,7 @@
  */
 import type { ChannelId, FormField } from "@/lib/core/types";
 import type { Application, Opportunity } from "@/lib/db/schema";
+import type { PolicyCode } from "./outreach-policy";
 
 export type { ChannelId };
 
@@ -53,7 +54,7 @@ export interface Requirements {
   captchaLikely: boolean;
   /** Where the application is submitted (hosted form, form page, mailto:). */
   submitUrl?: string;
-  /** Honest notes for the person ("This form uses a CAPTCHA: you'll finish it in a 30-second handoff"). */
+  /** Honest notes for the person ("This form uses a CAPTCHA: you'll finish it yourself, every answer ready to copy"). */
   notes: string[];
 }
 
@@ -98,7 +99,7 @@ export type NeedsYouReason = "captcha" | "login" | "payment" | "unsupported" | "
 export type SubmitResult =
   | { status: "submitted"; evidence: { confirmationText?: string; url?: string; ref?: string; screenshotKey?: string; messageId?: string } }
   | { status: "needs_you"; reason: NeedsYouReason; handoff: HandoffPackage }
-  | { status: "failed"; error: string; retryable: boolean };
+  | { status: "failed"; error: string; retryable: boolean; code?: PolicyCode };
 
 /** A file ready to upload or attach. */
 export interface LoadedFile {
@@ -125,6 +126,8 @@ export interface ChannelDeps {
   onStep?: (step: { n: number; action: string; target: string | null; ok: boolean; note: string | null; screenshotKey: string | null }) => void;
   /** Overrides how the person's profile and facts are loaded (tests, local runs). */
   loadPerson?: (userId: string) => Promise<PersonContext>;
+  /** CH3: decides whether the browser may load a URL (default: public http(s) hosts only). */
+  requestGuard?: (url: string) => Promise<boolean>;
 }
 
 /** The person's profile as the channels need it (see context.ts). */

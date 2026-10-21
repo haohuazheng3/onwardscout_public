@@ -55,8 +55,8 @@ export const CHANNELS: readonly ChannelDef[] = [
     ),
     automation: "confirm_then_auto",
     userAction: bi(
-      "Review the prepared application and tap Submit. If the form has a CAPTCHA or a login, you finish it in a 30-second handoff.",
-      "核对准备好的申请后点提交；如果表单有验证码或需要登录，转为 30 秒的本人协作。",
+      "Review the prepared application and tap Submit. If the form has a CAPTCHA or a login (or browser filling is off), you paste the prepared answers into the official form yourself — a few minutes.",
+      "核对准备好的申请后点提交；如果表单有验证码或需要登录（或浏览器代填未开启），由你把准备好的答案粘贴到官方表单——大约几分钟。",
     ),
     fallback: ["CH3", "CH6"],
     status: "live",

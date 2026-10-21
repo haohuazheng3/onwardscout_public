@@ -53,9 +53,12 @@ export function GoalsBoard({ goals: initial, codes, profile, locale }: { goals: 
   const msgs = { network: tc("errors.network"), generic: tc("errors.generic") };
 
   async function patch(goal: GoalView, change: Partial<Pick<GoalView, "status" | "successDefinition" | "horizonMonths" | "intensity">>) {
-    const before = goals;
     const text = change.horizonMonths && !change.successDefinition && goal.successDefinition ? retimeDefinition(goal.successDefinition, change.horizonMonths) : null;
-    setGoals((cur) => cur.map((g) => (g.id === goal.id ? { ...g, ...change, ...(text ? { successDefinition: text } : {}) } : g)));
+    const optimistic: Partial<GoalView> = { ...change, ...(text ? { successDefinition: text } : {}) };
+    // What this change overwrote, field by field: a failure rolls back only these fields of this
+    // goal, and only where they still hold this change's value (a later change stays).
+    const previous = Object.fromEntries(Object.keys(optimistic).map((k) => [k, goal[k as keyof GoalView]])) as Partial<GoalView>;
+    setGoals((cur) => cur.map((g) => (g.id === goal.id ? { ...g, ...optimistic } : g)));
     try {
       const res = await api<{ goal: { milestones?: GoalView["milestones"] } & Record<string, unknown> }>("/api/goals", { method: "PATCH", json: { id: goal.id, ...change, locale } }, msgs);
       if (res.goal.milestones) {
@@ -65,7 +68,17 @@ export function GoalsBoard({ goals: initial, codes, profile, locale }: { goals: 
       if (change.status === "achieved") toast.success(t("achievedToast"));
       if (change.status === "active") track("goal_set", { goalId: goal.id, family: goal.family, sub: goal.sub, resumed: true });
     } catch (err) {
-      setGoals(before);
+      setGoals((cur) =>
+        cur.map((g) => {
+          if (g.id !== goal.id) return g;
+          const restored = { ...g };
+          for (const [k, v] of Object.entries(previous)) {
+            const key = k as keyof GoalView;
+            if (g[key] === optimistic[key]) (restored as Record<string, unknown>)[key] = v;
+          }
+          return restored;
+        }),
+      );
       toast.error(tc("errors.rolledBack"), { body: err instanceof Error ? err.message : undefined });
     }
   }

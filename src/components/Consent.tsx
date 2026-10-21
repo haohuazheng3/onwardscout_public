@@ -1,8 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
+import { isAdminPath, isSignInPath, stripLocale } from "@/lib/site";
 
 declare global {
   interface Window {
@@ -21,22 +23,49 @@ declare global {
 
 const FW_KEY = process.env.NEXT_PUBLIC_FLOWGLANCE_KEY;
 const COOKIE = "os_consent";
+/** Where /api/geo placed the visitor ("notice" or "optin"), so the lookup runs once per 180 days. */
+const REGION_COOKIE = "os_region";
 const OPEN_EVENT = "os:open-consent";
 export const ANALYTICS_LOADED_EVENT = "os:analytics-loaded";
 
 type Consent = "all" | "essential";
 type Mode = "hidden" | "optin" | "notice";
+type Region = "notice" | "optin";
 
-function readConsent(): Consent | null {
+export function readConsent(): Consent | null {
   if (typeof document === "undefined") return null;
   const m = document.cookie.match(/(?:^|;\s*)os_consent=([^;]+)/);
   if (!m) return null;
   return m[1] === "essential" ? "essential" : "all";
 }
 
-function writeConsent(v: Consent) {
+/** The person opted out of analytics: nothing may be sent to FlowGlance, even if it is loaded. */
+export function analyticsDeclined(): boolean {
+  return readConsent() === "essential";
+}
+
+function readRegion(): Region | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;\s*)os_region=(notice|optin)(?:;|$)/);
+  return m ? (m[1] as Region) : null;
+}
+
+function writeCookie(name: string, value: string) {
   const secure = location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${COOKIE}=${v}; Path=/; Max-Age=${60 * 60 * 24 * 180}; SameSite=Lax${secure}`;
+  document.cookie = `${name}=${value}; Path=/; Max-Age=${60 * 60 * 24 * 180}; SameSite=Lax${secure}`;
+}
+
+function writeConsent(v: Consent) {
+  writeCookie(COOKIE, v);
+}
+
+/**
+ * Pages where nothing is recorded, whatever the consent: sign-in (one-time codes are typed
+ * there), the admin area and checkout.
+ */
+export function analyticsExcludedPath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return isSignInPath(pathname) || isAdminPath(pathname) || /^\/checkout(?:\/|$)/.test(stripLocale(pathname));
 }
 
 /** Inject the FlowGlance snippet once. A no-op without NEXT_PUBLIC_FLOWGLANCE_KEY. */
@@ -58,7 +87,7 @@ export function loadFlowGlance(): void {
  * `purchase`, `unlock`). Queued until the snippet is ready; a no-op if analytics are off.
  */
 export function track(name: string, props?: Record<string, unknown>): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || analyticsDeclined()) return;
   const send = () => {
     try {
       window.fw?.("event", name, props ?? {});
@@ -78,35 +107,54 @@ export function openConsentSettings(): void {
 
 export function ConsentManager() {
   const t = useTranslations("common.consent");
+  const pathname = usePathname();
   const [mode, setMode] = useState<Mode>("hidden");
+  /** Analytics may run (consent given, or a notice region without an opt-out); null = undecided. */
+  const allowed = useRef<boolean | null>(null);
+  /** Loads FlowGlance when allowed, unless the current page is one that is never recorded. */
+  const loadIfAllowed = useCallback(() => {
+    if (allowed.current && !analyticsExcludedPath(window.location.pathname)) loadFlowGlance();
+  }, []);
 
   useEffect(() => {
     const existing = readConsent();
-    if (existing === "all") {
-      loadFlowGlance();
+    if (existing) {
+      allowed.current = existing === "all";
+      loadIfAllowed();
       return;
     }
-    if (existing === "essential") return;
+    const decide = (region: Region) => {
+      allowed.current = region === "notice";
+      loadIfAllowed();
+      setMode(region === "notice" ? "notice" : "optin");
+    };
+    const known = readRegion();
     let cancelled = false;
-    fetch("/api/geo", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { consentRequired: true }))
-      .catch((e: unknown) => {
-        console.warn("[consent] geo lookup failed; asking for opt-in", e);
-        return { consentRequired: true };
-      })
-      .then((g: { consentRequired?: boolean }) => {
-        if (cancelled) return;
-        if (g.consentRequired === false) {
-          loadFlowGlance();
-          setMode("notice");
-        } else {
-          setMode("optin");
-        }
-      });
+    // Async even when the region is remembered, so the banner never renders during hydration.
+    const lookup: Promise<{ consentRequired?: boolean; failed?: boolean }> = known
+      ? Promise.resolve({ consentRequired: known === "optin", failed: true })
+      : fetch("/api/geo")
+          .then((r) => (r.ok ? r.json() : { consentRequired: true }))
+          .catch((e: unknown) => {
+            console.warn("[consent] geo lookup failed; asking for opt-in", e);
+            return { consentRequired: true, failed: true };
+          });
+    void lookup.then((g) => {
+      if (cancelled) return;
+      const region: Region = g.consentRequired === false ? "notice" : "optin";
+      if (!g.failed) writeCookie(REGION_COOKIE, region);
+      decide(region);
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadIfAllowed]);
+
+  // Client-side navigation into a page that may be recorded loads it then (sign-in, checkout
+  // and admin never are).
+  useEffect(() => {
+    if (pathname) loadIfAllowed();
+  }, [pathname, loadIfAllowed]);
 
   useEffect(() => {
     const open = () => setMode(window.__osAnalyticsLoaded ? "notice" : "optin");
@@ -116,14 +164,18 @@ export function ConsentManager() {
 
   const accept = useCallback(() => {
     writeConsent("all");
-    loadFlowGlance();
+    allowed.current = true;
+    loadIfAllowed();
     setMode("hidden");
-  }, []);
+  }, [loadIfAllowed]);
 
   const essentialOnly = useCallback(() => {
     writeConsent("essential");
+    allowed.current = false;
     setMode("hidden");
-    // FlowGlance cannot be unloaded from a running page; the next page load runs without it.
+    // FlowGlance cannot be unloaded from a running page, and in-app navigation never reloads
+    // it: reload now so the opt-out takes effect at once (the reloaded page runs without it).
+    if (window.__osAnalyticsLoaded) window.location.reload();
   }, []);
 
   if (mode === "hidden") return null;

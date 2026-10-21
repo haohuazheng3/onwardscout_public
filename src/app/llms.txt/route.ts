@@ -2,7 +2,7 @@ import { PACKS, PLANS, TRIAL, formatPrice } from "@/content/plans";
 import { categoriesWithCounts, postUrl, publishedPosts } from "@/lib/blog";
 import { CHANNELS } from "@/lib/core/channels";
 import { opportunityTypeBySlug } from "@/lib/core/opportunity-types";
-import { getIndexableTargets, getReadyProgramGuides, getSeoData, playbookPath, programGuidePath, regionPath, REGION_LABELS, typePath, typeCounts } from "@/lib/programmatic";
+import { getIndexableTargets, getSeoData, playbookPath, regionPath, REGION_LABELS, typePath, typeCounts } from "@/lib/programmatic";
 import { absoluteUrl } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
@@ -12,10 +12,10 @@ import { SITE } from "@/lib/site";
  * that are indexable right now (thin hubs and empty blog topics are listed by name only).
  */
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 export async function GET() {
-  const [{ counts }, targets, programs] = await Promise.all([getSeoData(), getIndexableTargets(), getReadyProgramGuides()]);
+  const [{ counts }, targets] = await Promise.all([getSeoData(), getIndexableTargets()]);
   const posts = publishedPosts();
   const indexableTypes = new Set(targets.types.map((t) => t.slug));
   const url = (p: string) => absoluteUrl(p);
@@ -70,11 +70,6 @@ export async function GET() {
       const name = opportunityTypeBySlug(r.typeSlug)?.plural.en ?? r.typeSlug;
       lines.push(`- [${name}: ${REGION_LABELS[r.region]}](${url(regionPath(r.typeSlug, r.region))}) (${r.count} open)`);
     }
-  }
-
-  if (programs.length) {
-    lines.push("", "## Program guides");
-    for (const l of programs.slice(0, 60)) lines.push(`- [How to apply to ${l.name}](${url(programGuidePath(l.slug))})${l.orgName ? ` (${l.orgName})` : ""}`);
   }
 
   lines.push("", "## Blog topics");

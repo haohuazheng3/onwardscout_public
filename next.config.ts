@@ -103,9 +103,9 @@ const ISR_CACHE = [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  // Most visitors arrive once from search: ship the (small, atomic) CSS inside the HTML
-  // instead of a render-blocking stylesheet request.
-  experimental: { inlineCss: true },
+  // CSS ships as one cached stylesheet (≈ 18 KB gzip), not inlined: `experimental.inlineCss`
+  // put the 88 KB sheet into every HTML three times (a <style> plus two copies in the RSC
+  // payload, beyond gzip's window) and twice into every client navigation payload.
   // `next dev` would otherwise write an agent-instructions markdown file into the project root.
   agentRules: false,
   // The browser agent (CH3) runs headless Chromium inside a function, and PDF ingest loads

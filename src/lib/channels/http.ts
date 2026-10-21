@@ -40,8 +40,46 @@ export function isTrustedOrigin(raw: string): boolean {
   return local && process.env.NODE_ENV !== "production" && u.pathname.startsWith("/sandbox/");
 }
 
+/** Hosts the practice opportunity's stored sandbox link may name (it is seeded once for every database). */
+const CANONICAL_SANDBOX_HOSTS = new Set(["onwardscout.com", "www.onwardscout.com"]);
+
+/**
+ * The practice sandbox exists on every deployment. A stored link to the production sandbox
+ * (`https://onwardscout.com/sandbox/form`) is pointed at this deployment's own origin, so a
+ * preview or local practice run writes to its own database instead of production's.
+ */
+export function localSandboxUrl(raw: string): string {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return raw;
+  }
+  if (u.pathname.replace(/\/$/, "") !== "/sandbox/form") return raw;
+  if (!CANONICAL_SANDBOX_HOSTS.has(u.hostname) && !isTrustedOrigin(raw)) return raw;
+  try {
+    const own = new URL(siteUrl());
+    u.protocol = own.protocol;
+    u.host = own.host;
+  } catch {
+    return raw;
+  }
+  return u.toString();
+}
+
+/** Vercel deployment protection: previews let our own server through with the automation bypass secret. */
+function bypassHeaders(url: string): Record<string, string> {
+  const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+  if (!secret || process.env.VERCEL_ENV === "production") return {};
+  try {
+    return new URL(url).origin === new URL(siteUrl()).origin ? { "x-vercel-protection-bypass": secret } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function trustedFetch(url: string, init: RequestInit): Promise<ChannelResponse> {
-  const res = await fetch(url, { ...init, redirect: "follow", cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const res = await fetch(url, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...bypassHeaders(url) }, redirect: "follow", cache: "no-store", signal: AbortSignal.timeout(TIMEOUT_MS) });
   const buf = Buffer.from(await res.arrayBuffer());
   if (buf.byteLength > MAX_BYTES) throw new SafeFetchError("too_large", "That page is too large to read.");
   const contentType = res.headers.get("content-type") ?? "";

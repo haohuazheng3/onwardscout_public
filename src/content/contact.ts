@@ -2,20 +2,20 @@
  * The contact form's topics and its input contract, shared by the form (client) and
  * POST /api/contact (server) so both validate the same way. Pure and isomorphic.
  *
- * TODO-zh: `todoZh("…")` repeats the English as the Chinese placeholder until the translation pass.
+ * Copy is bilingual: `bi("English", "中文")`. tests/i18n-parity.test.ts fails on English left in `zh`.
  */
 import { z } from "zod";
-import { todoZh, type Bilingual } from "./site-copy";
+import { bi, type Bilingual } from "./site-copy";
 
 export const CONTACT_TOPICS = [
-  { value: "application", label: todoZh("An application or a handoff") },
-  { value: "account", label: todoZh("My account or sign-in") },
-  { value: "billing", label: todoZh("Billing, credits or a refund") },
-  { value: "privacy", label: todoZh("Privacy or my data") },
-  { value: "opportunity", label: todoZh("Report or suggest an opportunity") },
-  { value: "partnership", label: todoZh("Organisations and partnerships") },
-  { value: "press", label: todoZh("Press") },
-  { value: "other", label: todoZh("Something else") },
+  { value: "application", label: bi("An application or a handoff", "某份申请或交接") },
+  { value: "account", label: bi("My account or sign-in", "我的账户或登录") },
+  { value: "billing", label: bi("Billing, credits or a refund", "账单、额度或退款") },
+  { value: "privacy", label: bi("Privacy or my data", "隐私或我的数据") },
+  { value: "opportunity", label: bi("Report or suggest an opportunity", "报告或推荐一个机会") },
+  { value: "partnership", label: bi("Organisations and partnerships", "机构与合作") },
+  { value: "press", label: bi("Press", "媒体") },
+  { value: "other", label: bi("Something else", "其他事项") },
 ] as const satisfies readonly { value: string; label: Bilingual }[];
 
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]["value"];

@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { categoriesWithCounts, postUrl, publishedPosts } from "@/lib/blog";
 import { pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string }> };
 

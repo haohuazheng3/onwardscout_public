@@ -2,8 +2,9 @@
  * Onward Scout mail worker (onwardscout-mail).
  *
  * email()     Cloudflare Email Routing hands over mail for test@onwardscout.com, the reply
- *             drop-boxes in+<token>@onwardscout.com and every other unrouted address. We parse
- *             it and POST it to the app (/api/inbox/ingest), keeping the receiving server's
+ *             drop-boxes in+<token>@onwardscout.com and every other unrouted address. Mail to
+ *             test@/test+tag@ and in+<token>@ is parsed and POSTed to the app
+ *             (/api/inbox/ingest; other addresses are dropped), keeping the receiving server's
  *             SPF / DKIM / DMARC verdicts and the threading headers. Never rejects: a broken app
  *             must not bounce mail back to a sender.
  * fetch()     POST /notify (Bearer NOTIFY_TOKEN) emails the owner through the send_email binding.
@@ -213,8 +214,22 @@ async function probe(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Only test@ (and test+tag@) and the reply drop-boxes in+<token>@ reach the app. Anything else
+ * that the catch-all hands over is dropped here (not bounced): random addresses would only fill
+ * the database with mail nobody reads.
+ */
+export function wantedRecipient(to: string): boolean {
+  const local = to.trim().toLowerCase().split("@")[0] ?? "";
+  return local === "test" || local.startsWith("test+") || /^in\+[a-z0-9]{8,64}$/.test(local);
+}
+
 export default {
   async email(message: IncomingEmail, env: Env): Promise<void> {
+    if (!wantedRecipient(message.to)) {
+      console.log(`[${SERVICE}] dropped mail to an unused address`, { to: message.to });
+      return;
+    }
     try {
       await ingest(message, env);
     } catch (e) {

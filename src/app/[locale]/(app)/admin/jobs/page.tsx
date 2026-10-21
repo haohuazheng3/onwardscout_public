@@ -2,13 +2,13 @@ import { and, count, desc, eq, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { SubmitButton } from "@/components/admin/AdminClient";
-import { AdminTable, AdminTitle, FilterPills, Mono, StatusTag, UserLink, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
+import { AdminPager, AdminTable, AdminTitle, FilterPills, Mono, StatusTag, UserLink, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
 import { JOB_STATUSES } from "@/lib/core";
 import { db } from "@/lib/db";
 import { jobs, type JobRow } from "@/lib/db/schema";
 import { JOB_KINDS } from "@/lib/jobs/registry";
 import { cancelJobAction, retryJobAction } from "../actions";
-import { ADMIN_PAGE, adminLocale, appStateEntries, backQuery, CRON_STATE_KEYS, emailsForUsers, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
+import { pageHref, pageRows, pageWindow, adminLocale, appStateEntries, backQuery, CRON_STATE_KEYS, emailsForUsers, one, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 import { AdminNotice } from "../_lib/notice";
 
 export const dynamic = "force-dynamic";
@@ -46,16 +46,19 @@ export default async function AdminJobsPage({ params, searchParams }: { params: 
   if (f.status) conds.push(eq(jobs.status, f.status));
   if (f.kind) conds.push(eq(jobs.kind, f.kind));
   if (f.user) conds.push(eq(jobs.userId, f.user));
-  const [rows, byStatus, state] = await Promise.all([
+  const win = pageWindow(sp);
+  const [fetched, byStatus, state] = await Promise.all([
     db
       .select()
       .from(jobs)
       .where(conds.length ? and(...conds) : undefined)
       .orderBy(desc(jobs.updatedAt))
-      .limit(ADMIN_PAGE),
+      .limit(win.limit)
+      .offset(win.offset),
     db.select({ status: jobs.status, n: count() }).from(jobs).groupBy(jobs.status),
     appStateEntries([CRON_STATE_KEYS.jobs]),
   ]);
+  const { rows, hasNext } = pageRows(fetched);
   const emails = await emailsForUsers(rows.map((r) => r.userId));
   const counts = new Map(byStatus.map((r) => [r.status, Number(r.n)]));
   const drain = state.get(CRON_STATE_KEYS.jobs)?.value as DrainSummary | undefined;
@@ -132,7 +135,7 @@ export default async function AdminJobsPage({ params, searchParams }: { params: 
         />
       </div>
       <AdminTable columns={columns} rows={rows} keyOf={(j) => j.id} empty={t("empty")} />
-      {rows.length === ADMIN_PAGE ? <p className="text-[0.85rem] text-ink-4">{tc("showingNewest", { count: ADMIN_PAGE })}</p> : null}
+      <AdminPager page={win.page} hasNext={hasNext} href={(n) => pageHref("/admin/jobs", sp, n)} labels={{ prev: tc("prevPage"), next: tc("nextPage"), page: tc("pageN", { page: win.page }) }} />
     </div>
   );
 }

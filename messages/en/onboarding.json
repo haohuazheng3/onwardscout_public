@@ -18,7 +18,7 @@
     "continueWhileReading": "Continue while we read",
     "skip": "I don't have anything to upload",
     "skipMore": "That's everything",
-    "privacy": "Your files stay private to you. Nothing is sent anywhere without your tap, and you can delete any of it at any time."
+    "privacy": "Your files are private: we use them to build your profile, and they go to an organisation only when you approve. Our analytics tool may record this page, uploads included (Cookie settings). You can delete any of it at any time."
   },
   "upload": {
     "dropTitle": "Drop your files here",
@@ -123,7 +123,12 @@
       "work_visa": "Work visa",
       "student_visa": "Student visa",
       "needs_sponsorship": "Needs visa sponsorship"
-    }
+    },
+    "guardianTitle": "A parent or guardian's email",
+    "guardianHint": "You're under 18, so we need a parent or guardian's email before your first submission. It's kept on your profile and never used for marketing.",
+    "guardianSave": "Save",
+    "guardianSaved": "Guardian's email saved",
+    "guardianInvalid": "That email address doesn't look right."
   },
   "gaps": {
     "title": "3 things I still need",

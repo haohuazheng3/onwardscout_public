@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl";
 import { BoardSkeleton } from "@/components/Skeletons";
 import { Skeleton } from "@/components/ui";
 
 /** The board's shape: header, goal chips, then lanes (one list on phones). */
 export default function ApplicationsLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
     <div className="min-w-0" aria-busy="true">
       <div className="pb-6 sm:pb-8">
@@ -16,7 +19,7 @@ export default function ApplicationsLoading() {
         ))}
       </div>
       <Skeleton className="mt-4 block h-3.5 w-64 max-w-full rounded-full" />
-      <BoardSkeleton columns={4} className="mt-5" label="Loading" />
+      <BoardSkeleton columns={4} className="mt-5" label={label} />
     </div>
   );
 }

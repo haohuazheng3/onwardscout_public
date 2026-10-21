@@ -9,6 +9,7 @@ import { loadMessages } from "@/i18n/messages";
 import { APP_NAMESPACES } from "@/i18n/namespaces";
 import { TIME_ZONE } from "@/i18n/request";
 import { SlimHeader } from "@/components/Header";
+import { LegalLinks } from "@/components/LegalLinks";
 import { Tag } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -59,6 +60,9 @@ export default async function AdminLayout({ children, params }: { children: Reac
             <div className="min-w-0">{children}</div>
           </div>
         </main>
+        <footer className="mx-auto w-full max-w-[1240px] px-4 pb-10 sm:px-6">
+          <LegalLinks />
+        </footer>
       </div>
     </IntlProvider>
   );

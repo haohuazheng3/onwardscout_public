@@ -80,6 +80,8 @@ export function Uploader({
   const [noteState, setNoteState] = useState<"idle" | "saving">("idle");
   const [dragging, setDragging] = useState(false);
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
+  /** Failed files the person asked to read again: shown as "reading" at once, until the server moves on. */
+  const [reparsing, setReparsing] = useState<Set<string>>(() => new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const xhrs = useRef(new Map<string, XMLHttpRequest>());
   const maxFiles = mode === "draft" ? UPLOAD_LIMITS.maxFiles : UPLOAD_LIMITS.maxFilesSignedIn;
@@ -182,11 +184,27 @@ export function Uploader({
   }
 
   async function reparse(id: string) {
+    setReparsing((cur) => new Set(cur).add(id));
     try {
       if (mode === "user") await api(`/api/documents/${id}/reparse`, { method: "POST", json: { locale } }, msgs);
       else await api(ep.documents, { method: "POST", json: { id, action: "reparse", locale } }, msgs);
       onActivity();
+      // Never mask a real result for long: a read that fails again within seconds shows as failed.
+      window.setTimeout(
+        () =>
+          setReparsing((cur) => {
+            const n = new Set(cur);
+            n.delete(id);
+            return n;
+          }),
+        20_000,
+      );
     } catch (err) {
+      setReparsing((cur) => {
+        const n = new Set(cur);
+        n.delete(id);
+        return n;
+      });
       toast.error(t("reparseFailed"), { body: err instanceof Error ? err.message : undefined });
     }
   }
@@ -240,7 +258,21 @@ export function Uploader({
   }
   const notes = showExisting ? docs.filter((d) => d.source === "note" && !removed.has(d.id)) : [];
 
-  const byId = new Map(docs.map((d) => [d.id, d]));
+  useEffect(() => {
+    // The server moved on (reading again, or done): stop overriding its status.
+    if (!reparsing.size) return;
+    const settled = [...reparsing].filter((id) => docs.some((d) => d.id === id && d.status !== "failed"));
+    if (settled.length)
+      setReparsing((cur) => {
+        const n = new Set(cur);
+        for (const id of settled) n.delete(id);
+        return n;
+      });
+  }, [docs, reparsing]);
+
+  // A file being read again shows as reading until the server reports a new status for it.
+  const shown = (d: StatusDoc): StatusDoc => (reparsing.has(d.id) && d.status === "failed" ? { ...d, status: "parsing", error: null } : d);
+  const byId = new Map(docs.map((d) => [d.id, shown(d)]));
 
   return (
     <div className="grid gap-4">
@@ -266,6 +298,8 @@ export function Uploader({
           data-drag={dragging ? "true" : undefined}
           className={cx(
             "press group flex cursor-pointer flex-col items-center justify-center rounded-[22px] border-2 border-dashed text-center transition-colors",
+            // The real control is a visually hidden file input: show its keyboard focus on the drop zone.
+            "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-4 has-[:focus-visible]:outline-pine",
             compact ? "min-h-[150px] px-4 py-6" : "min-h-[220px] px-5 py-10 sm:min-h-[260px]",
             dragging ? "border-accent bg-accent-soft" : "border-line-2 bg-pane-2 hover:border-ink-4",
           )}
@@ -275,7 +309,7 @@ export function Uploader({
           </span>
           <span className={cx("title mt-4 text-ink", compact ? "text-[1.1rem]" : "text-[1.25rem] sm:text-[1.4rem]")}>{dragging ? t("dropNow") : t("dropTitle")}</span>
           <span className="mt-1.5 text-[0.95rem] text-ink-3">{t("dropOr")}</span>
-          <span className="mt-3 max-w-md text-[0.82rem] leading-relaxed text-ink-4">{t("dropTypes", { max: maxFiles })}</span>
+          <span className="mt-3 max-w-md text-[0.82rem] leading-relaxed text-ink-3">{t("dropTypes", { max: maxFiles })}</span>
           <input
             ref={inputRef}
             id="upload-input"
@@ -314,7 +348,7 @@ export function Uploader({
                 Icon={iconFor(d.filename ?? "", null)}
                 phase="done"
                 progress={1}
-                server={d}
+                server={shown(d)}
                 onRemove={() => void removeDoc(d.id)}
                 onReparse={() => void reparse(d.id)}
               />

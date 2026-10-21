@@ -133,7 +133,8 @@
       "bad_timing": "Too early or too late",
       "not_this_type": "Not this kind of opportunity",
       "other": "Something else"
-    }
+    },
+    "dismissing": "Removing it from your picks…"
   },
   "card": {
     "fit": "{fit}% fit",

@@ -2,7 +2,6 @@
 
 import { Mail, Plug, Send, SkipForward } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 import { Button, ButtonLink, Callout, Field, Input, Pane, Tag, Textarea } from "@/components/ui";
 import type { RoomApi } from "./useApplication";
 
@@ -15,19 +14,15 @@ export function EmailPane({ room, editable }: { room: RoomApi; editable: boolean
   const t = useTranslations("applications.email");
   const v = room.view;
   const email = v.email;
-  const [subject, setSubject] = useState(email?.subject ?? "");
-  const [body, setBody] = useState(email?.body ?? "");
-  const [syncedFrom, setSyncedFrom] = useState(email);
-  if (email !== syncedFrom) {
-    // A new draft arrived from the server (regenerated, follow-up): show it.
-    setSyncedFrom(email);
-    setSubject(email?.subject ?? "");
-    setBody(email?.body ?? "");
-  }
+  // The draft lives in the room (useApplication): confirm and "send follow-up" save it first,
+  // and a refresh or a failed save never replaces what the person typed.
+  const { subject, body } = room.emailDraft;
+  const setSubject = (next: string) => room.setEmailDraft({ subject: next, body });
+  const setBody = (next: string) => room.setEmailDraft({ subject, body: next });
   if (!email) return null;
   const followUp = v.status === "needs_you" && v.needsYouReason === "followup_approval";
   const mailtoNeeded = v.status === "needs_you" && v.needsYouReason === "no_gmail";
-  const dirty = subject !== email.subject || body !== email.body;
+  const dirty = room.emailDirty;
   const mailto = `mailto:${encodeURIComponent(email.to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return (
@@ -73,10 +68,7 @@ export function EmailPane({ room, editable }: { room: RoomApi; editable: boolean
           ) : null}
           {followUp ? (
             <>
-              <Button size="sm" icon={<Send size={15} aria-hidden />} loading={room.busy === "followup:send"} onClick={async () => {
-                if (dirty && email.documentId) await room.editEmail(email.documentId, subject, body);
-                await room.followUp("send");
-              }}>
+              <Button size="sm" icon={<Send size={15} aria-hidden />} loading={room.busy === "followup:send" || room.busy === "email"} onClick={() => void room.followUp("send")}>
                 {t("sendFollowup")}
               </Button>
               <Button size="sm" variant="quiet" icon={<SkipForward size={15} aria-hidden />} loading={room.busy === "followup:skip"} onClick={() => room.followUp("skip")}>

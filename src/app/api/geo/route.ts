@@ -12,5 +12,7 @@ export async function GET(req: Request) {
   const country = req.headers.get("x-vercel-ip-country")?.toUpperCase() ?? "";
   // Unknown location (local dev, privacy relays) is treated as opt-in: the conservative default.
   const consentRequired = !country || OPT_IN.has(country);
-  return Response.json({ consentRequired, country: country || null }, { headers: { "Cache-Control": "private, no-store" } });
+  // The browser keeps the answer for a day (the consent manager also remembers the region in a
+  // cookie), so a visitor who ignores the banner doesn't cost a function call on every page.
+  return Response.json({ consentRequired, country: country || null }, { headers: { "Cache-Control": "private, max-age=86400" } });
 }

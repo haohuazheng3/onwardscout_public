@@ -6,17 +6,16 @@ import { opportunityTypeBySlug } from "@/lib/core/opportunity-types";
 import { LIST_PAGE_SIZE, getSeoData, typeCopy, typePath, shorten, renderTime } from "@/lib/programmatic";
 import { pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; type: string; n: string }> };
 
 /** Later pages of each hub that has more than one page. */
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
+export async function generateStaticParams() {
   const { listings } = await getSeoData();
   const perType = new Map<string, number>();
   for (const l of listings) perType.set(l.typeSlug, (perType.get(l.typeSlug) ?? 0) + 1);
-  return forEnglish(params?.locale, () =>
+  return forEnglish(undefined, () =>
     [...perType.entries()].flatMap(([type, count]) =>
       Array.from({ length: Math.max(0, Math.ceil(count / LIST_PAGE_SIZE) - 1) }, (_, i) => ({ type, n: String(i + 2) })),
     ),

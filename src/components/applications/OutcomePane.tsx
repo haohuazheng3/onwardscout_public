@@ -34,7 +34,7 @@ export function EvidencePane({ room }: { room: RoomApi }) {
         <CircleCheck size={19} className="text-ok" aria-hidden />
         {t("title")}
       </h2>
-      <p className="mt-1 text-[0.88rem] text-ink-3">{t("when", { date: format.dateTime(new Date(v.submittedAt), { dateStyle: "medium", timeStyle: "short" }) })}</p>
+      <p className="mt-1 text-[0.88rem] text-ink-3">{t("when", { date: format.dateTime(new Date(v.submittedAt), { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }) })}</p>
       <dl className="mt-3 grid gap-2.5 text-[0.93rem]">
         {e.reference ? (
           <div>
@@ -99,7 +99,7 @@ export function OutcomePane({ room }: { room: RoomApi }) {
           </Chip>
         ))}
       </div>
-      {v.followUpAt ? <p className="mt-4 text-[0.84rem] text-ink-4">{t("nextFollowUp", { date: format.dateTime(new Date(v.followUpAt), { dateStyle: "medium" }) })}</p> : null}
+      {v.followUpAt ? <p className="mt-4 text-[0.84rem] text-ink-3">{t("nextFollowUp", { date: format.dateTime(new Date(v.followUpAt), { dateStyle: "medium" }) })}</p> : null}
       {v.followUpsSent ? <p className="mt-1 text-[0.84rem] text-ink-4">{t("followUpsSent", { count: v.followUpsSent })}</p> : null}
     </Pane>
   );

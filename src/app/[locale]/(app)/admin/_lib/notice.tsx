@@ -24,6 +24,7 @@ export const NOTICE_TONES = {
   reopened: "ok",
   allResolved: "ok",
   messageUpdated: "ok",
+  addressBlocked: "ok",
 } as const;
 
 export type NoticeKey = keyof typeof NOTICE_TONES;

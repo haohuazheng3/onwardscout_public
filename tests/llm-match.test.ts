@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { localExtractProfile } from "@/lib/llm/local/extract";
 import { localScoreMatches } from "@/lib/llm/local/match";
 import { MatchScore, type OpportunityInput } from "@/lib/llm/types";
+import { emptyProfile, experienceItemSchema } from "@/lib/core/types";
 
 const fx = (f: string) => readFileSync(path.join(import.meta.dirname, "fixtures", f), "utf8");
 const NOW = "2026-10-21";
@@ -88,5 +89,47 @@ describe("scoreMatches (local)", () => {
   it("writes reasons in Chinese when asked", () => {
     const [m] = localScoreMatches({ profile: designer, goals, opportunities: [job], language: "zh", now: NOW });
     expect(m.reasons.join(" ")).toMatch(/符合你的目标/);
+  });
+});
+
+describe("scoreMatches (local): the role itself", () => {
+  // A backend engineer: the scorer must not rate a front-end or a marketing job as a good fit.
+  const backend = (() => {
+    const p = emptyProfile();
+    p.identity.name = "Lin Chen";
+    p.identity.countryCode = "US";
+    p.identity.languages = [{ code: "en", level: "native" }] as typeof p.identity.languages;
+    p.roles = [{ code: "E3", stage: null, since: null, inferred: false }] as typeof p.roles;
+    p.functions = ["engineering"];
+    p.occupations = ["backend-engineer"];
+    p.experience = [
+      experienceItemSchema.parse({ id: "exp_1", organization: "Ledgerline", title: "Senior Backend Engineer", startDate: "2019-03", current: true, skills: ["Go", "PostgreSQL", "Kubernetes"] }),
+    ];
+    p.skills = ["Go", "PostgreSQL", "Kubernetes", "gRPC"].map((name) => ({ name, level: null, years: null })) as typeof p.skills;
+    return p;
+  })();
+  const goals = [{ id: "gol_job", family: "G1", label: "A senior backend role" }];
+  const remote = { remote: "remote" as const, countries: ["US"] };
+  const backendJob: OpportunityInput = { id: "be", type: "job", name: "Senior Backend Engineer", summary: "Build payment APIs in Go on PostgreSQL and Kubernetes.", functions: ["engineering"], geo: remote };
+  const frontendJob: OpportunityInput = { id: "fe", type: "job", name: "Senior Frontend Engineer", summary: "Build our React and TypeScript design system.", functions: ["engineering"], geo: remote };
+  const marketingJob: OpportunityInput = { id: "mk", type: "job", name: "Marketing Manager", summary: "Own campaigns, brand and paid acquisition.", functions: ["marketing"], geo: remote };
+  const salesJob: OpportunityInput = { id: "sl", type: "job", name: "Account Executive", summary: "Close mid-market deals.", geo: remote };
+
+  it("keeps the matching role on top and pushes other roles clearly down", () => {
+    const r = Object.fromEntries(localScoreMatches({ profile: backend, goals, opportunities: [backendJob, frontendJob, marketingJob, salesJob], now: NOW }).map((m) => [m.opportunityId, m]));
+    expect(r.be.fit).toBeGreaterThanOrEqual(65);
+    expect(r.fe.fit).toBeLessThanOrEqual(r.be.fit - 15);
+    expect(r.mk.fit).toBeLessThanOrEqual(r.be.fit - 35);
+    expect(r.sl.fit).toBeLessThanOrEqual(r.be.fit - 35);
+    expect(r.mk.fit).toBeLessThan(40);
+    expect(r.mk.gaps.join(" ")).toMatch(/different line of work/);
+    expect(r.be.gaps.join(" ")).not.toMatch(/different line of work/);
+    expect(r.mk.winProbability).toBeLessThan(r.be.winProbability);
+  });
+
+  it("does not judge roles for programs that aren't one role (a grant, an accelerator)", () => {
+    const grant: OpportunityInput = { id: "gr", type: "grant", name: "Open-source infrastructure grant", functions: ["marketing"], geo: remote };
+    const [m] = localScoreMatches({ profile: backend, goals: [{ id: "g", family: "G4" }], opportunities: [grant], now: NOW });
+    expect(m.gaps.join(" ")).not.toMatch(/different line of work/);
   });
 });

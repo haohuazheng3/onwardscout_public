@@ -26,7 +26,7 @@
     "demo": {
       "example": "Example",
       "exampleNote": "Illustrative data",
-      "summary": "An example of Onward Scout at work: a résumé is dropped in, a profile appears with sourced facts, three matching opportunities arrive with fit scores, one application is prepared and submitted after a tap, and another becomes a 30-second handoff because the site needs a login.",
+      "summary": "An example of Onward Scout at work: a résumé is dropped in, a profile appears with sourced facts, three matching opportunities arrive with fit scores, one application is prepared and submitted after a tap, and another becomes a handoff with every field ready because the site needs a login.",
       "dropTitle": "You drop in",
       "dropHint": "A résumé, a deck, a portfolio or links",
       "fileName": "resume.pdf",
@@ -57,7 +57,7 @@
       "yourTap": "Your tap",
       "submitted": "Submitted",
       "evidence": "Confirmation saved",
-      "handoff": "30-second handoff",
+      "handoff": "Handoff, all fields ready",
       "handoffWhy": "Their portal needs your login.",
       "drafting": "Drafting your proposal from your facts",
       "pause": "Pause the example",
@@ -138,11 +138,12 @@
       "lede": "The channel depends on where the opportunity lives. We use the most direct route that’s allowed, and fall back to a handoff when automation isn’t.",
       "youDo": "What you do",
       "live": "Live",
-      "notYet": "Not yet"
+      "notYet": "Not yet",
+      "handoffForNow": "Prepared · you submit for now"
     },
     "handoff": {
       "eyebrow": "The handoff",
-      "title": "The 30-second handoff, explained.",
+      "title": "The handoff, explained.",
       "containsTitle": "What a handoff contains",
       "whereTitle": "Where you’ll meet one"
     },
@@ -203,8 +204,7 @@
       "rowPractice": "Practice applications",
       "rowChannels": "Every channel: forms, Gmail outreach, handoffs",
       "rowFollowUps": "Follow-ups",
-      "rowDigest": "Weekly brief",
-      "rowPriority": "Priority processing",
+      "rowDigest": "Weekly brief in the app",
       "rowRenewal": "Renewal",
       "creditsFree": "{credits} to start ({days} days)",
       "creditsPacks": "{small} or {large} ({days} days)",
@@ -215,7 +215,9 @@
       "renewalPacks": "None, pay once",
       "renewalPro": "Monthly, cancel any time",
       "included": "Included",
-      "notIncluded": "Not included"
+      "notIncluded": "Not included",
+      "rowDigestEmail": "Weekly brief by email",
+      "comingSoon": "Coming soon"
     },
     "billing": {
       "eyebrow": "Paying",

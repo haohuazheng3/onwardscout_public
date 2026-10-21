@@ -44,5 +44,5 @@ export default async function ApplicationRoomPage({ params }: { params: Params }
       />
     );
   }
-  return <ApplicationRoom initial={view} balance={balance ? { available: balance.available, reserved: balance.reserved } : null} locale={locale} />;
+  return <ApplicationRoom initial={view} balance={balance ? { available: balance.available, reserved: balance.reserved } : null} locale={locale} nowIso={new Date().toISOString()} />;
 }

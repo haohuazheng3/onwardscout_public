@@ -327,7 +327,8 @@ describe("quality gates", () => {
     expect(hubIndexable(2)).toBe(false);
     expect(hubIndexable(3)).toBe(true);
     expect(orgIndexable(1)).toBe(false);
-    expect(orgIndexable(2)).toBe(true);
+    expect(orgIndexable(2)).toBe(false);
+    expect(orgIndexable(3)).toBe(true);
     expect(LIST_PAGE_SIZE).toBeGreaterThan(0);
   });
 
@@ -359,9 +360,15 @@ describe("quality gates", () => {
     expect(careerQuality({ liveTypeCount: 9, matchedListings: 9, relatedCount: 1 }).indexable).toBe(false);
   });
 
-  it("lists organizations with at least two live listings", () => {
-    const orgs = organizationsOf([listing({ slug: "a" }), listing({ slug: "b", type: "grant" }), listing({ slug: "c", orgSlug: "solo", orgName: "Solo" })]);
-    expect(orgs).toEqual([{ slug: "example-ventures", name: "Example Ventures", count: 2, lastmod: "2026-10-20T00:00:00.000Z", types: ["accelerator", "grant"] }]);
+  it("lists organizations with at least three live listings (the bar of every hub)", () => {
+    const orgs = organizationsOf([
+      listing({ slug: "a" }),
+      listing({ slug: "b", type: "grant" }),
+      listing({ slug: "d" }),
+      listing({ slug: "c", orgSlug: "pair", orgName: "Pair" }),
+      listing({ slug: "e", orgSlug: "pair", orgName: "Pair" }),
+    ]);
+    expect(orgs).toEqual([{ slug: "example-ventures", name: "Example Ventures", count: 3, lastmod: "2026-10-20T00:00:00.000Z", types: ["accelerator", "grant"] }]);
   });
 });
 

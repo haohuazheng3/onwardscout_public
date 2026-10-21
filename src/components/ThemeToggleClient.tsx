@@ -4,6 +4,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
 import { THEME_EVENT as EVENT, THEME_KEY as KEY, type ThemeChoice as Choice } from "./theme";
+import { radioKeys } from "./radio-keys";
 
 function apply(choice: Choice) {
   const root = document.documentElement;
@@ -57,7 +58,7 @@ export function ThemeToggle({ compact = false, className = "" }: { compact?: boo
       aria-label={t("label")}
       className={`inline-flex items-center gap-0.5 rounded-full bg-pane-2 p-1 shadow-[inset_0_0_0_1px_var(--line)] ${className}`}
     >
-      {OPTIONS.map(({ id, Icon }) => {
+      {OPTIONS.map(({ id, Icon }, i) => {
         const active = choice === id;
         return (
           <button
@@ -65,6 +66,7 @@ export function ThemeToggle({ compact = false, className = "" }: { compact?: boo
             type="button"
             role="radio"
             aria-checked={active}
+            {...radioKeys(i, OPTIONS.length, OPTIONS.findIndex((o) => o.id === choice), (n) => setTheme(OPTIONS[n].id))}
             aria-label={compact ? t(id) : undefined}
             title={compact ? t(id) : undefined}
             onClick={() => setTheme(id)}

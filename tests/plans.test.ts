@@ -42,7 +42,7 @@ describe("catalog", () => {
   });
 
   it("gives Pro its perks and packs none", () => {
-    expect(PLANS.pro.perks).toEqual({ autoFollowUps: true, weeklyDigest: true, priority: true });
+    expect(PLANS.pro.perks).toEqual({ autoFollowUps: true, weeklyDigest: true });
     for (const p of Object.values(PACKS)) expect(p.perks).toEqual(NO_PLAN_PERKS);
   });
 

@@ -1,344 +1,345 @@
 {
   "meta": {
-    "title": "Scout",
-    "detailTitle": "Opportunity"
+    "title": "机会",
+    "detailTitle": "机会详情"
   },
   "header": {
-    "eyebrow": "Scout",
-    "title": "Opportunities picked for you",
-    "lede": "Ranked by how well each one fits your profile and goals. Tap Apply for me and we prepare the rest.",
-    "label": "Your scout",
-    "looking": "Your scout is out looking…",
-    "lookingShort": "Looking…",
-    "lookAgain": "Look again",
-    "newThisWeek": "{count, plural, =0 {No new picks this week yet} one {# new pick this week} other {# new picks this week}}",
-    "lastLooked": "Last looked {when}",
-    "neverLooked": "Hasn’t looked yet",
-    "scoringLocal": "matched by rules from your profile",
-    "scoringAi": "ranked with AI from your profile",
-    "goalsLabel": "Show picks for",
-    "allGoals": "All goals",
-    "noGoals": "Set a goal so your scout knows what to look for.",
-    "setGoal": "Set a goal"
+    "eyebrow": "机会",
+    "title": "为你挑选的机会",
+    "lede": "按与你的档案和目标的匹配程度排序。点一下「替我申请」，剩下的交给我们准备。",
+    "label": "你的 Scout",
+    "looking": "Scout 正在替你寻找…",
+    "lookingShort": "寻找中…",
+    "lookAgain": "重新寻找",
+    "newThisWeek": "{count, plural, =0 {本周还没有新的精选} one {本周 # 个新精选} other {本周 # 个新精选}}",
+    "lastLooked": "上次寻找：{when}",
+    "neverLooked": "还没有开始寻找",
+    "scoringLocal": "根据你的档案按规则匹配",
+    "scoringAi": "根据你的档案由 AI 排序",
+    "goalsLabel": "显示以下目标的精选",
+    "allGoals": "全部目标",
+    "noGoals": "设定一个目标，Scout 才知道该找什么。",
+    "setGoal": "设定目标"
   },
   "profileHint": {
-    "emptyTitle": "Your scout is working from very little",
-    "emptyBody": "Drop in your résumé, deck or portfolio and these picks get much sharper. It takes a minute and no typing.",
-    "emptyCta": "Add your materials",
-    "draftTitle": "Confirm your profile for sharper picks",
-    "draftBody": "Your scout is using a draft. A quick check of your profile tells it exactly who you are.",
-    "draftCta": "Review your profile"
+    "emptyTitle": "Scout 手头的信息还很少",
+    "emptyBody": "丢进你的简历、BP 或作品集，精选会精准得多。只需一分钟，不用打字。",
+    "emptyCta": "添加你的材料",
+    "draftTitle": "确认档案，精选会更精准",
+    "draftBody": "Scout 现在用的是草稿。快速核对一下你的档案，它就能准确知道你是谁。",
+    "draftCta": "核对你的档案"
   },
   "views": {
-    "label": "Show",
-    "picks": "Picks",
-    "later": "Later",
-    "all": "Everything open"
+    "label": "显示",
+    "picks": "精选",
+    "later": "稍后再看",
+    "all": "全部开放机会"
   },
   "search": {
-    "label": "Search opportunities",
-    "placeholder": "Search by name, organisation or topic",
-    "clear": "Clear search",
-    "everything": "Searching everything open, not only your picks."
+    "label": "搜索机会",
+    "placeholder": "按名称、机构或主题搜索",
+    "clear": "清除搜索",
+    "everything": "正在搜索全部开放机会，不只是你的精选。"
   },
   "filters": {
-    "button": "Filters",
-    "title": "Filters",
-    "description": "Each choice applies straight away.",
-    "clear": "Clear filters",
-    "done": "Done",
+    "button": "筛选",
+    "title": "筛选",
+    "description": "每个选项都会立即生效。",
+    "clear": "清除筛选",
+    "done": "完成",
     "remote": {
-      "title": "Where",
-      "any": "Anywhere",
-      "remote": "Remote",
-      "hybrid": "Hybrid",
-      "onsite": "On-site"
+      "title": "地点",
+      "any": "不限",
+      "remote": "远程",
+      "hybrid": "混合办公",
+      "onsite": "现场办公"
     },
     "region": {
-      "title": "Country",
-      "hint": "Countries on your picks. Ones open worldwide always show.",
-      "empty": "Countries appear here once your scout has picks.",
-      "any": "Any country"
+      "title": "国家/地区",
+      "hint": "你的精选所涉及的国家/地区。面向全球开放的机会始终显示。",
+      "empty": "Scout 有了精选之后，国家/地区会显示在这里。",
+      "any": "不限国家/地区"
     },
     "deadline": {
-      "title": "Deadline",
-      "any": "Any time",
-      "week": "This week",
-      "month": "Next 30 days",
-      "quarter": "Next 3 months",
-      "open": "Rolling or not listed"
+      "title": "截止日期",
+      "any": "不限",
+      "week": "本周",
+      "month": "未来 30 天",
+      "quarter": "未来 3 个月",
+      "open": "滚动截止或未注明"
     },
     "effort": {
-      "title": "Your time",
-      "hint": "Minutes you spend. We prepare everything else.",
-      "any": "Any",
-      "quick": "Up to 5 min",
-      "medium": "6–15 min",
-      "long": "Over 15 min"
+      "title": "你要花的时间",
+      "hint": "你本人需要花的分钟数。其余一切由我们准备。",
+      "any": "不限",
+      "quick": "5 分钟以内",
+      "medium": "6–15 分钟",
+      "long": "15 分钟以上"
     }
   },
   "groups": {
-    "label": "Type",
-    "all": "All",
-    "jobs": "Jobs",
-    "funding": "Funding & programs",
-    "stages": "Events & stages",
-    "academic": "Academic",
-    "creative": "Creative",
-    "learning": "Learning & community"
+    "label": "类型",
+    "all": "全部",
+    "jobs": "岗位",
+    "funding": "资助与项目",
+    "stages": "活动与舞台",
+    "academic": "学术",
+    "creative": "创作",
+    "learning": "学习与社群"
   },
   "list": {
-    "showMore": "Show more",
-    "retryMore": "Couldn’t load more. Try again",
-    "end": "That’s everything for now."
+    "showMore": "显示更多",
+    "retryMore": "没能加载更多，请重试",
+    "end": "目前就这些了。"
   },
   "empty": {
-    "lookingTitle": "Your scout is out looking",
-    "lookingBody": "It’s reading open opportunities against your profile and goals. This usually takes under a minute.",
-    "idleBody": "Tap Look again and your scout compares every open opportunity with your profile and goals.",
-    "looking": "Looking…",
-    "lookAgain": "Look again",
-    "browseAll": "Browse everything open",
-    "filteredTitle": "Nothing here with these filters",
-    "filteredBody": "Loosen a filter or clear them all. Your other picks are still waiting.",
-    "searchTitle": "Nothing open matches “{q}”",
-    "searchBody": "Try fewer or different words, or clear the search.",
-    "clear": "Clear filters",
-    "laterTitle": "Nothing saved for later",
-    "laterBody": "Tap Later on any pick and it waits here until you’re ready.",
-    "allTitle": "No open opportunities here yet",
-    "allBody": "New ones arrive every day, and your scout brings the good ones to your picks.",
-    "seenAllTitle": "You’ve been through every pick",
-    "seenAllBody": "Your scout looks again as new opportunities arrive. You can also send it out now."
+    "lookingTitle": "Scout 正在替你寻找",
+    "lookingBody": "它正在用你的档案和目标逐一比对开放的机会，通常不到一分钟。",
+    "idleBody": "点一下「重新寻找」，Scout 会把每一个开放机会与你的档案和目标逐一比对。",
+    "looking": "寻找中…",
+    "lookAgain": "重新寻找",
+    "browseAll": "浏览全部开放机会",
+    "filteredTitle": "当前筛选条件下没有机会",
+    "filteredBody": "放宽某个筛选条件，或全部清除。你的其他精选还在等你。",
+    "searchTitle": "没有与“{q}”匹配的开放机会",
+    "searchBody": "试试更少或不同的关键词，或清除搜索。",
+    "clear": "清除筛选",
+    "laterTitle": "没有稍后再看的机会",
+    "laterBody": "在任意精选上点「稍后」，它就会在这里等你准备好。",
+    "allTitle": "这里暂时还没有开放的机会",
+    "allBody": "每天都有新机会进来，Scout 会把好的挑进你的精选。",
+    "seenAllTitle": "你已经看完了所有精选",
+    "seenAllBody": "有新机会进来时，Scout 会再找一遍。你也可以现在就让它出发。"
   },
   "refresh": {
-    "failed": "Your scout couldn’t finish looking. Try again in a minute."
+    "failed": "Scout 没能完成寻找。请过一分钟再试。"
   },
   "feedback": {
-    "later": "Later",
-    "savedLater": "Saved for later",
-    "savedLaterShort": "Saved",
-    "movedBack": "Back on your picks",
-    "dismissed": "Removed from your picks",
-    "learns": "Your scout will show you fewer like it.",
-    "undo": "Undo",
-    "notInterested": "Not interested",
-    "whyTitle": "What’s off about it?",
-    "whyHint": "One tap. It teaches your scout.",
-    "keep": "Keep it",
-    "backToPicks": "Back to picks",
+    "later": "稍后",
+    "savedLater": "已存到稍后再看",
+    "savedLaterShort": "已保存",
+    "movedBack": "已放回精选",
+    "dismissed": "已从精选中移除",
+    "learns": "Scout 以后会少推荐类似的机会。",
+    "undo": "撤销",
+    "notInterested": "不感兴趣",
+    "whyTitle": "哪里不合适？",
+    "whyHint": "点一下就好，Scout 会据此学习。",
+    "keep": "保留",
+    "backToPicks": "返回精选",
     "reasons": {
-      "wrong_location": "Wrong location",
-      "not_my_field": "Not my field",
-      "bad_timing": "Too early or too late",
-      "not_this_type": "Not this kind of opportunity",
-      "other": "Something else"
-    }
+      "wrong_location": "地点不合适",
+      "not_my_field": "不是我的领域",
+      "bad_timing": "时间太早或太晚",
+      "not_this_type": "不想要这类机会",
+      "other": "其他原因"
+    },
+    "dismissing": "正在从推荐中移除…"
   },
   "card": {
-    "fit": "{fit}% fit",
-    "new": "New",
-    "addedByYou": "Added by you",
-    "practiceFree": "Practice · free",
-    "applied": "Applied",
-    "whyLabel": "Why it fits",
-    "materials": "Asks for: {list}"
+    "fit": "匹配度 {fit}%",
+    "new": "新",
+    "addedByYou": "由你添加",
+    "practiceFree": "练习 · 免费",
+    "applied": "已申请",
+    "whyLabel": "为什么适合你",
+    "materials": "所需材料：{list}"
   },
   "deadline": {
-    "closed": "Closed",
-    "today": "Closes today",
-    "days": "{days, plural, one {Closes tomorrow} other {Closes in # days}}",
-    "on": "Closes {date}",
-    "rolling": "Rolling: apply any time",
-    "unknown": "Deadline not listed: check the official page"
+    "closed": "已截止",
+    "today": "今天截止",
+    "days": "{days, plural, one {明天截止} other {# 天后截止}}",
+    "on": "{date} 截止",
+    "rolling": "滚动截止：随时可申请",
+    "unknown": "未注明截止日期：请查看官方页面"
   },
   "do": {
-    "confirm": "Just confirm",
-    "confirmHandoff": "Just confirm, plus a quick sign-in on their site",
-    "email": "Approve the email",
-    "handoff": "Quick handoff: you submit on their site",
-    "documents": "We draft it, you use it"
+    "confirm": "只需确认",
+    "confirmHandoff": "只需确认，外加在对方网站快速登录一次",
+    "email": "批准这封邮件",
+    "handoff": "快速交接：你在对方网站本人提交",
+    "documents": "我们起草，你来使用"
   },
   "location": {
-    "anywhere": "Anywhere",
-    "remote": "Remote",
-    "remoteFrom": "Remote · {place}",
-    "hybrid": "Hybrid",
-    "hybridIn": "Hybrid · {place}"
+    "anywhere": "不限地点",
+    "remote": "远程",
+    "remoteFrom": "远程 · {place}",
+    "hybrid": "混合办公",
+    "hybridIn": "混合办公 · {place}"
   },
   "benefits": {
     "per": {
-      "year": "/yr",
-      "month": "/mo",
-      "week": "/wk",
-      "day": "/day",
-      "hour": "/hr"
+      "year": "/年",
+      "month": "/月",
+      "week": "/周",
+      "day": "/天",
+      "hour": "/小时"
     },
     "money": {
-      "salary": "Pays {amount}",
-      "stipend": "{amount} stipend",
-      "grant": "{amount} grant",
-      "prize": "{amount} in prizes",
-      "investment": "{amount} investment",
-      "scholarship": "{amount} scholarship",
+      "salary": "薪资 {amount}",
+      "stipend": "津贴 {amount}",
+      "grant": "资助 {amount}",
+      "prize": "奖金 {amount}",
+      "investment": "投资 {amount}",
+      "scholarship": "奖学金 {amount}",
       "fee": "{amount}",
       "other": "{amount}"
     },
-    "visa": "Visa sponsorship",
-    "fee": "Application fee {amount}",
-    "free": "Free to apply",
-    "equity": "Takes {percent}% equity"
+    "visa": "提供签证担保",
+    "fee": "申请费 {amount}",
+    "free": "免费申请",
+    "equity": "占股 {percent}%"
   },
   "apply": {
-    "cta": "Apply for me",
-    "practice": "Try it now",
-    "starting": "Starting…",
-    "open": "Open your application",
-    "failed": "We couldn’t start that application",
-    "getCredits": "Get credits"
+    "cta": "替我申请",
+    "practice": "现在就试试",
+    "starting": "正在开始…",
+    "open": "打开你的申请",
+    "failed": "没能开始这份申请",
+    "getCredits": "获取额度"
   },
   "import": {
-    "open": "Add one you found",
-    "title": "Add an opportunity you found",
-    "description": "Paste the link to a job, call, program or competition. We read the page and put it at the top of your board.",
-    "label": "Link",
-    "hint": "The organiser’s own page works best.",
-    "invalid": "That doesn’t look like a link. Paste the full address, starting with https://.",
-    "privacy": "Only you see links you add. We read the page once and keep a copy to spot changes later.",
-    "cancel": "Cancel",
-    "submit": "Add it",
-    "reading": "Reading {host}…",
-    "added": "Added to the top of your board",
-    "alreadyThere": "Already on Onward Scout, now pinned to your board",
-    "typeGuessed": "The page didn’t say what kind of opportunity it is, so we filed it under your goal. Check the details on the official page.",
-    "missing": "Some details weren’t on the page. They show as “check the official page”.",
-    "failed": "We couldn’t add that link",
-    "tryAgain": "Try again"
+    "open": "添加你找到的机会",
+    "title": "添加一个你找到的机会",
+    "description": "粘贴岗位、征集、项目或比赛的链接。我们会读取页面，并把它放到你看板的最上方。",
+    "label": "链接",
+    "hint": "主办方自己的页面效果最好。",
+    "invalid": "这看起来不像一个链接。请粘贴以 https:// 开头的完整地址。",
+    "privacy": "你添加的链接只有你能看到。我们会读取一次页面并保留一份副本，以便日后发现变化。",
+    "cancel": "取消",
+    "submit": "添加",
+    "reading": "正在读取 {host}…",
+    "added": "已添加到你看板的最上方",
+    "alreadyThere": "Onward Scout 上已有这个机会，现已置顶到你的看板",
+    "typeGuessed": "页面没有说明这是哪类机会，所以我们把它归到了你的目标下。请在官方页面核对详情。",
+    "missing": "页面上缺少部分信息，这些会显示为“请查看官方页面”。",
+    "failed": "没能添加这个链接",
+    "tryAgain": "重试"
   },
   "detail": {
-    "back": "Scout",
-    "unverified": "Not reviewed yet",
-    "verified": "Checked",
-    "minutes": "{minutes, plural, one {About # minute of your time} other {About # minutes of your time}}",
-    "official": "Official page · {host}",
-    "noOfficial": "The organiser’s link isn’t known yet.",
-    "unknownNote": "Anything we couldn’t confirm says “check the official page”. We never fill gaps with guesses.",
+    "back": "机会",
+    "unverified": "尚未审核",
+    "verified": "已核实",
+    "minutes": "{minutes, plural, one {大约需要你花 # 分钟} other {大约需要你花 # 分钟}}",
+    "official": "官方页面 · {host}",
+    "noOfficial": "暂时还不知道主办方的链接。",
+    "unknownNote": "凡是我们无法确认的信息，都会注明“请查看官方页面”。我们绝不用猜测来填补空白。",
     "practice": {
-      "title": "What this practice run shows you",
-      "one": "See exactly what Onward Scout prepares and submits, start to finish",
-      "two": "Goes to our own sandbox form — nothing reaches a real organisation",
-      "three": "Free: practice runs never use credits"
+      "title": "这次练习会让你看到什么",
+      "one": "从头到尾看清 Onward Scout 会准备什么、提交什么",
+      "two": "提交到我们自己的沙盒表单——不会发到任何真实机构",
+      "three": "免费：练习从不消耗额度"
     },
     "why": {
-      "title": "Why it fits you",
-      "gaps": "Before you apply",
-      "local": "Matched by comparing your profile with this opportunity’s details. Rules, not guesses.",
-      "ai": "Ranked with AI from your profile and the organiser’s page. Every reason traces back to one of them."
+      "title": "为什么适合你",
+      "gaps": "申请之前",
+      "local": "通过比对你的档案与这个机会的详情得出的匹配。依据规则，而非猜测。",
+      "ai": "根据你的档案和主办方页面由 AI 排序。每一条理由都能追溯到其中之一。"
     },
     "eligibility": {
-      "title": "Can you apply?"
+      "title": "你符合申请条件吗？"
     },
     "about": {
-      "title": "About this opportunity",
-      "none": "The organiser’s page has the full details."
+      "title": "关于这个机会",
+      "none": "完整详情请见主办方页面。"
     },
     "required": {
-      "title": "What it asks for",
-      "none": "The organiser doesn’t list materials. We read their form when you apply.",
+      "title": "所需材料",
+      "none": "主办方没有列出所需材料。你申请时，我们会读取他们的表单。",
       "by": {
-        "platform": "We draft it from your profile",
-        "either": "We use yours, or draft it from your profile",
-        "user": "You provide this one"
+        "platform": "我们根据你的档案起草",
+        "either": "用你现有的，或根据你的档案起草",
+        "user": "这一项需要你本人提供"
       }
     },
     "how": {
-      "title": "How Onward Scout applies",
-      "mine": "You added this link. We read it automatically and haven’t reviewed it, so check the details on the official page.",
-      "email": "Sent from your own Gmail, written for this recipient, and only after you approve it.",
-      "documents": "We draft the documents from your sourced facts; you use them where they’re needed.",
-      "login": "Their site asks you to sign in, so the last step is a short handoff: you log in, and everything else is ready.",
-      "captcha": "If their form shows a CAPTCHA, you solve it. We never get around them.",
-      "fee": "There’s an application fee. You pay it yourself on their site.",
-      "practice": "This goes to Onward Scout’s own sandbox form. Nothing reaches a real organisation and no credits are used.",
-      "tap": "Nothing is submitted until you tap.",
-      "connectGmail": "Connect Gmail",
-      "instructions": "The organiser says"
+      "title": "Onward Scout 如何申请",
+      "mine": "这个链接是你添加的。我们自动读取了它，但尚未审核，请在官方页面核对详情。",
+      "email": "从你自己的 Gmail 发出，专为这位收件人撰写，并且只在你批准后发送。",
+      "documents": "我们根据你有出处的信息起草文档，你在需要的地方使用它们。",
+      "login": "对方网站要求登录，所以最后一步是一次简短的交接：你登录，其余一切都已就绪。",
+      "captcha": "如果对方表单出现验证码，由你本人完成。我们绝不绕过验证码。",
+      "fee": "需要支付申请费。请你本人在对方网站上支付。",
+      "practice": "这会提交到 Onward Scout 自己的沙盒表单。不会发到任何真实机构，也不消耗额度。",
+      "tap": "在你点一下之前，什么都不会提交。",
+      "connectGmail": "连接 Gmail",
+      "instructions": "主办方说明"
     },
     "similar": {
-      "title": "Similar opportunities"
+      "title": "类似的机会"
     }
   },
   "eligibility": {
-    "none": "The organiser lists no eligibility rules here. Check the official page before you apply.",
+    "none": "主办方在这里没有列出申请条件。申请前请查看官方页面。",
     "status": {
-      "yes": "Meets it",
-      "no": "Doesn’t meet it",
-      "unknown": "Check this"
+      "yes": "符合",
+      "no": "不符合",
+      "unknown": "请核对"
     },
     "who": {
-      "yes": "Open to {who}, and that’s you.",
-      "no": "For {who}, which your profile doesn’t match. If that’s wrong, update your profile.",
-      "unknown": "For {who}. Confirm who you are in your profile so we can check."
+      "yes": "面向{who}，你符合。",
+      "no": "面向{who}，与你的档案不符。如果有误，请更新你的档案。",
+      "unknown": "面向{who}。请在档案中确认你的身份，以便我们核对。"
     },
     "stage": {
-      "yes": "Right stage: {stages}.",
-      "no": "Only for {stages}. Your profile shows a different stage.",
-      "unknown": "Only for {stages}. Add your stage to your profile so we can check."
+      "yes": "阶段相符：{stages}。",
+      "no": "仅限{stages}。你的档案显示的是其他阶段。",
+      "unknown": "仅限{stages}。请在档案中补充你的阶段，以便我们核对。"
     },
     "degree": {
-      "yes": "Asks for {degree}, and you have it.",
-      "no": "Asks for {degree}. Your profile doesn’t show one.",
-      "unknown": "Asks for {degree}. Add your education, or check whether current students qualify."
+      "yes": "要求{degree}，你符合。",
+      "no": "要求{degree}。你的档案中没有显示。",
+      "unknown": "要求{degree}。请补充你的教育背景，或确认在读学生是否符合条件。"
     },
     "experienceMin": {
-      "yes": "Asks for {years}+ years of experience. You have about {have}.",
-      "no": "Asks for {years}+ years of experience; your profile shows about {have}.",
-      "unknown": "Asks for {years}+ years of experience. Check how yours counts."
+      "yes": "要求 {years} 年以上经验。你大约有 {have} 年。",
+      "no": "要求 {years} 年以上经验；你的档案显示大约 {have} 年。",
+      "unknown": "要求 {years} 年以上经验。请确认你的经验如何计算。"
     },
     "experienceMax": {
-      "yes": "Meant for people with up to {years} years of experience, which fits.",
-      "no": "Meant for people with up to {years} years of experience; you have about {have}.",
-      "unknown": "Meant for people with up to {years} years of experience. Check how yours counts."
+      "yes": "面向经验不超过 {years} 年的人，你符合。",
+      "no": "面向经验不超过 {years} 年的人；你大约有 {have} 年。",
+      "unknown": "面向经验不超过 {years} 年的人。请确认你的经验如何计算。"
     },
     "nationality": {
-      "yes": "Open to citizens of {countries}, and that’s you.",
-      "no": "Only for citizens of {countries}. Your profile lists a different citizenship.",
-      "unknown": "Only for citizens of {countries}. Confirm yours in your profile."
+      "yes": "面向{countries}公民，你符合。",
+      "no": "仅限{countries}公民。你的档案中列出的是其他国籍。",
+      "unknown": "仅限{countries}公民。请在档案中确认你的国籍。"
     },
     "residency": {
-      "yes": "For residents of {countries}, which is where you are.",
-      "no": "For residents of {countries}.",
-      "unknown": "For residents of {countries}. Confirm where you live."
+      "yes": "面向{countries}居民，正是你所在的地方。",
+      "no": "面向{countries}居民。",
+      "unknown": "面向{countries}居民。请确认你的居住地。"
     },
     "age": {
-      "yes": "Age limit {range}, and you’re within it.",
-      "no": "Age limit {range}. Your birth year puts you outside it.",
-      "unknown": "Age limit {range}. Check that you qualify."
+      "yes": "年龄限制 {range}，你在范围内。",
+      "no": "年龄限制 {range}。按你的出生年份，你不在范围内。",
+      "unknown": "年龄限制 {range}。请确认你是否符合。"
     },
     "students": {
-      "yes": "Only for current students, and that’s you.",
-      "no": "Only for current students. Your profile doesn’t show current study.",
-      "unknown": "Only for current students. Confirm you’re enrolled."
+      "yes": "仅限在读学生，你符合。",
+      "no": "仅限在读学生。你的档案中没有显示正在就读。",
+      "unknown": "仅限在读学生。请确认你目前在读。"
     },
     "companyAge": {
-      "yes": "For companies founded in the last {years} years. Yours qualifies.",
-      "no": "For companies founded in the last {years} years. Yours looks older.",
-      "unknown": "For companies founded in the last {years} years. Add your company’s founding date."
+      "yes": "面向成立不超过 {years} 年的公司。你的公司符合。",
+      "no": "面向成立不超过 {years} 年的公司。你的公司看起来成立更久。",
+      "unknown": "面向成立不超过 {years} 年的公司。请补充你公司的成立日期。"
     },
     "location": {
-      "yes": "Location: {place}, which works for you.",
-      "no": "Location: {place}.",
-      "unknown": "Based in {place}. Check you can work or travel there."
+      "yes": "地点：{place}，适合你。",
+      "no": "地点：{place}。",
+      "unknown": "地点在 {place}。请确认你能在那里工作或前往。"
     },
     "language": {
-      "yes": "In {languages}, which you speak.",
-      "no": "In {languages}, which your profile doesn’t list.",
-      "unknown": "In {languages}. Add the languages you speak to your profile."
+      "yes": "使用{languages}，你会说。",
+      "no": "使用{languages}，你的档案中没有列出。",
+      "unknown": "使用{languages}。请在档案中补充你会说的语言。"
     },
     "notes": {
-      "yes": "The organiser adds: “{note}”",
-      "no": "The organiser adds: “{note}”",
-      "unknown": "The organiser adds: “{note}” Read the details on the official page."
+      "yes": "主办方补充：“{note}”",
+      "no": "主办方补充：“{note}”",
+      "unknown": "主办方补充：“{note}”详情请阅读官方页面。"
     }
   }
 }

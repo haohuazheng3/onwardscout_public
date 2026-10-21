@@ -7,6 +7,7 @@ import { clientIp, ipHash, rateLimit, tooMany } from "@/lib/ratelimit";
 import { SITE } from "@/lib/site";
 import { CHECKOUT_BRAND, checkoutMetadata, paymentsEnabled, priceIdFor, statementSuffix, stripe, stripeLocale } from "@/lib/stripe";
 import { ensureUser, isResponse, requireUserApi } from "@/lib/user";
+import { isAdminEmail } from "@/lib/env";
 import { localizePath } from "@/i18n/paths";
 import { OFFERS, SKUS } from "@/content/plans";
 
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     const sku = parsed.data.sku as (typeof SKUS)[number];
     const offer = OFFERS[sku];
 
-    const payments = paymentsEnabled(sku);
+    const payments = paymentsEnabled(sku, { adminTester: isAdminEmail(session.email) });
     if (!payments.ok) return fail(payments.code, payments.reason, 503);
     const price = priceIdFor(sku);
     if (!price) return fail("price_missing", `The ${offer.name.en} price is not configured yet.`, 503);

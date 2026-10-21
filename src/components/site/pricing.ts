@@ -21,8 +21,11 @@ const no: CompareCell = { kind: "no" };
 const text = (t: string): CompareCell => ({ kind: "text", text: t });
 const perk = (on: boolean): CompareCell => (on ? yes : no);
 
-/** `t` resolves keys under `site.pricing.compare`. */
-export function compareRows(t: T): CompareRow[] {
+/**
+ * `t` resolves keys under `site.pricing.compare`. `mailer`: product email is configured (the
+ * weekly brief by email is a Pro perk; until email is on it says so instead of promising it).
+ */
+export function compareRows(t: T, opts: { mailer?: boolean } = {}): CompareRow[] {
   const pro = PLANS.pro;
   const pack = PACKS.pack10;
   return [
@@ -43,8 +46,15 @@ export function compareRows(t: T): CompareRow[] {
       packs: text(pack.perks.autoFollowUps ? t("followUpsAuto") : t("followUpsTap")),
       pro: text(pro.perks.autoFollowUps ? t("followUpsAuto") : t("followUpsTap")),
     },
-    { id: "digest", label: t("rowDigest"), free: no, packs: perk(pack.perks.weeklyDigest), pro: perk(pro.perks.weeklyDigest) },
-    { id: "priority", label: t("rowPriority"), free: no, packs: perk(pack.perks.priority), pro: perk(pro.perks.priority) },
+    // The weekly brief itself is in the app for everyone; only its email copy is a Pro perk.
+    { id: "digest", label: t("rowDigest"), free: yes, packs: yes, pro: yes },
+    {
+      id: "digestEmail",
+      label: t("rowDigestEmail"),
+      free: no,
+      packs: perk(pack.perks.weeklyDigest),
+      pro: pro.perks.weeklyDigest ? (opts.mailer ? yes : text(t("comingSoon"))) : no,
+    },
     {
       id: "renewal",
       label: t("rowRenewal"),

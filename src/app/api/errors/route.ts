@@ -18,14 +18,16 @@ const Body = z.object({
 /**
  * Client-side error ingest (sendBeacon from src/instrumentation-client.ts). Always answers 204
  * so the browser never retries or logs noise. Anonymous input: the severity is re-derived from
- * the stack, the per-IP window is tight and an hourly cap bounds how many inbox rows one
- * address can create.
+ * the stack, the per-IP window is tight, an hourly cap bounds how many inbox rows one address
+ * can create, and a global daily cap bounds all addresses together.
  */
 export async function POST(req: Request) {
   try {
     const ip = ipHash(clientIp(req.headers));
-    const [minute, hour] = await Promise.all([rateLimit(`errors:m:${ip}`, 30, 60), rateLimit(`errors:h:${ip}`, 120, 3600)]);
-    if (!minute.ok || !hour.ok) return new Response(null, { status: 204 });
+    // Per address, plus one global daily ceiling: rotating addresses can't grow the error inbox
+    // (and the database) without bound.
+    const [minute, hour, day] = await Promise.all([rateLimit(`errors:m:${ip}`, 30, 60), rateLimit(`errors:h:${ip}`, 120, 3600), rateLimit("errors:client:day", 3000, 86400)]);
+    if (!minute.ok || !hour.ok || !day.ok) return new Response(null, { status: 204 });
     const raw = await req.text();
     if (raw.length > 20000) return new Response(null, { status: 204 });
     let json: unknown;

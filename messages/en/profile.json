@@ -128,7 +128,8 @@
       "rates": "Usual fee per project",
       "followers": "{count, plural, one {# follower} other {# followers}}",
       "license": "License"
-    }
+    },
+    "guardianEmail": "Parent or guardian's email"
   },
   "sources": {
     "dialogTitle": "Where this comes from",
@@ -297,7 +298,20 @@
       "title": "Needs you",
       "empty": "Nothing needs you right now. We'll tell you when something does.",
       "practice": "practice",
-      "open": "Application"
+      "open": "Application",
+      "reasons": {
+        "captcha": "a CAPTCHA",
+        "login": "your login",
+        "payment": "a fee to pay",
+        "unsupported": "you submit it",
+        "blocked": "you submit it",
+        "no_gmail": "send it from your inbox",
+        "followup_approval": "approve the follow-up",
+        "opportunity_missing": "no longer listed",
+        "organiser_request": "the organiser asked",
+        "next_step": "the next step",
+        "handoff": "you submit it"
+      }
     },
     "picks": {
       "title": "This week's picks",
@@ -341,7 +355,30 @@
       "goal_paused": "Paused a goal",
       "goal_achieved": "Achieved a goal",
       "goal_dropped": "Dropped a goal",
-      "draft_claimed": "Saved your scout to your account"
+      "draft_claimed": "Saved your scout to your account",
+      "application_requested": "Asked your scout to apply",
+      "application_confirmed": "Confirmed a submission",
+      "application_submitted": "Submitted an application",
+      "application_needs_you": "An application needs you",
+      "application_submit_failed": "A submission didn't go through",
+      "application_handoff_completed": "Submitted it yourself",
+      "application_outcome": "Recorded an outcome",
+      "application_withdrawn": "Withdrew an application",
+      "application_reply": "A reply arrived",
+      "reply_received": "A reply arrived",
+      "application_followup_sent": "Sent a follow-up",
+      "application_followup_ready": "A follow-up is ready for your tap",
+      "application_followup_skipped": "Skipped a follow-up",
+      "application_check_status": "Time to check for news",
+      "application_closed_no_response": "Closed after no reply",
+      "application_unlock": "Your first real submission",
+      "application_expired": "A deadline passed",
+      "application_outreach_blocked": "An email was stopped by the outreach rules",
+      "data_exported": "Downloaded your data",
+      "authorization_granted": "Turned on a standing permission",
+      "authorization_revoked": "Turned off a standing permission",
+      "opportunity_imported": "Added an opportunity by link",
+      "match_feedback": "Gave feedback on a pick"
     }
   }
 }

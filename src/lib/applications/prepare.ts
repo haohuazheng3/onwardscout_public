@@ -8,13 +8,14 @@ import { applications, documents, generatedDocuments, type ApplicationRow, type 
 import { answerStrings, composeDocumentWith, factRefs, latestDocuments, loadComposeContext, opportunityInput, resolveLanguage, type ComposeContext } from "@/lib/documents";
 import { dropOptionalGaps } from "@/lib/documents/build";
 import { downloadName, isGapBlock, plainText, readContent, toStored } from "@/lib/documents/content";
-import { getIntelligence, readProfile } from "@/lib/llm";
+import { actualProvider, getIntelligence, readProfile } from "@/lib/llm";
 import type { JobContext } from "@/lib/jobs/registry";
 import type { JobResult } from "@/lib/jobs/state";
 import { addStep, appError, ApplicationError, enqueuePrepare, execute, finishStep, latestStepOutput, loadApplication, patchApplication, transition } from "./engine";
 import { computeGaps, openRequired, questionsFromDocumentGaps, type ComposePlan } from "./gaps";
 import { planConfirm, planPrepareStep } from "./plan";
 import type { FieldRequirement, PreparedPackage, RequirementsLike } from "./types";
+import { guardianMissing } from "./submit";
 
 /*
  * Job `application.prepare` (plan §7.1 step 5): channel → analyze → requirements → gaps
@@ -271,7 +272,8 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
       profile,
       accountEmail: userRow?.email ?? null,
       outreach: req.channel === "CH4",
-      aiDrafts: ai.provider === "anthropic",
+      // Labelled AI only when Claude actually produced them (a budget or error fallback runs locally).
+      aiDrafts: actualProvider(ai) === "anthropic",
     });
     const merged: ApplicationAnswers = { ...gaps.autoAnswers, ...(app.answers ?? {}) };
     for (const a of gaps.attach) {
@@ -314,7 +316,7 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
 
     // 5. a standing authorization for this category submits without a tap (never for practice).
     if (!app.practice && (await canAutoSubmit(app.userId, opp.type))) {
-      const plan = planConfirm(app, { explicit: false, authorized: true });
+      const plan = planConfirm(app, { explicit: false, authorized: true, guardianRequired: await guardianMissing(app.userId) });
       if (plan.ok) {
         try {
           app = (await execute(app, plan.effects)).app;

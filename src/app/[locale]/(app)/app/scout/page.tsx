@@ -13,6 +13,7 @@ import { PAGE_SIZE, parseBoardFilters } from "@/lib/opportunities/filters";
 import { boardRegions, hasAnyMatch, lastRefreshedAt } from "@/lib/opportunities/queries";
 import { activeGoals, getProfile } from "@/lib/profile";
 import { requireUser } from "@/lib/user";
+import { lastCallProvider } from "@/lib/llm";
 
 type Params = Promise<{ locale: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -30,7 +31,7 @@ export default async function ScoutPage({ params, searchParams }: { params: Para
   const { userId } = await requireUser({ locale, returnTo: localizePath("/app/scout", locale) });
   const filters = parseBoardFilters(await searchParams);
 
-  const [t, goals, profile, page, regions, refresh, matched, lastMatchedAt] = await Promise.all([
+  const [t, goals, profile, page, regions, refresh, matched, lastMatchedAt, scoredBy] = await Promise.all([
     getTranslations({ locale, namespace: "scout" }),
     activeGoals(userId),
     getProfile(userId),
@@ -39,6 +40,8 @@ export default async function ScoutPage({ params, searchParams }: { params: Para
     refreshState(userId),
     hasAnyMatch(userId),
     lastRefreshedAt(userId),
+    // The engine that actually ranked this person's board (a budget or error fallback runs locally).
+    features().llmProvider === "anthropic" ? lastCallProvider(userId, "score_matches").catch(() => null) : Promise.resolve(null),
   ]);
 
   // First visit: the scout has never run for this person → send it out now (enqueue + kick).
@@ -61,7 +64,7 @@ export default async function ScoutPage({ params, searchParams }: { params: Para
         initialRefresh={initialRefresh}
         hasMatches={matched}
         profileState={profileState}
-        scoring={features().llmProvider === "anthropic" ? "ai" : "local"}
+        scoring={scoredBy === "anthropic" ? "ai" : "local"}
         nowIso={new Date().toISOString()}
       />
     </>

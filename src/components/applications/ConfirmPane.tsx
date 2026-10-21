@@ -42,10 +42,11 @@ export function ConfirmPane({ room, locale }: { room: RoomApi; locale: string })
           {t("short")}
         </Callout>
       ) : null}
-      <Button size="lg" block className="mt-5" icon={<Send size={18} aria-hidden />} loading={room.busy === "confirm"} onClick={() => room.confirm()}>
+      {room.emailDirty ? <p className="mt-4 text-[0.88rem] text-ink-3">{t("unsavedEmail")}</p> : null}
+      <Button size="lg" block className="mt-5" icon={<Send size={18} aria-hidden />} loading={room.busy === "confirm" || room.busy === "email"} onClick={() => void room.confirm()}>
         {room.busy === "confirm" ? t("submitting") : label}
       </Button>
-      <p className="mt-3 flex gap-2 text-[0.82rem] leading-snug text-ink-4">
+      <p className="mt-3 flex gap-2 text-[0.82rem] leading-snug text-ink-3">
         <ShieldCheck size={15} className="mt-[1px] shrink-0" aria-hidden />
         <span>{t("fine")}</span>
       </p>

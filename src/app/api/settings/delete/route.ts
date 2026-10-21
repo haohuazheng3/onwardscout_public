@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { blockingSubscription, deleteUserData } from "@/lib/data-export";
 import { captureError, jsonError, withErrorCapture } from "@/lib/errors";
+import { revokeToken } from "@/lib/integrations/google/oauth";
+import { googleRefreshToken } from "@/lib/integrations/google/store";
 import { notifyOwner } from "@/lib/notify";
 import { rateLimit, tooMany } from "@/lib/ratelimit";
 import { isResponse, requireUserApi } from "@/lib/user";
@@ -13,7 +15,8 @@ const Body = z.object({ confirm: z.literal("DELETE") });
 
 /*
  * Account deletion, scoped to the requesting person only (the user id comes from the session,
- * never from the request). Order: files in R2 → every row of this user → the Clerk user.
+ * never from the request). Order: the Gmail grant revoked at Google → files in R2 → every row of
+ * this user (plus a tombstone) → the Clerk user.
  * Refused while a Pro subscription would keep renewing (cancel it in Billing first), so nobody
  * is charged for an account that no longer exists.
  */
@@ -28,6 +31,16 @@ export const POST = withErrorCapture("/api/settings/delete", async (req: Request
   const sub = await blockingSubscription(session.userId);
   if (sub) {
     return jsonError("Your Pro subscription is still set to renew. Cancel it in Billing first, then delete your account, so you are never charged for an account that no longer exists.", 409);
+  }
+
+  // Gmail: revoke the grant at Google first (as "Disconnect" does), so deleting the account also
+  // removes Onward Scout from the person's Google third-party access. Best effort: our copy of
+  // the token is erased below either way.
+  try {
+    const stored = await googleRefreshToken(session.userId);
+    if (stored) await revokeToken(stored.token);
+  } catch (err) {
+    await captureError(err, { route: "/api/settings/delete", severity: "warn", context: { stage: "google-revoke" } });
   }
 
   try {

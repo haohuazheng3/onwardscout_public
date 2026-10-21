@@ -39,7 +39,10 @@
     "no": "no",
     "none": "none",
     "noEmail": "no users row",
-    "practice": "practice"
+    "practice": "practice",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "pageN": "Page {page}"
   },
   "notices": {
     "invalid": "The request was malformed; nothing changed.",
@@ -60,7 +63,8 @@
     "resolved": "Marked resolved.",
     "reopened": "Reopened.",
     "allResolved": "Every open group is resolved.",
-    "messageUpdated": "Message updated."
+    "messageUpdated": "Message updated.",
+    "addressBlocked": "Address blocked: no Onward Scout user can email it again."
   },
   "overview": {
     "title": "Overview",
@@ -326,7 +330,9 @@
     "signedIn": "signed in as",
     "ownerEmailed": "owner emailed",
     "ownerNotEmailed": "owner email failed",
-    "empty": "No messages yet."
+    "empty": "No messages yet.",
+    "blockLabel": "Block an address from all outreach (someone asked not to be contacted)",
+    "blockButton": "Block address"
   },
   "inbox": {
     "title": "Test inbox",

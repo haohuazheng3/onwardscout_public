@@ -1,9 +1,12 @@
+import { useTranslations } from "next-intl";
 import { PaneSkeleton } from "@/components/Skeletons";
 
 /** /app/start while it loads: the step bar, the drop zone and the links pane. */
 export default function StartLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
-    <div className="mx-auto max-w-[760px]" aria-busy="true" role="status" aria-label="Loading">
+    <div className="mx-auto max-w-[760px]" aria-busy="true" role="status" aria-label={label}>
       <div className="mb-6 grid grid-cols-3 gap-2" aria-hidden="true">
         {[0, 1, 2].map((i) => (
           <div key={i}>

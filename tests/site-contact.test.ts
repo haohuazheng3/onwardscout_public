@@ -70,9 +70,12 @@ describe("pricing comparison", () => {
   });
 
   it("gives Pro its perks and keeps the free core free everywhere", () => {
-    expect(row("digest").pro.kind).toBe(PLANS.pro.perks.weeklyDigest ? "yes" : "no");
-    expect(row("digest").free.kind).toBe("no");
-    expect(row("priority").packs.kind).toBe(PACKS.pack10.perks.priority ? "yes" : "no");
+    // The brief is in the app for everyone; its email copy is the Pro perk ("coming soon" until email is on).
+    for (const col of ["free", "packs", "pro"] as const) expect(row("digest")[col].kind).toBe("yes");
+    expect(row("digestEmail").free.kind).toBe("no");
+    expect(row("digestEmail").packs.kind).toBe(PACKS.pack10.perks.weeklyDigest ? "yes" : "no");
+    expect(row("digestEmail").pro).toEqual(PLANS.pro.perks.weeklyDigest ? { kind: "text", text: "comingSoon" } : { kind: "no" });
+    expect(rows.some((r) => r.id === "priority")).toBe(false);
     expect(row("followups").pro).toEqual({ kind: "text", text: "followUpsAuto" });
     expect(row("followups").free).toEqual({ kind: "text", text: "followUpsTap" });
     for (const id of ["core", "practice", "channels"]) {

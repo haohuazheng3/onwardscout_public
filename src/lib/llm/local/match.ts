@@ -2,6 +2,7 @@ import { getSubGoal, isGoalFamily, isSubGoalId, opportunityTypesOfFamily } from 
 import { audienceIncludes } from "@/lib/core/identities";
 import { industryLabel, isIndustryCode } from "@/lib/core/industries";
 import { isMaterialId, materialLabel } from "@/lib/core/materials";
+import { getOccupation, isOccupationCode, mapOccupation } from "@/lib/core/occupations";
 import { isOpportunityTypeId, opportunityTypeLabel } from "@/lib/core/opportunity-types";
 import type { IdentityCode, IdentityTarget, Profile } from "@/lib/core/types";
 import { professionalYears } from "../build";
@@ -16,7 +17,10 @@ import { findMoney } from "./text";
  *      program excludes, degree below the minimum, too few/too many years, remote-only goal
  *      vs on-site role, age limits when the birth year is known.
  *   2. Fit (0–100): goal alignment 25, identity 15, field (industry/function/occupation) 25,
- *      skills & keywords 20, location 10, language 5.
+ *      skills & keywords 20, location 10, language 5. For opportunities that are one specific
+ *      role (jobs, internships, freelance projects…), the role itself is compared too: a
+ *      different line of work (a marketing job for a backend engineer) loses 30 points, the
+ *      same function but a different role without shared skills (front-end vs back-end) 15.
  *   3. Win probability: the program's acceptance rate when known, else a per-type prior,
  *      scaled by fit and reduced by open gaps.
  *   4. Effort (the person's own time — we prepare the rest) and value.
@@ -116,6 +120,52 @@ function fmtMoney(m: { amount: number; currency: string | null }, lang: Lang): s
   return m.amount >= 1_000_000 ? `${sym}${Math.round(m.amount / 100_000) / 10}M` : m.amount >= 1000 ? `${sym}${Math.round(m.amount / 1000)}K` : `${sym}${m.amount}`;
 }
 
+/** Opportunity types that are one specific role: what the work is decides the match first. */
+const ROLE_TYPES = new Set(["job", "remote_job", "internship", "part_time", "graduate_program", "returnship", "freelance_project", "ngo_job", "referral", "recruiter"]);
+
+interface Roles {
+  occupations: Set<string>;
+  functions: Set<string>;
+}
+
+function rolesOfText(text: string | null | undefined, into: Roles, minScore = 0.6, limit = 1): void {
+  if (!text?.trim()) return;
+  for (const m of mapOccupation(text, { limit, minScore })) {
+    into.occupations.add(m.code);
+    into.functions.add(getOccupation(m.code).function);
+  }
+}
+
+const PERSON_ROLES = new WeakMap<Profile, Roles>();
+
+/** What the person does or wants to do: occupations and functions from the profile, titles and targets. */
+export function personRoles(profile: Profile): Roles {
+  const cached = PERSON_ROLES.get(profile);
+  if (cached) return cached;
+  const r: Roles = { occupations: new Set(), functions: new Set(profile.functions) };
+  for (const code of [...profile.occupations, ...(profile.packs.jobSeeker?.targetOccupations ?? [])]) {
+    if (!isOccupationCode(code)) continue;
+    r.occupations.add(code);
+    r.functions.add(getOccupation(code).function);
+  }
+  for (const f of profile.packs.jobSeeker?.targetFunctions ?? []) r.functions.add(f);
+  for (const e of profile.experience.slice(0, 3)) rolesOfText(e.title, r);
+  PERSON_ROLES.set(profile, r);
+  return r;
+}
+
+/** What the role on offer is: its title mapped to occupations, plus its stated functions. */
+export function opportunityRoles(opp: Pick<Opp, "name" | "functions">): Roles {
+  const r: Roles = { occupations: new Set(), functions: new Set(opp.functions ?? []) };
+  rolesOfText(opp.name, r, 0.6, 2);
+  return r;
+}
+
+function overlaps(a: Set<string>, b: Set<string>): boolean {
+  for (const x of a) if (b.has(x)) return true;
+  return false;
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -213,7 +263,8 @@ export function scoreOne(profile: Profile, goals: GoalInput[], opp: Opp, lang: L
   const fnOverlap = profile.functions.filter((f) => (opp.functions ?? []).includes(f));
   if (fnOverlap.length) field += 8;
   const titleWords = [...profile.experience.slice(0, 3).map((e) => e.title), ...(profile.packs.jobSeeker?.targetOccupations ?? [])].map((x) => x.toLowerCase().replace(/[-_]/g, " "));
-  if (titleWords.some((w) => w.length > 3 && (text.includes(w) || w.split(" ").filter((x) => x.length > 3).every((x) => text.includes(x))))) {
+  const titleMatch = titleWords.some((w) => w.length > 3 && (text.includes(w) || w.split(" ").filter((x) => x.length > 3).every((x) => text.includes(x))));
+  if (titleMatch) {
     field += 7;
     reasons.push(t("Close to roles you've held or want", "与你做过或想做的职位相近"), 5);
   }
@@ -225,6 +276,24 @@ export function scoreOne(profile: Profile, goals: GoalInput[], opp: Opp, lang: L
   const kw = skillHits.length + researchHits.length;
   fit += Math.min(20, kw * 6);
   if (skillHits.length) reasons.push(t(`Uses your skills: ${skillHits.slice(0, 4).join(", ")}`, `用得上你的技能：${skillHits.slice(0, 4).join("、")}`), 9);
+
+  /* the role itself (role-type opportunities, when both sides say what the work is) */
+  if (ROLE_TYPES.has(opp.type)) {
+    const mineRoles = personRoles(profile);
+    const theirs = opportunityRoles(opp);
+    if ((mineRoles.functions.size || mineRoles.occupations.size) && (theirs.functions.size || theirs.occupations.size)) {
+      const sameRole = titleMatch || overlaps(mineRoles.occupations, theirs.occupations);
+      const sameFunction = overlaps(mineRoles.functions, theirs.functions);
+      if (!sameRole && !sameFunction) {
+        fit -= 30;
+        gaps.push(t("A different line of work from yours — apply only if you're changing direction", "与你的工作方向不同——除非你打算转行，否则不建议申请"));
+      } else if (!sameRole && !skillHits.length) {
+        fit -= 15;
+      } else if (!sameRole) {
+        fit -= 5;
+      }
+    }
+  }
   if (researchHits.length) reasons.push(t(`Fits your research: ${researchHits.slice(0, 2).join(", ")}`, `契合你的研究方向：${researchHits.slice(0, 2).join("、")}`), 9);
 
   /* location */

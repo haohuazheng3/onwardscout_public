@@ -15,6 +15,25 @@ const isProd = process.env.NODE_ENV === "production";
 /** Dates and times render in UTC on the server and the client, so hydration never disagrees. */
 export const TIME_ZONE = "UTC";
 
+/**
+ * The browser's own time zone, remembered in a cookie by `TimeZoneCookie` (src/components). The
+ * personal area (dynamic) reads it and hands it to its IntlProvider, so times there show in the
+ * person's zone on the server and the client alike; public pages stay static, in UTC.
+ */
+export const TIME_ZONE_COOKIE = "os_tz";
+
+/** A valid IANA zone name from the cookie, else UTC. */
+export function timeZoneFrom(value: string | null | undefined): string {
+  const tz = value?.trim();
+  if (!tz || tz.length > 64 || !/^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+){0,2}$|^UTC$/.test(tz)) return TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return tz;
+  } catch {
+    return TIME_ZONE;
+  }
+}
+
 export default getRequestConfig(async ({ requestLocale, locale: explicit }) => {
   const requested = explicit ?? (await requestLocale);
   const locale: Locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale;

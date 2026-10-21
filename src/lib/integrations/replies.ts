@@ -6,6 +6,7 @@ import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
 import { getIntelligence, stripQuoted, type ReplyClassification } from "@/lib/llm";
 import { notify, recordEvent } from "@/lib/notifications";
+import { blockOutreach } from "@/lib/channels/outreach-blocks";
 import { isOptOut } from "@/lib/channels/outreach-policy";
 import { gmailForwardingConfirmation, htmlToText, matchReplyThread, parseInboundReply, refineVerdict, type InboundMail, type MatchedBy } from "./reply-parse";
 
@@ -160,8 +161,17 @@ export async function attachForwardedReply(input: AttachInput): Promise<AttachRe
   verdict = refineVerdict(text, verdict, locale);
   await db.update(messages).set({ classification: verdict.classification }).where(and(eq(messages.id, id), eq(messages.userId, userId)));
 
-  if (contactId && isOptOut(text)) {
-    await db.update(contacts).set({ doNotContact: true }).where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)));
+  if (isOptOut(text)) {
+    if (contactId) await db.update(contacts).set({ doNotContact: true }).where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)));
+    // An opt-out holds for every Onward Scout user, not only this one (outreach rule 4).
+    const optedOut = counterpart?.email ?? null;
+    if (optedOut) {
+      try {
+        await blockOutreach(optedOut, "opt_out");
+      } catch (err) {
+        await captureError(err, { route: "replies.opt-out", context: { inboxId: input.inboxId } });
+      }
+    }
   }
 
   const who = counterpart?.name ?? counterpart?.email ?? (locale === "zh" ? "对方" : "They");

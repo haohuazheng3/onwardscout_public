@@ -1,158 +1,284 @@
 {
   "shell": {
-    "home": "Home",
-    "lastUpdated": "Last updated",
-    "shortVersion": "The short version",
-    "onThisPage": "On this page",
-    "questions": "Questions about this page? Write to [{email}](mailto:{email}). {replyTime}",
-    "otherPolicies": "Other policies",
-    "privacy": "Privacy policy",
-    "terms": "Terms of service",
-    "acceptableUse": "Acceptable use",
-    "cookies": "Cookie policy",
-    "refunds": "Refund policy"
+    "home": "首页",
+    "lastUpdated": "最近更新",
+    "shortVersion": "简要版",
+    "onThisPage": "本页目录",
+    "questions": "对本页有疑问？请写信到 [{email}](mailto:{email})。{replyTime}",
+    "otherPolicies": "其他政策",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "acceptableUse": "可接受使用政策",
+    "cookies": "Cookie 政策",
+    "refunds": "退款政策"
   },
   "privacy": {
-    "metaTitle": "Privacy policy",
-    "metaDescription": "What Onward Scout collects and why, how AI processing works, who processes your data (Clerk, Neon, Cloudflare, Vercel, Stripe, FlowGlance, Anthropic, Google), how long it is kept, and how to export or delete it.",
-    "title": "Privacy policy",
+    "metaTitle": "隐私政策",
+    "metaDescription": "Onward Scout 收集哪些信息、为什么收集，AI 处理如何进行，谁会处理你的数据（Clerk、Neon、Cloudflare、Vercel、Stripe、FlowGlance、Anthropic、Google），数据保存多久，以及如何导出或删除。",
+    "title": "隐私政策",
     "summary": [
-      "We collect what we need to find opportunities for you and apply on your behalf: your email, the documents and links you give us, the profile built from them, and the applications and messages you approve.",
-      "Your documents are private. They go to the organisations you approve, and to a service provider only when it’s needed for a task you asked for. We never sell your data, never show ads and never use your data to train AI models.",
-      "Our analytics tool records page activity, including text typed into forms and images uploaded on our site. In the EU, the UK and Switzerland it runs only after you accept; elsewhere you can opt out at any time.",
-      "You can export or delete your data from Settings, and write to {email} about anything else."
+      "我们只收集为你寻找机会、代你申请所需要的信息：你的邮箱、你提供的文档和链接、据此生成的档案，以及你批准的申请和消息。",
+      "你的文档是私密的。它们只会发给你批准的机构；只有在完成你要求的任务确有需要时，才会交给相应的服务商。我们绝不出售你的数据，绝不展示广告，也绝不用你的数据训练 AI 模型。",
+      "我们的统计工具会记录页面上的操作，包括在本站表单中输入的文字和上传的图片。在欧盟、英国和瑞士，只有在你同意后才会启用；在其他地区，你可以随时选择退出。",
+      "你可以在「设置」中导出或删除你的数据；其他任何事项，请写信到 {email}。"
     ],
     "sections": [
       {
         "id": "who-we-are",
-        "title": "Who we are",
+        "title": "我们是谁",
         "body": [
-          "Onward Scout (“we”, “us”) runs {domain} and the Onward Scout app. We decide why and how the personal data described here is used, which makes us its controller under data protection law.",
-          "For anything in this policy, write to [{email}](mailto:{email}). {replyTime}"
+          "Onward Scout（“我们”）运营 {domain} 和 Onward Scout 应用。本政策所述个人数据的使用目的和方式由我们决定，因此根据数据保护法律，我们是这些数据的控制者。",
+          "关于本政策的任何问题，请写信到 [{email}](mailto:{email})。{replyTime}"
         ]
       },
       {
         "id": "what-we-collect",
-        "title": "What we collect, and why",
+        "title": "我们收集什么，以及为什么",
         "body": [
-          { "h3": "Your account" },
-          "Signing in needs one thing: your email address. Our sign-in provider, **Clerk**, sends a one-time code to it and keeps your session. We store your Clerk user id, your email, your language, when the account was created and when you were last active, and a random token for your personal reply drop-box address (see “Replies you forward” below).",
-          { "h3": "Before you sign in" },
-          "You can start without an account. Your browser then gets a random identifier in the `os_anon` cookie, and the files, links and draft profile you add are kept under it. When you sign in, the draft moves into your account. To prevent abuse, uploads and parsing before sign-in are limited per network address; we store only a salted hash of that address.",
-          { "h3": "Your documents and links" },
-          "The résumés, CVs, decks, business plans, portfolios, transcripts, certificates, licences, papers and other files you upload, and the links you paste. Files are kept in private storage (**Cloudflare R2**) and shown to you only through short-lived signed links. We extract their text to build your profile. For links, we fetch the public page (for GitHub and ORCID, their public records). We never log in anywhere as you, and we don’t read LinkedIn or Google Scholar pages.",
-          { "note": "Please don’t upload passports, ID cards or other government identity documents. We don’t need them, and the service isn’t designed to hold them." },
-          { "h3": "Your profile, goals and matches" },
-          "The profile we build from your documents: the identity details you provide (name, contact details, location, languages, links and, if you add them, work authorization and year of birth), roles, education, experience, projects, skills, achievements, publications and certifications. Each fact keeps a reference to the document and the words it came from, and whether you confirmed it. We also keep your goals, success definitions and milestones, the preferences you set (such as locations, remote work, budget or a salary floor), the opportunities matched to you with their scores, and the feedback you give.",
-          { "h3": "Applications" },
-          "For each application: the requirements we read, the answers and documents we prepared, the questions we asked you and your answers, a log of every step with timestamps, **your confirmation** (what you approved and when), and the proof of submission — a confirmation page, a reference number, a sent message, or a screenshot of each step when a browser fills in a form. These records show what was submitted in your name and on whose instruction.",
-          { "h3": "Email you send through us" },
-          "If you connect Gmail, **Google** gives us permission to send email from your account (the `gmail.send` scope) and tells us your Google email address. We store an encrypted refresh token and the emails we send for you: recipient, subject, text and Gmail’s message ids. We don’t request — and can’t use — access to read your inbox. You can disconnect at any time in the app or in your Google account.",
-          { "h3": "People you contact" },
-          "To send outreach for you, we keep details about the recipients — investors, recruiters, professors, editors, brands or clients: name, work email, organisation, role and the public page the details came from, plus when they were last contacted and whether they asked not to be contacted again. We only use professional contact details that are publicly listed or that you give us, and we honour every opt-out.",
-          { "h3": "Replies you forward" },
-          "Each account has a personal drop-box address of the form in+(your token)@{domain}. Mail you forward there passes through **Cloudflare Email Routing**; we store its sender, subject and text, attach it to the right application and sort it (interested, meeting, needs information, rejected, automatic reply).",
-          { "h3": "Payments" },
-          "Payments are handled by **Stripe** on its own pages; we never see or store your card number. Stripe tells us what we need to deliver and support the purchase: the product, the amount, the email used at checkout, and Stripe’s customer, subscription, invoice and payment identifiers. We keep a ledger of your credits: granted, reserved, spent and returned.",
-          { "h3": "Messages to us" },
-          "When you use the contact form: your name (optional), email, topic, message and language, your browser’s user agent, a salted hash of your network address, and your account id if you’re signed in. Email to our own addresses reaches us through Cloudflare Email Routing.",
-          { "h3": "Technical data" },
-          "Error reports (the error, the page or route, the browser and a stack trace), rate-limit counters keyed by salted hashes of network addresses, and the request logs our host keeps for a short time. For each AI processing call we log its purpose, size, cost and duration — not its content.",
-          { "h3": "Practice applications" },
-          "A practice application submits to our own test form. We store what it submits (the same fields and file a real one would), the browser’s user agent and a salted hash of the network address, to show you the result."
+          {
+            "h3": "你的账户"
+          },
+          "登录只需要一样东西：你的邮箱地址。我们的登录服务商 **Clerk** 会向该邮箱发送一次性验证码，并维持你的登录会话。我们保存你的 Clerk 用户 ID、邮箱、语言、账户创建时间和最近活跃时间，以及一个用于你个人回信转存地址的随机令牌（见下文“你转发的回信”）。",
+          {
+            "h3": "登录之前"
+          },
+          "你可以不注册账户就开始使用。此时你的浏览器会在 `os_anon` Cookie 中获得一个随机标识符，你添加的文件、链接和档案草稿都保存在这个标识符名下。你登录后，草稿会转入你的账户。为防止滥用，登录前的上传和解析次数按网络地址限制；我们只保存该地址用密钥计算的哈希值（无法据此还原出地址）。",
+          {
+            "h3": "你的文档和链接"
+          },
+          "你上传的简历、CV、BP、商业计划书、作品集、成绩单、证书、执照、论文等文件，以及你粘贴的链接。文件保存在私有存储（**Cloudflare R2**）中，只通过短时有效的签名链接展示给你。我们会提取其中的文字来生成你的档案。对于链接，我们抓取公开页面（GitHub 和 ORCID 则读取其公开记录）。我们绝不以你的身份登录任何地方，也不读取 LinkedIn 或 Google Scholar 页面。",
+          {
+            "note": "请不要上传护照、身份证或其他政府签发的身份证件。我们不需要它们，本服务也不是为保存这类证件而设计的。"
+          },
+          {
+            "h3": "你的档案、目标和匹配结果"
+          },
+          "我们根据你的文档生成的档案：你提供的身份信息（姓名、联系方式、所在地、语言、链接，以及你如果填写了的工作许可和出生年份）、身份角色、教育、经历、项目、技能、成就、发表成果和证书。每条信息都保留它所来自的文档和原文，以及你是否确认过。我们还保存你的目标、成功定义和里程碑，你设置的偏好（如地点、远程、预算或最低薪资），匹配给你的机会及其评分，以及你给出的反馈。",
+          {
+            "h3": "申请"
+          },
+          "对于每一份申请：我们读取到的要求、我们准备的回答和文档、我们向你提出的问题和你的回答、每一步带时间戳的记录、**你的确认**（你批准了什么、何时批准），以及提交凭证——确认页面、编号、已发送的消息，或在浏览器代填表单时每一步的截图。这些记录说明了以你的名义提交了什么、依据的是谁的指示。",
+          {
+            "h3": "你通过我们发送的邮件"
+          },
+          "如果你连接了 Gmail，**Google** 会授权我们从你的账户发送邮件（`gmail.send` 权限范围），并告知我们你的 Google 邮箱地址。我们保存一个加密的刷新令牌，以及我们代你发送的邮件：收件人、主题、正文和 Gmail 的消息 ID。我们不申请、也无法使用读取你收件箱的权限。你可以随时在应用内或在你的 Google 账户中断开连接。",
+          {
+            "h3": "你联系的人"
+          },
+          "为了代你发送外联邮件，我们会保存收件人的信息——投资人、招聘方、教授、编辑、品牌方或客户：姓名、工作邮箱、所在机构、职位和信息来源的公开页面，以及最近一次联系的时间和对方是否要求不再联系。我们只使用公开列出的、或由你提供的职业联系方式，并尊重每一次退订请求。",
+          {
+            "h3": "你转发的回信"
+          },
+          "每个账户都有一个个人回信转存地址，格式为 in+（你的令牌）@{domain}。你转发到这里的邮件会经过 **Cloudflare Email Routing**；我们保存其发件人、主题和正文，把它关联到对应的申请，并进行分类（感兴趣、约见面、需要补充信息、拒绝、自动回复）。",
+          {
+            "h3": "付款"
+          },
+          "付款由 **Stripe** 在其自有页面上处理；我们绝不会看到或保存你的卡号。Stripe 只告诉我们交付和支持这笔购买所需的信息：商品、金额、结账时使用的邮箱，以及 Stripe 的客户、订阅、发票和付款标识符。我们会记录你的额度明细：发放、保留、消耗和退回。",
+          {
+            "h3": "你发给我们的消息"
+          },
+          "当你使用联系表单时：你的姓名（选填）、邮箱、主题、留言和语言，你浏览器的 User-Agent、你网络地址用密钥计算的哈希值，以及你登录时的账户 ID。发到我们自有邮箱地址（contact@、support@、hello@）的邮件，经由 Cloudflare Email Routing 到达我们在 **Google**（Gmail）的邮箱；联系表单的留言也会以通知的形式发到那里。",
+          {
+            "h3": "技术数据"
+          },
+          "错误报告（错误本身、页面或路由、浏览器和堆栈信息）、以网络地址的密钥哈希为键的限流计数，以及我们的托管服务商短期保留的请求日志。每一次 AI 处理调用，我们都会记录其用途、规模、费用和耗时——但不记录内容。",
+          {
+            "h3": "练习申请"
+          },
+          "练习申请提交到我们自己的测试表单。我们保存它提交的字段，以及所附文件的名称、类型和大小（不保存文件本身），连同提交方的 User-Agent 和网络地址的密钥哈希——由 Onward Scout 替你提交时，提交方就是我们的服务器——以便向你展示结果。"
         ]
       },
       {
         "id": "how-we-use",
-        "title": "How we use it, and our legal bases",
+        "title": "我们如何使用数据，以及法律依据",
         "body": [
-          "We use your data to provide the service you asked for: building your profile, finding and ranking opportunities, preparing, submitting and following up on the applications you approve, sending the emails you approve, showing your progress and notifying you. Under the GDPR and the UK GDPR, that is **performance of our contract** with you.",
-          "We rely on **your consent** for analytics where the law requires it, for connecting Gmail, and for any standing authorization you switch on. You can withdraw consent at any time; it doesn’t affect what was done before.",
-          "We rely on **legitimate interests** to keep the service secure and working (rate limits, abuse prevention, error monitoring, backups), to improve matching from the feedback you give, and to answer messages. For outreach, you decide who is contacted; we act on your instruction and keep the safeguards in our [acceptable use policy](/acceptable-use).",
-          "We keep billing records because **the law requires it** (tax and accounting).",
-          "We don’t sell personal data, don’t share it for cross-context behavioural advertising, and don’t show ads."
+          "我们使用你的数据来提供你所要求的服务：生成你的档案，查找机会并排序，准备、提交和跟进你批准的申请，发送你批准的邮件，展示你的进展并通知你。根据 GDPR 和 UK GDPR，这属于**履行我们与你之间的合同**。",
+          "在法律有要求的情况下，统计分析、连接 Gmail 以及你开启的任何长期授权，都以**你的同意**为依据。你可以随时撤回同意，撤回不影响此前已完成的处理。",
+          "我们基于**正当利益**来保障服务安全和正常运行（限流、防滥用、错误监控、备份），根据你的反馈改进匹配，以及回复消息。对于外联邮件，联系谁由你决定；我们按你的指示行事，并遵守[可接受使用政策](/acceptable-use)中的各项保障措施。",
+          "我们保存账单记录，是因为**法律要求**（税务和会计）。",
+          "我们不出售个人数据，不为跨情境行为广告而共享数据，也不展示广告。"
         ]
       },
       {
         "id": "ai",
-        "title": "AI processing",
+        "title": "AI 处理",
         "body": [
-          "Reading documents, matching, drafting, answering form questions, mapping form fields and sorting replies can run in two ways.",
-          "**On our own servers.** By default these tasks run on our own deterministic engine: rules and templates applied to your sourced facts. Nothing is sent to an AI provider, and drafts made this way are labelled “Drafted from your profile”.",
-          "**With Anthropic.** When AI processing is switched on, the text of the documents involved, the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API (Claude) to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
-          "Every result goes through the same checks either way: facts must trace to your documents or your confirmations, and anything that doesn’t is flagged for you."
+          "读取文档、匹配、起草、回答表单问题、识别表单字段和分类回信，有两种运行方式。",
+          "**在我们自己的服务器上。**默认情况下，这些任务由我们自己的确定性引擎完成：对你有出处的信息应用规则和模板。不会向任何 AI 服务商发送内容，以这种方式生成的草稿标注为“根据你的档案起草”。",
+          "**使用 Anthropic。**开启 AI 处理后，相关文档（文字内容；如果是扫描件或照片，则是文件本身）、相关的档案信息、机会的要求，以及（处理回信时的）回信内容，会发送到 **Anthropic** 的 API（Claude）以完成该任务，以这种方式生成的草稿标注为“由 AI 撰写”。根据 Anthropic 的商业条款，通过其 API 发送的内容不会被用于训练其模型。我们没有加入任何会改变这一点的计划，我们自己也绝不用你的数据训练模型。",
+          "无论哪种方式，每个结果都经过同样的检查：信息必须能追溯到你的文档或你的确认，追溯不到的内容都会标记出来交给你确认。"
         ]
       },
       {
         "id": "providers",
-        "title": "Service providers we use",
+        "title": "我们使用的服务商",
         "body": [
-          "These companies process personal data for us, only to provide their service, under their data processing terms:",
+          "以下公司仅为提供其服务而代我们处理个人数据，并受其数据处理条款约束：",
           {
             "table": {
-              "head": ["Provider", "What for", "What they receive", "Where"],
+              "head": [
+                "服务商",
+                "用途",
+                "接收的数据",
+                "所在地"
+              ],
               "rows": [
-                ["Clerk", "Sign-in and sessions", "Your email, one-time codes, session data, and the device and network address used to sign in", "United States"],
-                ["Neon", "Database", "The application data described above", "United States (AWS us-east-1)"],
-                ["Cloudflare", "File storage (R2), email routing for our domain, our file and mail services", "Uploaded and generated files, screenshots, and mail sent to our addresses and drop-boxes", "Global network"],
-                ["Vercel", "Hosting and server code", "Requests to the site and app, including network address and browser; short-lived logs", "United States and global edge network"],
-                ["Stripe", "Payments", "The card and billing details you enter on Stripe’s pages, the purchase and your checkout email", "United States and other countries"],
-                ["FlowGlance", "Analytics", "Page activity, including text typed into forms and images uploaded on our site (see “Analytics” below)", "See FlowGlance’s policy"],
-                ["Anthropic", "AI processing, when switched on", "The document text, profile facts, opportunity requirements and reply text a task needs", "United States"],
-                ["Google", "Sending email from Gmail, only if you connect it", "The emails you approve, sent from your account", "United States and other countries"],
-                ["Resend", "Product email such as the weekly brief, only when switched on", "Your email address and the content of the notification", "United States"]
+                [
+                  "Clerk",
+                  "登录与会话",
+                  "你的邮箱、一次性验证码、会话数据，以及登录时使用的设备和网络地址",
+                  "美国"
+                ],
+                [
+                  "Neon",
+                  "数据库",
+                  "上文所述的应用数据",
+                  "美国（AWS us-east-1）"
+                ],
+                [
+                  "Cloudflare",
+                  "文件存储（R2）、我们域名的邮件路由、我们的文件和邮件服务",
+                  "上传和生成的文件、截图，以及发到我们邮箱地址和回信转存地址的邮件",
+                  "全球网络"
+                ],
+                [
+                  "Vercel",
+                  "托管与服务器代码",
+                  "对网站和应用的请求，包括网络地址和浏览器信息；短期日志",
+                  "美国及全球边缘网络"
+                ],
+                [
+                  "Stripe",
+                  "付款",
+                  "你在 Stripe 页面上填写的银行卡和账单信息、购买内容以及结账邮箱",
+                  "美国及其他国家"
+                ],
+                [
+                  "FlowGlance",
+                  "统计分析",
+                  "页面操作，包括在本站表单中输入的文字和上传的图片；你登录后，还包括你的账户 ID 和邮箱（见下文“统计分析”）",
+                  "见 FlowGlance 的政策"
+                ],
+                [
+                  "Anthropic",
+                  "AI 处理（开启时）",
+                  "某项任务所需的文档（文字内容；扫描件和照片则是文件本身）、档案信息、机会要求和回信内容",
+                  "美国"
+                ],
+                [
+                  "Google",
+                  "通过 Gmail 发送邮件（仅在你连接后）；也是我们自己的邮箱",
+                  "你批准的、从你账户发出的邮件；你发到我们邮箱地址的邮件和联系表单通知",
+                  "美国及其他国家"
+                ],
+                [
+                  "Resend",
+                  "产品邮件（如每周简报），仅在开启时",
+                  "你的邮箱地址和通知内容",
+                  "美国"
+                ],
+                [
+                  "GitHub（Actions）",
+                  "运行我们每晚的数据库备份任务",
+                  "数据库副本会经过它的服务器，再存入我们在 Cloudflare R2 的存储",
+                  "美国"
+                ]
               ]
             }
           },
-          "Product emails (the weekly brief and “needs you” alerts) are sent only once our email provider is switched on; until then, notifications appear inside the app. Sign-in codes come from Clerk and receipts from Stripe."
+          "产品邮件（每周简报和“需要你处理”提醒）只有在我们的邮件服务商开启后才会发送；在此之前，通知只显示在应用内。登录验证码由 Clerk 发送，收据由 Stripe 发送。"
         ]
       },
       {
         "id": "sharing",
-        "title": "Who else receives your data",
+        "title": "还有谁会收到你的数据",
         "body": [
-          "**The organisations you apply to** receive the application you approved: the answers, documents and contact details in it. **The people you email** receive the message you approved, from your own address. What they do with it is governed by their own policies.",
-          "We may disclose data when the law requires it, to protect someone’s safety or our rights, or to a successor if Onward Scout is transferred — in which case this policy keeps applying to your data.",
-          "Nobody else. No data brokers, no advertisers."
+          "**你申请的机构**会收到你批准的申请：其中的回答、文档和联系方式。**你发邮件联系的人**会收到你批准的、从你自己邮箱发出的消息。他们如何处理这些内容，受其各自政策约束。",
+          "在法律要求时、为保护他人安全或我们的权利时，或在 Onward Scout 被转让给继任者时，我们可能会披露数据——若是转让，本政策将继续适用于你的数据。",
+          "除此之外没有任何人。没有数据中间商，没有广告主。"
         ]
       },
       {
         "id": "analytics",
-        "title": "Analytics: what FlowGlance records",
+        "title": "统计分析：FlowGlance 会记录什么",
         "body": [
-          "We use one analytics tool, **FlowGlance**, to understand which pages help people and where they get stuck. It records page views, clicks, scrolling and navigation, device and browser type, and an approximate location derived from your network address.",
-          "Because we have switched on its detailed capture, it also records **text you type into forms** on our website and in the app (for example the contact form, or answers you edit) and **images you upload** through our pages. Keep this in mind before typing anything you wouldn’t want recorded; you can turn analytics off at any time.",
-          "How consent works: visitors in the **EU and EEA, the UK and Switzerland** — and anyone whose location we can’t determine — are asked first, and FlowGlance loads only if they accept. Everywhere else it loads by default, with a notice and a one-tap opt-out. Your choice is kept in the `os_consent` cookie for 180 days and can be changed at any time from “Cookie settings” in the footer; opting out takes effect from the next page you load.",
-          "The [cookie policy](/cookie-policy) lists every cookie we set."
+          "我们只使用一个统计工具 **FlowGlance**，用来了解哪些页面对大家有帮助、大家在哪里卡住。它记录页面浏览、点击、滚动和跳转，设备和浏览器类型，以及根据你的网络地址推断的大致位置。",
+          "由于我们开启了它的详细采集功能，它还会记录你在本站网站和应用的**表单中输入的文字**（例如联系表单，或你编辑的回答），以及你通过我们页面**上传的图片**。你登录后，录制内容会关联到你的账户 ID 和邮箱地址，以便把客服问题和你看到的画面对应起来。在输入任何你不希望被记录的内容之前，请留意这一点；你可以随时关闭统计。登录、结账和管理后台页面从不录制。",
+          "同意机制如下：**欧盟和欧洲经济区、英国及瑞士**的访客——以及我们无法确定所在地的任何人——会先被询问，只有在同意后才会加载 FlowGlance。在其他所有地区，它默认加载，同时显示提示并提供一键退出。你的选择保存在 `os_consent` Cookie 中，有效期 180 天，可随时通过“Cookie 设置”更改；选择退出立即生效（页面会在不加载统计工具的情况下重新载入）。",
+          "[Cookie 政策](/cookie-policy)列出了我们设置的每一个 Cookie。"
         ]
       },
       {
         "id": "transfers",
-        "title": "International transfers",
+        "title": "跨境传输",
         "body": [
-          "Our database is in the United States, and most of our providers process data in the United States or globally. If you are in the EU/EEA, the UK or Switzerland, these transfers rely on our providers’ Standard Contractual Clauses, the UK International Data Transfer Addendum or the EU–US Data Privacy Framework, as each provider offers.",
-          "If you are in mainland China: your personal information is stored and processed outside China, mainly in the United States, by Onward Scout and the providers listed above, for the purposes in this policy. You can exercise your rights under the Personal Information Protection Law by writing to {email}."
+          "我们的数据库位于美国，大部分服务商在美国或全球范围内处理数据。如果你位于欧盟/欧洲经济区、英国或瑞士，这些传输依据各服务商提供的标准合同条款（Standard Contractual Clauses）、英国国际数据传输附录（UK International Data Transfer Addendum）或欧美数据隐私框架（EU–US Data Privacy Framework）进行。",
+          "如果你位于中国大陆：你的个人信息由 Onward Scout 及上述服务商在中国境外（主要在美国）存储和处理，用于本政策所述目的。你可以写信到 {email}，行使你依据《个人信息保护法》（Personal Information Protection Law）享有的权利。"
         ]
       },
       {
         "id": "retention",
-        "title": "How long we keep it",
+        "title": "数据保存多久",
         "body": [
           {
             "table": {
-              "head": ["Data", "Kept"],
+              "head": [
+                "数据",
+                "保存期限"
+              ],
               "rows": [
-                ["Account, profile, goals and matches", "Until you delete them or your account"],
-                ["Documents you uploaded", "Until you delete the document or your account"],
-                ["Applications, generated documents, step logs, proof of submission and messages", "Until you delete your account: they are the record of what was sent in your name"],
-                ["Drafts started before signing in", "Until you sign in and save them, at most 30 days"],
-                ["Gmail connection", "Until you disconnect Gmail or delete your account; the token is deleted then"],
-                ["Credit ledger, orders and payment records", "7 years, as accounting records"],
-                ["Messages to us", "2 years after our last reply"],
-                ["Error reports", "Until the error is fixed, and no longer than 12 months"],
-                ["Rate-limit counters", "Only the current window for each hashed address"],
-                ["Database backups", "Taken nightly and kept 30 days, so deleted data leaves the backups within 30 days"],
-                ["Analytics and hosting logs", "As set by FlowGlance and Vercel"]
+                [
+                  "账户、档案、目标和匹配结果",
+                  "直到你删除它们或删除账户"
+                ],
+                [
+                  "你上传的文档",
+                  "直到你删除该文档或删除账户"
+                ],
+                [
+                  "申请、生成的文档、步骤记录、提交凭证和消息",
+                  "直到你删除账户：它们是以你的名义发出内容的记录"
+                ],
+                [
+                  "登录前开始的草稿",
+                  "直到你登录并保存，最长 30 天"
+                ],
+                [
+                  "Gmail 连接",
+                  "直到你断开 Gmail 或删除账户，届时令牌随即删除"
+                ],
+                [
+                  "订单和付款记录",
+                  "作为会计记录保存 7 年（如果你删除账户，其中的姓名和邮箱会被移除）"
+                ],
+                [
+                  "你发给我们的消息",
+                  "发送后 2 年"
+                ],
+                [
+                  "错误报告",
+                  "直到错误修复，最长不超过 12 个月"
+                ],
+                [
+                  "限流计数",
+                  "2 天"
+                ],
+                [
+                  "数据库备份",
+                  "每晚备份，保留 30 天，因此已删除的数据会在 30 天内从备份中消失"
+                ],
+                [
+                  "统计和托管日志",
+                  "按 FlowGlance 和 Vercel 的设置"
+                ],
+                [
+                  "额度明细（发放、预留、使用和退回的额度）",
+                  "直到你删除账户"
+                ],
+                [
+                  "练习表单的提交记录",
+                  "90 天，删除账户时一并删除"
+                ]
               ]
             }
           }
@@ -160,365 +286,425 @@
       },
       {
         "id": "security",
-        "title": "How we protect it",
+        "title": "我们如何保护数据",
         "body": [
           {
             "ul": [
-              "HTTPS everywhere, and encryption at rest by our database and storage providers.",
-              "Files in a private bucket, reachable only through signed links that expire.",
-              "Gmail tokens encrypted with AES-256-GCM before they are stored.",
-              "Network addresses stored only as salted hashes.",
-              "Access to production data limited to the people who run the service, for support and operations.",
-              "Every automated action logged, and every submission tied to your confirmation."
+              "全站使用 HTTPS，数据库和存储服务商对静态数据加密。",
+              "文件存放在私有存储桶中，只能通过会过期的签名链接访问。",
+              "Gmail 令牌在保存前使用 AES-256-GCM 加密。",
+              "网络地址只以密钥哈希（用密钥计算）的形式保存。",
+              "生产数据的访问权限仅限运营本服务的人员，用于支持和运维。",
+              "每一个自动化操作都有记录，每一次提交都与你的确认绑定。"
             ]
           },
-          "No system is perfectly secure. If we learn of a breach that affects you, we will tell you and the relevant authorities as the law requires."
+          "没有任何系统是绝对安全的。如果我们获悉影响到你的数据泄露事件，会依法通知你和相关主管部门。"
         ]
       },
       {
         "id": "rights",
-        "title": "Your rights and choices",
+        "title": "你的权利和选择",
         "body": [
-          "Wherever you live, you can:",
+          "无论你身在何处，你都可以：",
           {
             "ul": [
-              "**Get a copy** of your data: Settings → download your data.",
-              "**Delete** your account and data: Settings → delete account.",
-              "**Correct** your profile at any time in the app, or ask us to.",
-              "**Withdraw consent**: disconnect Gmail, switch off standing authorizations, or change your analytics choice in “Cookie settings”.",
-              "**Object** to processing based on legitimate interests, or ask us to restrict it.",
-              "**Ask us anything or complain** at {email}."
+              "**获取副本**：设置 → 下载你的数据。",
+              "**删除**你的账户和数据：设置 → 删除账户。",
+              "随时在应用中**更正**你的档案，或请我们代为更正。",
+              "**撤回同意**：断开 Gmail、关闭长期授权，或在“Cookie 设置”中更改统计选项。",
+              "对基于正当利益的处理**提出反对**，或要求我们限制处理。",
+              "**向我们提问或投诉**：{email}。"
             ]
           },
-          "**EU/EEA and UK (GDPR, UK GDPR):** you also have the right to data portability and to complain to your local data protection authority (in the UK, the ICO).",
-          "**California (CCPA/CPRA):** you have the right to know, delete and correct personal information and to opt out of its sale or sharing. We don’t sell or share personal information as those laws define it, and we won’t treat you differently for using your rights. An authorised agent may make a request for you with your written permission.",
-          "**Mainland China (PIPL):** you have the rights to know, decide, access, copy, correct, supplement and delete your personal information, to withdraw consent, and to ask us to explain how we process it.",
-          "We answer requests within one month (45 days for California requests) and verify them through the email you sign in with."
+          "**欧盟/欧洲经济区和英国（GDPR、UK GDPR）：**你还享有数据可携带权，并有权向当地数据保护机构投诉（在英国为 ICO）。",
+          "**美国加州（CCPA/CPRA）：**你有权了解、删除和更正个人信息，并有权拒绝其被出售或共享。按照这些法律的定义，我们不出售也不共享个人信息，也不会因为你行使权利而区别对待你。经你书面许可，授权代理人可以代你提出请求。",
+          "**中国大陆（《个人信息保护法》，PIPL）：**你对你的个人信息享有知情权、决定权、查阅权、复制权、更正权、补充权和删除权，有权撤回同意，并有权要求我们解释其处理规则。",
+          "我们会在一个月内答复请求（加州的请求为 45 天），并通过你登录所用的邮箱核实身份。"
         ]
       },
       {
         "id": "automated-decisions",
-        "title": "Automated decisions",
+        "title": "自动化决策",
         "body": [
-          "Matching and ranking are automated, but they only decide what we suggest to you. You decide what to apply for, and the organisations you apply to make their own decisions. We don’t make decisions with legal or similarly significant effects on you by automated means."
+          "匹配和排序是自动完成的，但它们只决定我们向你推荐什么。申请哪些机会由你决定，你申请的机构也会自行作出决定。我们不会通过自动化方式作出对你产生法律效力或类似重大影响的决定。"
         ]
       },
       {
         "id": "children",
-        "title": "Children and students under 18",
+        "title": "儿童和 18 岁以下的学生",
         "body": [
-          "Onward Scout is not for children under 13. High-school students under 18 can use it only with a parent or guardian: we ask for a guardian’s email during setup, and outreach email is switched off for them. If you believe a child has given us data without that, write to {email} and we will delete it."
+          "Onward Scout 不面向 13 岁以下的儿童。18 岁以下的高中生只能在父母或监护人的参与下使用：首次提交前，我们会请他们在档案中填写监护人的邮箱，并为他们关闭外联邮件功能。如果你认为有儿童未经上述流程向我们提供了数据，请写信到 {email}，我们会将其删除。"
         ]
       },
       {
         "id": "changes",
-        "title": "Changes to this policy",
+        "title": "本政策的变更",
         "body": [
-          "When we change this policy, we update the date at the top. If a change materially affects how we use your data, we will tell you in the app or by email before it applies."
+          "我们修改本政策时，会更新页面顶部的日期。如果某项变更会实质性影响我们使用你数据的方式，我们会在变更生效前通过应用内通知或邮件告诉你。"
         ]
       },
       {
         "id": "contact",
-        "title": "Contact",
-        "body": ["Write to [{email}](mailto:{email}) with any question or request about your data. {replyTime}"]
+        "title": "联系我们",
+        "body": [
+          "关于你的数据有任何问题或请求，请写信到 [{email}](mailto:{email})。{replyTime}"
+        ]
       }
     ]
   },
   "terms": {
-    "metaTitle": "Terms of service",
-    "metaDescription": "The agreement for using Onward Scout: your account, the authorization to prepare and submit applications on your behalf after your confirmation, accuracy, no guaranteed outcomes, credits and billing, and how disputes are handled.",
-    "title": "Terms of service",
+    "metaTitle": "服务条款",
+    "metaDescription": "使用 Onward Scout 的协议：你的账户、经你确认后代你准备和提交申请的授权、内容准确性、不保证结果、额度与计费，以及争议如何处理。",
+    "title": "服务条款",
     "summary": [
-      "Onward Scout finds opportunities and prepares applications for you. It submits applications and sends emails in your name only after your confirmation, or under a standing authorization you set yourself.",
-      "You’re responsible for checking that what you approve is true. We never invent facts, and we flag anything we can’t source.",
-      "We can’t guarantee outcomes: the organisations you apply to decide.",
-      "Credits are used when something is submitted, and failed submissions never use one. Refunds follow the refund policy.",
-      "If you live somewhere with consumer protection laws, you keep them."
+      "Onward Scout 为你寻找机会、准备申请。只有在你确认之后，或在你自己设置的长期授权范围内，它才会以你的名义提交申请、发送邮件。",
+      "你需要负责核实你所批准的内容是真实的。我们绝不编造信息，找不到出处的内容都会标记出来。",
+      "我们无法保证结果：最终由你申请的机构决定。",
+      "额度在内容提交时才会消耗，提交失败绝不消耗额度。退款按退款政策处理。",
+      "如果你所在地有消费者保护法律，你依法享有的权利不受影响。"
     ],
     "sections": [
       {
         "id": "these-terms",
-        "title": "These terms",
+        "title": "关于本条款",
         "body": [
-          "These terms are an agreement between you and Onward Scout (“we”, “us”) about your use of {domain}, the Onward Scout app and related services. By creating an account or using the service you accept them, together with our [privacy policy](/privacy), [acceptable use policy](/acceptable-use) and [refund policy](/refund-policy)."
+          "本条款是你与 Onward Scout（“我们”）之间关于你使用 {domain}、Onward Scout 应用及相关服务的协议。创建账户或使用本服务，即表示你接受本条款，以及我们的[隐私政策](/privacy)、[可接受使用政策](/acceptable-use)和[退款政策](/refund-policy)。"
         ]
       },
       {
         "id": "eligibility",
-        "title": "Who can use Onward Scout",
+        "title": "谁可以使用 Onward Scout",
         "body": [
-          "You must be at least 13. If you are under 18, or under the age of majority where you live, you may use the service only with a parent or guardian who agrees to these terms for you; we ask for their email, and outreach email is not available to you.",
-          "You use the service for yourself. Using it for someone else requires their own account or their documented consent (see the [acceptable use policy](/acceptable-use))."
+          "你必须年满 13 周岁。如果你未满 18 周岁，或未达到你所在地的成年年龄，只有在父母或监护人代你同意本条款的情况下才能使用本服务；我们会要求提供其邮箱，且你无法使用外联邮件功能。",
+          "你只能为自己使用本服务。为他人使用，需要对方拥有自己的账户，或取得对方有据可查的同意（见[可接受使用政策](/acceptable-use)）。"
         ]
       },
       {
         "id": "account",
-        "title": "Your account",
+        "title": "你的账户",
         "body": [
-          "You sign in with your email address and a one-time code. Keep access to that mailbox secure: anyone who can read it can sign in as you. Tell us at {email} if you think someone else has used your account.",
-          "Keep the information in your account accurate. One person per account."
+          "你通过邮箱地址和一次性验证码登录。请妥善保护该邮箱的访问权限：任何能读取该邮箱的人都能以你的身份登录。如果你认为有人使用了你的账户，请通过 {email} 告诉我们。",
+          "请保持账户信息准确。一个账户只供一人使用。"
         ]
       },
       {
         "id": "service",
-        "title": "What the service does — and doesn’t",
+        "title": "本服务做什么——不做什么",
         "body": [
-          "We build a profile from your documents, find and rank opportunities, prepare applications and documents, submit them through the channels described on [How it works](/how-it-works), send the emails you approve and follow up.",
-          "Some steps stay with you: creating accounts and logging in to other sites, CAPTCHAs and two-factor codes, payments, signatures, identity documents, interviews and tests. When a platform forbids automation or needs your login, we prepare a handoff and you submit it yourself.",
-          "We are not an employment agency, recruiter, investment adviser, broker, admissions consultant, immigration adviser or law firm, and nothing in the service is legal, financial or immigration advice.",
-          "Opportunity information comes from public sources and can change or be wrong. Check the official page before relying on a deadline, an amount or an eligibility rule; when we don’t know, we say “check the official page”."
+          "我们根据你的文档生成档案，查找机会并排序，准备申请和文档，通过[工作方式](/how-it-works)中所述的通道提交，发送你批准的邮件，并持续跟进。",
+          "有些步骤始终由你本人完成：在其他网站注册账户和登录、验证码和双重验证码、付款、签名、身份证件、面试和测试。当某个平台禁止自动化或需要你的登录时，我们会准备好交接材料，由你本人提交。",
+          "我们不是职业中介、招聘机构、投资顾问、经纪人、升学顾问、移民顾问或律师事务所，本服务中的任何内容都不构成法律、财务或移民建议。",
+          "机会信息来自公开来源，可能发生变化或有误。在依赖某个截止日期、金额或资格要求之前，请查看官方页面；我们不确定的信息，会注明“请查看官方页面”。"
         ]
       },
       {
         "id": "authorization",
-        "title": "Your authorization to act on your behalf",
+        "title": "你授权我们代你行事",
         "body": [
-          "You authorize Onward Scout to act as your agent, on your instructions, to:",
+          "你授权 Onward Scout 作为你的代理人，按你的指示：",
           {
             "ul": [
-              "prepare applications, documents and emails from your profile;",
-              "submit an application to an opportunity’s official form or system, including uploading the documents you approved, **after you confirm that application**;",
-              "send an email from your connected Gmail account **after you approve that email**;",
-              "send follow-ups or submit applications in a category **only where you have switched on a standing authorization** for it in Settings."
+              "根据你的档案准备申请、文档和邮件；",
+              "**在你确认该份申请之后**，向机会的官方表单或系统提交申请，包括上传你批准的文档；",
+              "**在你批准该封邮件之后**，从你已连接的 Gmail 账户发送邮件；",
+              "**仅在你于「设置」中为某一类别开启了长期授权的情况下**，发送跟进邮件或提交该类别的申请。"
             ]
           },
-          "This authorization does not cover creating accounts for you, logging in as you, solving CAPTCHAs, making payments, signing anything, or accepting a third party’s terms on your behalf. We never do those things.",
-          "You can withdraw a standing authorization or disconnect Gmail at any time in the app. That stops future actions, not ones already completed. For every submission we keep a record of what you approved and when."
+          "本授权不包括替你注册账户、以你的身份登录、破解验证码、付款或签署任何文件——这些事我们从来不做。只有当你在 Onward Scout 里亲自回答了该申请中的某个同意或条款勾选框时，我们才会勾选它；你没看过的条款，我们绝不替你接受。",
+          "你可以随时在应用中撤回长期授权或断开 Gmail。这会停止今后的操作，但不影响已经完成的操作。每一次提交，我们都会记录你批准了什么、何时批准。"
         ]
       },
       {
         "id": "accuracy",
-        "title": "Accuracy of what you approve",
+        "title": "你所批准内容的准确性",
         "body": [
-          "Every fact we use traces to your documents or your confirmations, and we flag claims we can’t source. But you know your history best: check each application or email before you approve it. You are responsible for the accuracy of what you approve and send, and you must not approve anything false or misleading or ask us to add anything untrue.",
-          "If you notice an error after a submission, tell the organisation directly; we will help you prepare the correction."
+          "我们使用的每一条信息都能追溯到你的文档或你的确认，找不到出处的说法都会标记出来。但最了解你经历的是你自己：请在批准前检查每一份申请或邮件。你对你批准和发送内容的准确性负责，不得批准任何虚假或误导性的内容，也不得要求我们加入任何不实信息。",
+          "如果你在提交后发现错误，请直接告知该机构；我们会帮你准备更正内容。"
         ]
       },
       {
         "id": "outcomes",
-        "title": "No guarantee of outcomes",
+        "title": "不保证结果",
         "body": [
-          "Decisions belong to the organisations you apply to and the people you contact. We don’t guarantee replies, interviews, offers, admissions, funding, publication, prizes or any other result, or that an opportunity is still open.",
-          "We work hard to submit successfully, but third-party sites change, go down or block automated access. When a submission fails, the credit is returned and the application is shown to you with the next step."
+          "决定权属于你申请的机构和你联系的人。我们不保证会得到回复、面试、录用、录取、资助、发表、奖项或任何其他结果，也不保证某个机会仍然开放。",
+          "我们会尽全力确保提交成功，但第三方网站会改版、宕机或屏蔽自动访问。提交失败时，额度会退回，这份申请会连同下一步建议一起展示给你。"
         ]
       },
       {
         "id": "third-parties",
-        "title": "Third-party platforms and services",
+        "title": "第三方平台和服务",
         "body": [
-          "Applications go to sites and systems we don’t control, each with its own terms. You are responsible for following them with your own accounts. We don’t automate platforms that forbid it, and we may decline to submit somewhere if doing so would break that platform’s rules.",
-          "The service relies on providers such as Clerk, Stripe, Google and Anthropic (see the [privacy policy](/privacy)). Their availability is outside our control."
+          "申请会发往我们无法控制的网站和系统，它们各有自己的条款。你需要用自己的账户遵守这些条款。我们不会对禁止自动化的平台进行自动化操作；如果提交会违反某个平台的规则，我们可能拒绝在该平台提交。",
+          "本服务依赖 Clerk、Stripe、Google 和 Anthropic 等服务商（见[隐私政策](/privacy)）。它们的可用性不在我们的控制范围内。"
         ]
       },
       {
         "id": "content",
-        "title": "Your content",
+        "title": "你的内容",
         "body": [
-          "You keep ownership of everything you upload and everything we draft for you. You give us a limited licence to store, process, adapt and transmit that content only to provide the service to you — including sending it to the organisations and people you approve. We don’t use your content to train AI models, and we don’t publish it.",
-          "You confirm that you have the right to upload what you upload, including any information about other people in it."
+          "你上传的一切以及我们为你起草的一切，所有权都归你。你授予我们一项有限许可，仅为向你提供服务而存储、处理、改编和传输这些内容——包括将其发送给你批准的机构和个人。我们不会用你的内容训练 AI 模型，也不会公开发布它。",
+          "你确认你有权上传你所上传的内容，包括其中涉及他人的任何信息。"
         ]
       },
       {
         "id": "acceptable-use",
-        "title": "Acceptable use",
+        "title": "可接受使用",
         "body": [
-          "You agree to follow our [acceptable use policy](/acceptable-use). In short: no false information, no impersonation, no spam, no applying for someone else without their consent, and no scraping of or attacks on our service."
+          "你同意遵守我们的[可接受使用政策](/acceptable-use)。简而言之：不提供虚假信息，不冒充他人，不发送垃圾邮件，未经他人同意不替他人申请，也不抓取或攻击我们的服务。"
         ]
       },
       {
         "id": "billing",
-        "title": "Credits, plans and billing",
+        "title": "额度、方案与计费",
         "body": [
           {
             "ul": [
-              "One credit is one application submitted for you (through any channel, including a handoff you confirm) or one outreach email to a new contact. Profile, matching, previews, drafts, follow-ups and practice applications are free.",
-              "A credit is reserved when you confirm a submission, spent when it is submitted, and returned if the submission fails, you withdraw it or it expires first.",
-              "New accounts receive {trialCredits} free credits, valid for {trialDays} days. Free credits have no cash value.",
-              "Pro costs {proPrice} per month for {proCredits} credits, billed monthly in advance until you cancel. Its credits stay usable for {proRollover} days after each billing month. You can cancel at any time and keep Pro until the end of the paid period.",
-              "Credit packs are one-time purchases ({pack10Credits} credits for {pack10Price}, {pack40Credits} credits for {pack40Price}); their credits are valid for {packDays} days.",
-              "Prices are in US dollars. Taxes are shown at checkout where they apply. We may change prices for future billing periods and will tell you before a change affects your subscription.",
-              "Payments are processed by Stripe. Refunds follow our [refund policy](/refund-policy). If a payment is disputed, the credits from it are paused until the dispute is settled."
+              "1 个额度 = 替你提交 1 份申请（任何通道均算，包括你确认过的本人提交交接），或向 1 位新联系人发送 1 封外联邮件。档案、匹配、预览、草稿、跟进和练习申请均免费。",
+              "你确认提交时，额度被保留；提交成功时，额度被消耗；如果提交失败、你撤回申请或申请先行过期，额度退回。",
+              "新账户获赠 {trialCredits} 个免费额度，{trialDays} 天内有效。免费额度没有现金价值。",
+              "Pro 每月 {proPrice}，含 {proCredits} 个额度，按月预付，直到你取消为止。其额度在每个计费月结束后仍可使用 {proRollover} 天。你可以随时取消，并保留 Pro 直到已付费周期结束。",
+              "额度包为一次性购买（{pack10Credits} 个额度 {pack10Price}，{pack40Credits} 个额度 {pack40Price}）；其额度 {packDays} 天内有效。",
+              "价格以美元计。我们可能调整今后计费周期的价格，并会在变更影响你的订阅之前通知你。",
+              "付款由 Stripe 处理。退款按我们的[退款政策](/refund-policy)执行。如果某笔付款发生争议，其对应的额度会被冻结，直到争议解决。"
             ]
           }
         ]
       },
       {
         "id": "changes-to-service",
-        "title": "Changes to the service",
+        "title": "服务的变更",
         "body": [
-          "Onward Scout is in early access and will change. We may add, change or remove features. If we remove something you paid for, or stop the service altogether, we will give you reasonable notice and refund unused purchased credits."
+          "Onward Scout 正处于抢先体验阶段，并将持续变化。我们可能增加、修改或移除功能。如果我们移除了你付费购买的功能，或完全停止服务，我们会提前合理通知你，并退还未使用的已购额度。"
         ]
       },
       {
         "id": "termination",
-        "title": "Suspension and termination",
+        "title": "暂停与终止",
         "body": [
-          "You can stop using Onward Scout and delete your account at any time in Settings.",
-          "We may pause submissions or outreach, or suspend or close an account, if it breaks these terms or the acceptable use policy, puts other people or the service at risk, or if the law requires it. Where reasonable, we will tell you why and give you a chance to fix it first. If we close your account without a breach on your part, we refund unused purchased credits.",
-          "Sections that by their nature should continue — ownership, liability, disputes — survive termination."
+          "你可以随时停止使用 Onward Scout，并在「设置」中删除你的账户。",
+          "如果某个账户违反本条款或可接受使用政策、给他人或本服务带来风险，或法律有此要求，我们可能暂停提交或外联邮件，或暂停、关闭该账户。在合理可行的情况下，我们会告诉你原因，并先给你纠正的机会。如果你没有违约而我们关闭了你的账户，我们会退还未使用的已购额度。",
+          "按其性质应当继续有效的条款——所有权、责任、争议——在终止后继续有效。"
         ]
       },
       {
         "id": "disclaimers",
-        "title": "Disclaimers",
+        "title": "免责声明",
         "body": [
-          "We provide the service with care, but “as is” and “as available”, to the extent the law allows. We don’t promise that it will be uninterrupted or error-free, or that opportunity information is complete or current. Nothing here limits rights you have as a consumer that can’t be limited by contract."
+          "我们用心提供本服务，但在法律允许的范围内，本服务按“现状”和“现有可用”的基础提供。我们不承诺服务不会中断或没有错误，也不承诺机会信息完整或最新。本条款中的任何内容都不限制你作为消费者依法享有、且不能通过合同限制的权利。"
         ]
       },
       {
         "id": "liability",
-        "title": "Limitation of liability",
+        "title": "责任限制",
         "body": [
-          "To the extent the law allows: we are not liable for indirect or consequential losses, lost opportunities, lost profits or the decisions of third parties; and our total liability for all claims relating to the service is limited to the greater of the amount you paid us in the 12 months before the claim or US$50.",
-          "This doesn’t limit liability for fraud, for death or personal injury caused by negligence, or for anything else that can’t be limited by law."
+          "在法律允许的范围内：我们不对间接或后果性损失、错失的机会、利润损失或第三方的决定承担责任；我们就与本服务相关的所有索赔承担的责任总额，以你在索赔前 12 个月内向我们支付的金额或 50 美元中的较高者为限。",
+          "这不限制我们对欺诈、因过失造成的死亡或人身伤害，或其他依法不能限制的事项所承担的责任。"
         ]
       },
       {
         "id": "disputes",
-        "title": "Governing law and disputes",
+        "title": "适用法律与争议",
         "body": [
-          "These terms don’t take away the protections you have under the laws of the country where you live. If you are a consumer, the mandatory consumer protection laws of your country of residence apply, and you can bring a claim in the courts where you live.",
-          "If something goes wrong, please start by writing to [{email}](mailto:{email}) with a description of the problem. We will try to resolve it within 30 days before either of us takes it further."
+          "本条款不会剥夺你依据居住国法律享有的保护。如果你是消费者，你居住国的强制性消费者保护法律适用于你，你也可以在你居住地的法院提起诉讼。",
+          "如果出现问题，请先写信到 [{email}](mailto:{email}) 说明情况。在任何一方采取进一步行动之前，我们会尽力在 30 天内解决。"
         ]
       },
       {
         "id": "changes-to-terms",
-        "title": "Changes to these terms",
+        "title": "本条款的变更",
         "body": [
-          "We update the date at the top whenever these terms change. If a change materially affects your rights, we will tell you in the app or by email at least 14 days before it applies to you. If you don’t agree, you can close your account before then."
+          "本条款每次变更，我们都会更新页面顶部的日期。如果某项变更会实质性影响你的权利，我们会至少提前 14 天通过应用内通知或邮件告诉你。如果你不同意，可以在变更生效前关闭账户。"
         ]
       },
       {
         "id": "contact",
-        "title": "Contact",
-        "body": ["Questions about these terms: [{email}](mailto:{email}). {replyTime}"]
+        "title": "联系我们",
+        "body": [
+          "关于本条款的问题：[{email}](mailto:{email})。{replyTime}"
+        ]
       }
     ]
   },
   "acceptableUse": {
-    "metaTitle": "Acceptable use policy",
-    "metaDescription": "The rules for using Onward Scout: apply truthfully and as yourself, no spam, respect other platforms’ rules, and no scraping or attacks on our service.",
-    "title": "Acceptable use policy",
+    "metaTitle": "可接受使用政策",
+    "metaDescription": "使用 Onward Scout 的规则：如实申请、以本人身份申请、不发垃圾邮件、尊重其他平台的规则，不抓取或攻击我们的服务。",
+    "title": "可接受使用政策",
     "summary": [
-      "Use Onward Scout to apply honestly, for yourself, at a human pace.",
-      "Don’t use it to deceive, impersonate, spam or attack anyone — including us."
+      "使用 Onward Scout 时，请诚实申请、为自己申请，并保持正常人的节奏。",
+      "不要用它欺骗、冒充、发送垃圾信息或攻击任何人——包括我们。"
     ],
     "sections": [
       {
         "id": "truthful",
-        "title": "Be truthful",
+        "title": "如实提供信息",
         "body": [
           {
             "ul": [
-              "Don’t approve or submit information you know is false or misleading: degrees, employers, titles, dates, results, metrics, publications, awards, licences or references.",
-              "Don’t upload forged or altered documents, or ask us to add claims your documents don’t support.",
-              "Don’t submit other people’s work as your own: what you submit must be yours or properly credited."
+              "不要批准或提交你明知虚假或具有误导性的信息：学位、雇主、职位、日期、成绩、指标、发表成果、奖项、执照或推荐人。",
+              "不要上传伪造或篡改过的文档，也不要要求我们加入你的文档无法支持的说法。",
+              "不要把他人的成果当作自己的提交：你提交的内容必须是你本人的，或已正确注明出处。"
             ]
           }
         ]
       },
       {
         "id": "as-yourself",
-        "title": "Apply as yourself",
+        "title": "以本人身份申请",
         "body": [
           {
             "ul": [
-              "Don’t impersonate anyone or misrepresent your connection to a person or organisation.",
-              "Don’t apply on someone else’s behalf unless they have agreed. A coach, parent or assistant helping someone must have that person’s documented consent, and the person must be able to see what is sent in their name.",
-              "Don’t upload other people’s personal data unless you have the right to — for example, someone else’s identity documents or a referee’s private details."
+              "不要冒充任何人，也不要歪曲你与某个人或机构之间的关系。",
+              "除非对方同意，否则不要代他人申请。帮助他人的教练、家长或助理必须取得本人有据可查的同意，并且本人必须能看到以其名义发出的内容。",
+              "不要上传你无权使用的他人个人数据——例如他人的身份证件或推荐人的私人信息。"
             ]
           }
         ]
       },
       {
         "id": "no-spam",
-        "title": "No spam",
+        "title": "禁止垃圾信息",
         "body": [
           {
             "ul": [
-              "Outreach must be personal and relevant to the person receiving it. No bulk email, no bought or scraped mailing lists, and no messages to people who asked not to be contacted.",
-              "Don’t try to get around our limits — for example with several accounts, or by sending the same message again and again.",
-              "Respect replies: a “no” is a no."
+              "外联邮件必须是写给收件人本人、与其相关的。禁止群发邮件，禁止使用购买或抓取来的邮件列表，禁止联系要求不再被联系的人。",
+              "不要试图绕过我们的限制——例如注册多个账户，或一遍又一遍地发送同一条消息。",
+              "尊重对方的回复：对方说“不”，就是不。"
             ]
           }
         ]
       },
       {
         "id": "other-platforms",
-        "title": "Respect other platforms",
+        "title": "尊重其他平台",
         "body": [
           {
             "ul": [
-              "Don’t ask us to get around CAPTCHAs, logins, paywalls, rate limits or a platform’s terms. We won’t, and trying may get your account suspended.",
-              "Don’t use Onward Scout to apply where you are banned or ineligible, or to flood an organisation with duplicate applications."
+              "不要要求我们绕过验证码、登录、付费墙、频率限制或平台条款。我们不会这么做，而且这样的尝试可能导致你的账户被暂停。",
+              "不要用 Onward Scout 去申请你已被禁止或不符合资格的机会，也不要向某个机构大量投递重复申请。"
             ]
           }
         ]
       },
       {
         "id": "our-service",
-        "title": "Don’t misuse our service",
+        "title": "不要滥用我们的服务",
         "body": [
           {
             "ul": [
-              "No scraping, crawling or bulk downloading of {domain}, its opportunity library or the app, and no automated access except through features we provide.",
-              "No attempts to access other people’s data, to probe or break our security, to overload our systems or to interfere with how the service works.",
-              "No malware, and nothing illegal, hateful, harassing, sexually exploitative or discriminatory in anything you submit or send."
+              "禁止抓取、爬取或批量下载 {domain}、其机会库或应用，除通过我们提供的功能外，禁止任何自动化访问。",
+              "禁止试图访问他人的数据、探测或破坏我们的安全机制、使我们的系统过载，或干扰本服务的运行。",
+              "禁止恶意软件；你提交或发送的任何内容中，都不得包含违法、仇恨、骚扰、性剥削或歧视性的内容。"
             ]
           },
-          "Found a security issue? Please report it to [{email}](mailto:{email}) and give us a chance to fix it before you share it."
+          "发现了安全问题？请报告给 [{email}](mailto:{email})，并在公开之前给我们修复的机会。"
         ]
       },
       {
         "id": "minors",
-        "title": "Minors",
-        "body": ["If you are under 18, use Onward Scout with a parent or guardian, as described in the [terms](/terms). Outreach email is not available to minors."]
+        "title": "未成年人",
+        "body": [
+          "如果你未满 18 周岁，请按照[服务条款](/terms)中的说明，在父母或监护人的参与下使用 Onward Scout。未成年人无法使用外联邮件功能。"
+        ]
       },
       {
         "id": "enforcement",
-        "title": "If these rules are broken",
+        "title": "如果违反这些规则",
         "body": [
-          "We may pause outreach or submissions, remove content, or suspend or close the account involved, and we may report illegal activity to the authorities. Where it’s reasonable, we will explain why and give you a chance to put things right."
+          "我们可能暂停外联邮件或提交、删除相关内容，或暂停、关闭涉事账户，也可能向主管部门举报违法行为。在合理可行的情况下，我们会说明原因，并给你纠正的机会。"
         ]
       },
       {
         "id": "report",
-        "title": "Report a problem",
+        "title": "举报问题",
         "body": [
-          "If you received an email you didn’t want from someone using Onward Scout, or you see misuse, write to [{email}](mailto:{email}). We will make sure our users don’t contact you again and look into what happened."
+          "如果你收到了 Onward Scout 用户发来的、你不想要的邮件，或发现了滥用行为，请写信到 [{email}](mailto:{email})。我们会把你的地址加入禁止联系名单，任何 Onward Scout 用户都无法再通过我们给你发邮件，我们也会调查发生了什么。"
         ]
       }
     ]
   },
   "cookies": {
-    "metaTitle": "Cookie policy",
-    "metaDescription": "Every cookie Onward Scout uses: the strictly necessary ones for sign-in, drafts, language and your consent choice, FlowGlance analytics after consent where required, and Stripe at checkout. No advertising cookies.",
-    "title": "Cookie policy",
+    "metaTitle": "Cookie 政策",
+    "metaDescription": "Onward Scout 使用的每一个 Cookie：登录、草稿、语言和你的同意选择所必需的 Cookie，在需要时经你同意后启用的 FlowGlance 统计，以及结账时的 Stripe。没有广告 Cookie。",
+    "title": "Cookie 政策",
     "summary": [
-      "A few cookies the site needs to work, one analytics tool (FlowGlance) that you control, and Stripe’s cookies when you pay. No advertising cookies."
+      "几个网站正常运行所必需的 Cookie，一个由你控制的统计工具（FlowGlance），以及你付款时 Stripe 的 Cookie。没有广告 Cookie。"
     ],
     "sections": [
       {
         "id": "what",
-        "title": "What cookies are",
+        "title": "什么是 Cookie",
         "body": [
-          "Cookies are small files a website stores in your browser. Similar technologies, such as your browser’s local storage, work much the same way; this policy covers both."
+          "Cookie 是网站存储在你浏览器中的小文件。类似的技术，例如浏览器的本地存储（local storage），工作方式大致相同；本政策对两者都适用。"
         ]
       },
       {
         "id": "necessary",
-        "title": "Strictly necessary",
+        "title": "严格必要的 Cookie",
         "body": [
-          "These are needed for the site to work, so they can’t be switched off in our settings. They aren’t used for analytics or advertising.",
+          "网站正常运行离不开它们，因此无法在我们的设置中关闭。它们不用于统计或广告。",
           {
             "table": {
-              "head": ["Name", "Set by", "What it does", "Kept for"],
+              "head": [
+                "名称",
+                "设置方",
+                "作用",
+                "保存期限"
+              ],
               "rows": [
-                ["__session, __client_uat and related Clerk cookies", "Clerk (sign-in)", "Keep you signed in and let the app check your session securely", "__session: about a minute, renewed while you’re signed in; the others until you sign out, at most a year"],
-                ["os_anon", "Onward Scout", "Links the draft you start before signing in to your browser; signed, so it can’t be forged", "Until you sign in and save the draft, at most 30 days"],
-                ["NEXT_LOCALE", "Onward Scout", "Remembers the language you chose", "1 year"],
-                ["os_consent", "Onward Scout", "Remembers your analytics choice", "180 days"],
-                ["os-theme (local storage)", "Onward Scout", "Remembers light or dark mode if you picked one; stays in your browser and is never sent to us", "Until you change it or clear your browser data"]
+                [
+                  "__session、__client_uat 及相关 Clerk Cookie",
+                  "Clerk（登录）",
+                  "保持你的登录状态，让应用安全地校验你的会话",
+                  "__session：约一分钟，登录期间自动续期；其他的保存到你退出登录为止，最长一年"
+                ],
+                [
+                  "os_anon",
+                  "Onward Scout",
+                  "把你登录前开始的草稿与你的浏览器关联起来；经过签名，无法伪造",
+                  "直到你登录并保存草稿，最长 30 天"
+                ],
+                [
+                  "NEXT_LOCALE",
+                  "Onward Scout",
+                  "记住你选择的语言",
+                  "1 年"
+                ],
+                [
+                  "os_consent",
+                  "Onward Scout",
+                  "记住你的统计选项",
+                  "180 天"
+                ],
+                [
+                  "os-theme（本地存储）",
+                  "Onward Scout",
+                  "如果你选择了浅色或深色模式，就记住它；只保存在你的浏览器中，从不发送给我们",
+                  "直到你更改它或清除浏览器数据"
+                ],
+                [
+                  "os_region",
+                  "Onward Scout",
+                  "记住你所在地区是否需要先征得统计同意，这样不必每个页面都重新查询",
+                  "180 天"
+                ],
+                [
+                  "os_tz",
+                  "Onward Scout",
+                  "记住你的时区，让应用中的日期按你的当地时间显示",
+                  "1 年"
+                ],
+                [
+                  "os_google_oauth",
+                  "Onward Scout",
+                  "在你前往 Google 连接 Gmail 期间防止请求被伪造",
+                  "10 分钟"
+                ],
+                [
+                  "os_checkout_nonce、os_checkout_url、os_checkout_resume（会话存储）",
+                  "Onward Scout",
+                  "防止你发起的结账被重复提交，并在你登录后带你回到结账",
+                  "直到你关闭该标签页"
+                ]
               ]
             }
           }
@@ -526,120 +712,124 @@
       },
       {
         "id": "analytics",
-        "title": "Analytics",
+        "title": "统计分析",
         "body": [
-          "**FlowGlance** is our only analytics tool. It may store identifiers in cookies or local storage to recognise sessions and repeat visits. Its detailed capture records page activity, including text typed into forms and images uploaded on our site, as explained in the [privacy policy](/privacy#analytics).",
-          "In the EU/EEA, the UK and Switzerland — and wherever we can’t tell your location — FlowGlance loads only after you choose “Accept analytics”. Elsewhere it loads by default, and you can opt out with one tap. Change your choice at any time from “Cookie settings” in the footer."
+          "**FlowGlance** 是我们唯一的统计工具。它可能在 Cookie 或本地存储中保存标识符，用于识别会话和重复访问。它的详细采集功能会记录页面操作，包括在本站表单中输入的文字和上传的图片，详见[隐私政策](/privacy#analytics)。只有在开启统计时，我们还会在你的浏览器中保存三个小标记：`os_identified`（会话存储：本次登录会话已关联过你的账户）、`os:unlock-tracked` 和 `os_purchase_<id>`（本地存储：某个事件已统计过，不会重复统计）。",
+          "在欧盟/欧洲经济区、英国和瑞士——以及我们无法判断你所在地的任何情况下——只有在你选择“允许统计”后才会加载 FlowGlance。在其他地区，它默认加载，你可以一键退出。你可以随时通过页脚的“Cookie 设置”更改选择。"
         ]
       },
       {
         "id": "payments",
-        "title": "Payments",
+        "title": "付款",
         "body": [
-          "When you check out, you are on Stripe’s secure pages. Stripe sets the cookies it needs to process the payment and prevent fraud, as described in Stripe’s own cookie policy."
+          "结账时，你位于 Stripe 的安全页面上。Stripe 会设置其处理付款和防范欺诈所需的 Cookie，具体见 Stripe 自己的 Cookie 政策。"
         ]
       },
       {
         "id": "not-used",
-        "title": "What we don’t use",
-        "body": ["No advertising cookies, no cross-site tracking pixels and no social media trackers."]
+        "title": "我们不使用的",
+        "body": [
+          "没有广告 Cookie，没有跨站跟踪像素，也没有社交媒体跟踪器。"
+        ]
       },
       {
         "id": "choices",
-        "title": "Your choices",
+        "title": "你的选择",
         "body": [
-          "Use “Cookie settings” in the footer to accept or refuse analytics at any time. You can also block or delete cookies in your browser; if you block the strictly necessary ones, signing in and saving drafts won’t work."
+          "你可以随时通过页脚的“Cookie 设置”允许或拒绝统计。你也可以在浏览器中屏蔽或删除 Cookie；如果屏蔽了严格必要的 Cookie，登录和保存草稿将无法使用。"
         ]
       },
       {
         "id": "contact",
-        "title": "Questions",
-        "body": ["Write to [{email}](mailto:{email}). {replyTime}"]
+        "title": "有疑问",
+        "body": [
+          "请写信到 [{email}](mailto:{email})。{replyTime}"
+        ]
       }
     ]
   },
   "refunds": {
-    "metaTitle": "Refund policy",
-    "metaDescription": "Cancel Pro any time and keep it until the period ends. Charges and credit packs are refundable within 14 days when none of their credits were used. Failed submissions never use a credit.",
-    "title": "Refund policy",
+    "metaTitle": "退款政策",
+    "metaDescription": "Pro 可随时取消，并可使用到当期结束。扣费和额度包在 14 天内、且对应额度一个都没用过时可退款。提交失败绝不消耗额度。",
+    "title": "退款政策",
     "summary": [
-      "Pro: cancel any time and keep it until the end of the paid period. A charge is refundable within 14 days if none of its credits were used.",
-      "Packs: refundable within 14 days if unused.",
-      "Used credits aren’t refundable — but failed submissions never use a credit.",
-      "To ask for a refund, write to {email} from the email you sign in with."
+      "Pro：随时可取消，并可使用到已付费周期结束。扣费后 14 天内，只要该笔费用对应的额度一个都没用过，即可退款。",
+      "额度包：14 天内未使用即可退款。",
+      "已使用的额度不予退款——但提交失败绝不消耗额度。",
+      "如需退款，请用你登录所用的邮箱写信到 {email}。"
     ],
     "sections": [
       {
         "id": "pro",
-        "title": "Pro subscription",
+        "title": "Pro 订阅",
         "body": [
           {
             "ul": [
-              "Cancel any time from Billing in your account. Your subscription stops renewing, and you keep Pro and its credits until the end of the period you have paid for. Credits from that period stay usable for {proRollover} days after it ends.",
-              "Within 14 days of a Pro charge, if none of the credits from that charge have been used, we refund the charge in full.",
-              "After 14 days, or once credits from a charge have been used, that charge isn’t refundable; cancelling stops the next one."
+              "随时可以在账户的「账单」中取消。取消后订阅不再续费，你可以继续使用 Pro 及其额度，直到已付费周期结束。该周期的额度在周期结束后仍可使用 {proRollover} 天。",
+              "Pro 扣费后 14 天内，只要该笔费用对应的额度一个都没用过，我们就全额退还该笔费用。",
+              "超过 14 天，或该笔费用对应的额度已被使用后，该笔费用不予退款；取消可以停止下一次扣费。"
             ]
           }
         ]
       },
       {
         "id": "packs",
-        "title": "Credit packs",
+        "title": "额度包",
         "body": [
           {
             "ul": [
-              "A pack is refundable in full within 14 days of purchase if none of its credits have been used.",
-              "Once credits from a pack have been used, the pack isn’t refundable. Unused pack credits stay valid for {packDays} days from purchase."
+              "额度包在购买后 14 天内、且其额度一个都没用过时，可全额退款。",
+              "额度包中的额度一旦被使用，该额度包不予退款。未使用的额度包额度自购买起 {packDays} 天内有效。"
             ]
           }
         ]
       },
       {
         "id": "never-charged",
-        "title": "Credits that are never charged",
+        "title": "绝不会被扣除的额度",
         "body": [
           {
             "ul": [
-              "A credit is reserved when you confirm a submission and spent only when the application is actually submitted.",
-              "If a submission fails, you withdraw it, or it can’t be completed before its deadline, the reserved credit returns to your balance automatically. A failed submission never needs a refund.",
-              "Building your profile, matching, previews, drafts, follow-ups and practice applications never use credits.",
-              "Free starter credits have no cash value and can’t be refunded or exchanged."
+              "你确认提交时，额度只是被保留；只有申请真正提交成功时，才会被消耗。",
+              "如果提交失败、你撤回了申请，或申请无法在截止日期前完成，保留的额度会自动退回你的余额。提交失败从来不需要申请退款。",
+              "建立档案、匹配、预览、草稿、跟进和练习申请，从不消耗额度。",
+              "免费起步额度没有现金价值，不能退款或兑换。"
             ]
           }
         ]
       },
       {
         "id": "our-mistake",
-        "title": "When something goes wrong on our side",
+        "title": "如果是我们这边出了问题",
         "body": [
-          "If we submitted something incorrectly, charged you twice, or a problem on our side cost you a credit, write to us. We will restore the credits or refund the charge, whichever is fairer, regardless of the 14-day window."
+          "如果我们提交有误、重复扣费，或因我们这边的问题让你损失了额度，请写信给我们。无论是否超过 14 天，我们都会恢复额度或退还费用，以更公平的方式为准。"
         ]
       },
       {
         "id": "how-to-ask",
-        "title": "How to ask for a refund",
+        "title": "如何申请退款",
         "body": [
           {
             "ul": [
-              "Write to [{email}](mailto:{email}) from the email address you sign in with, and include the date and amount of the charge (your Stripe receipt has both).",
-              "We reply within two business days. Approved refunds go back to the original payment method through Stripe and usually appear within 5–10 business days, depending on your bank.",
-              "When a charge is refunded, the credits from that charge are removed from your balance."
+              "请用你登录所用的邮箱写信到 [{email}](mailto:{email})，并写明扣费的日期和金额（你的 Stripe 收据上两者都有）。",
+              "我们会在两个工作日内回复。批准的退款通过 Stripe 原路退回到你的付款方式，通常在 5–10 个工作日内到账，具体取决于你的银行。",
+              "某笔费用被退款后，该笔费用对应的额度会从你的余额中移除。"
             ]
           }
         ]
       },
       {
         "id": "your-rights",
-        "title": "Your legal rights",
+        "title": "你的法定权利",
         "body": [
-          "This policy doesn’t limit any rights you have under the consumer law of the country where you live. Our 14-day refund for unused purchases applies in addition to those rights."
+          "本政策不限制你依据居住国消费者法律享有的任何权利。我们针对未使用购买的 14 天退款，是在这些权利之外额外提供的。"
         ]
       },
       {
         "id": "chargebacks",
-        "title": "Chargebacks",
+        "title": "拒付",
         "body": [
-          "Please write to us before disputing a charge with your bank — it’s usually faster for everyone. While a dispute is open, the credits from that charge are paused."
+          "在通过银行对某笔扣费提出争议之前，请先写信给我们——这通常对大家都更快。争议处理期间，该笔费用对应的额度会被冻结。"
         ]
       }
     ]

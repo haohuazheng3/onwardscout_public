@@ -183,6 +183,9 @@ export const config = {
     "/zh/checkout/:path*",
     "/zh/admin/:path*",
     "/zh/sign-in/:path*",
-    "/api/:path*",
+    // Every API except the public, self-authenticating ones that never read a Clerk session
+    // (consent geo, client error ingest, health, crons, the Stripe webhook, the mail worker's
+    // ingest, the deploy hook): they skip the middleware and its invocation entirely.
+    "/api/((?!geo|errors|health|cron/|stripe/webhook|inbox/ingest|hooks/).*)",
   ],
 };

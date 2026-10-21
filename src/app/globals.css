@@ -34,10 +34,12 @@
   --ink-pane: #121614;
   --line: rgba(18, 22, 20, 0.08);
   --line-2: rgba(18, 22, 20, 0.14);
+  /* Edges of form controls (inputs, chips, switches): ≥ 3:1 against their surface (WCAG 1.4.11). */
+  --line-field: rgba(18, 22, 20, 0.5);
   --ink: #121614;
   --ink-2: #3e4541;
   --ink-3: #626a65;
-  --ink-4: #868e89;
+  --ink-4: #666e69; /* ≥ 4.5:1 on every light surface (pane-3 included) */
   --accent: #e4572e;
   --accent-2: #f06b42;
   --accent-ink: #121614;
@@ -47,7 +49,8 @@
   --pine-soft: rgba(30, 90, 72, 0.12);
   --ok: #1f7a4d;
   --ok-soft: rgba(31, 122, 77, 0.12);
-  --warn: #9a6b00;
+  --warn: #875e00;
+  --warn-text: #7a5500;
   --warn-soft: rgba(154, 107, 0, 0.12);
   --bad: #b23a0a;
   --bad-soft: rgba(178, 58, 10, 0.1);
@@ -78,10 +81,11 @@
     --pane-3: #242b26;
     --line: rgba(242, 244, 241, 0.1);
     --line-2: rgba(242, 244, 241, 0.16);
+    --line-field: rgba(242, 244, 241, 0.4);
     --ink: #f2f4f1;
     --ink-2: #c9cfcb;
     --ink-3: #a3aba6;
-    --ink-4: #7e8681;
+    --ink-4: #8a928d;
     --accent: #ff7a50;
     --accent-2: #ff8f6a;
     --accent-text: #ff9a78;
@@ -91,6 +95,7 @@
     --ok: #5cc98f;
     --ok-soft: rgba(92, 201, 143, 0.14);
     --warn: #e0b44c;
+    --warn-text: #e0b44c;
     --warn-soft: rgba(224, 180, 76, 0.14);
     --bad: #ff8a5b;
     --bad-soft: rgba(255, 138, 91, 0.14);
@@ -116,10 +121,11 @@
   --pane-3: #242b26;
   --line: rgba(242, 244, 241, 0.1);
   --line-2: rgba(242, 244, 241, 0.16);
+  --line-field: rgba(242, 244, 241, 0.4);
   --ink: #f2f4f1;
   --ink-2: #c9cfcb;
   --ink-3: #a3aba6;
-  --ink-4: #7e8681;
+  --ink-4: #8a928d;
   --accent: #ff7a50;
   --accent-2: #ff8f6a;
   --accent-text: #ff9a78;
@@ -129,6 +135,7 @@
   --ok: #5cc98f;
   --ok-soft: rgba(92, 201, 143, 0.14);
   --warn: #e0b44c;
+  --warn-text: #e0b44c;
   --warn-soft: rgba(224, 180, 76, 0.14);
   --bad: #ff8a5b;
   --bad-soft: rgba(255, 138, 91, 0.14);
@@ -459,10 +466,11 @@
     --pane-3: rgba(242, 244, 241, 0.1);
     --line: rgba(242, 244, 241, 0.1);
     --line-2: rgba(242, 244, 241, 0.17);
+    --line-field: rgba(242, 244, 241, 0.4);
     --ink: #f2f4f1;
     --ink-2: #c9cfcb;
     --ink-3: #a3aba6;
-    --ink-4: #7e8681;
+    --ink-4: #8a928d;
     --accent: #ff7a50;
     --accent-2: #ff8f6a;
     --accent-text: #ff9a78;
@@ -472,6 +480,7 @@
     --ok: #5cc98f;
     --ok-soft: rgba(92, 201, 143, 0.14);
     --warn: #e0b44c;
+    --warn-text: #e0b44c;
     --warn-soft: rgba(224, 180, 76, 0.14);
     --bad: #ff8a5b;
     --bad-soft: rgba(255, 138, 91, 0.14);
@@ -779,7 +788,7 @@
     border-radius: 999px;
     background-color: var(--pane);
     color: var(--ink-2);
-    box-shadow: inset 0 0 0 1px var(--line-2);
+    box-shadow: inset 0 0 0 1px var(--line-field);
     font-family: var(--font-sans);
     font-size: 0.93rem;
     font-weight: 520;
@@ -871,7 +880,7 @@
   }
   .tag-warn {
     background-color: var(--warn-soft);
-    color: var(--warn);
+    color: var(--warn-text);
     box-shadow: none;
   }
   .tag-bad {
@@ -926,7 +935,7 @@
     font: inherit;
     font-size: 16px; /* never below 16px: iOS zooms into smaller fields */
     line-height: 1.4;
-    box-shadow: inset 0 0 0 1px var(--line-2);
+    box-shadow: inset 0 0 0 1px var(--line-field);
     transition:
       box-shadow 0.15s ease,
       background-color 0.15s ease;
@@ -958,6 +967,14 @@
   .textarea[aria-invalid="true"],
   .select[aria-invalid="true"] {
     box-shadow: inset 0 0 0 2px var(--bad);
+  }
+  /* A field in error still shows where focus is (WCAG 2.4.7): the error edge plus a focus halo. */
+  .input[aria-invalid="true"]:focus,
+  .textarea[aria-invalid="true"]:focus,
+  .select[aria-invalid="true"]:focus {
+    box-shadow:
+      inset 0 0 0 2px var(--bad),
+      0 0 0 4px var(--bad-soft);
   }
   .input:disabled,
   .textarea:disabled,
@@ -995,7 +1012,7 @@
     height: 28px;
     border-radius: 999px;
     background-color: var(--pane-3);
-    box-shadow: inset 0 0 0 1px var(--line-2);
+    box-shadow: inset 0 0 0 1px var(--line-field);
     cursor: pointer;
     -webkit-appearance: none;
     appearance: none;

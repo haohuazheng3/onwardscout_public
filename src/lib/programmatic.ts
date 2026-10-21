@@ -39,8 +39,11 @@ import {
 
 /** A hub, region page or playbook needs at least this many live listings to be indexed. */
 export const MIN_INDEX_ITEMS = 3;
-/** An organization page exists for organizations with at least this many public listings. */
-export const ORG_MIN_ITEMS = 2;
+/**
+ * An organization page is indexed (and listed, linked, in the sitemap) with at least this many
+ * live listings — the same bar as every other hub: two cards and a template sentence are thin.
+ */
+export const ORG_MIN_ITEMS = MIN_INDEX_ITEMS;
 /** Listings per page on /opportunities/<type> (later pages at /opportunities/<type>/page/<n>). */
 export const LIST_PAGE_SIZE = 24;
 /** Static segments that sit beside /opportunities/<type>/<slug>: they can never be listing slugs. */
@@ -902,6 +905,23 @@ export function listingMatchesRole(l: PublicListing, occ: OccupationDef, pursued
   return sig.industries.has(topLevelIndustry(occ.industry)) && sig.functions.has(occ.function);
 }
 
+/**
+ * The listing names this role itself (its title words or aliases, or an occupation code the
+ * listing carries) — not only its industry or function. Only these count toward the careers
+ * quality rule: an industry-level match is shared by every role in that industry, so it can't
+ * make a page about this role worth indexing.
+ */
+export function listingTargetsRole(l: PublicListing, occ: OccupationDef, pursued: ReadonlySet<string>): boolean {
+  if (!pursued.has(l.type)) return false;
+  const sig = listingSignals(l);
+  let keywords = KEYWORDS.get(occ.code);
+  if (!keywords) {
+    keywords = roleKeywords(occ);
+    KEYWORDS.set(occ.code, keywords);
+  }
+  return keywords.some((k) => k.test(sig.lower)) || sig.occupations.has(occ.code);
+}
+
 export function industryName(code: string): string {
   return isIndustryCode(code) ? industryLabel(code, "en") : code;
 }
@@ -1598,9 +1618,9 @@ export function datedTimeline(steps: TimelineStep[], deadline: string | null, no
 
 /** What Onward Scout does for an application on each channel. Honest about what stays with the person. */
 export const CHANNEL_HELP: Record<ChannelId, string> = {
-  CH1: "Onward Scout reads the posting's own questions, tailors your résumé and answers from your sourced profile, and submits after your tap. If the form needs a login or a CAPTCHA, it hands it to you ready to paste.",
-  CH2: "Onward Scout maps the official form field by field, fills it from your sourced profile and drafts the written answers; you review and tap to submit. If the form stops at a CAPTCHA, a login or a payment, you get a 30-second handoff with everything ready.",
-  CH3: "Onward Scout fills the official form in a browser on your behalf after your tap, taking a screenshot at every step. CAPTCHAs, logins and payments stay with you, as a 30-second handoff.",
+  CH1: "Onward Scout reads the posting's own questions and tailors your résumé and answers from your sourced profile. Where the hosted form can be filled automatically it submits after your tap; otherwise (a login, a CAPTCHA, or while browser filling is off) it hands you every answer ready to paste.",
+  CH2: "Onward Scout maps the official form field by field, fills it from your sourced profile and drafts the written answers; you review and tap to submit. If the form stops at a CAPTCHA, a login or a payment, you get a handoff with every field ready to paste.",
+  CH3: "Once browser filling is switched on, Onward Scout fills the official form in a browser on your behalf after your tap, taking a screenshot at every step; until then every field is prepared for you to paste. CAPTCHAs, logins and payments always stay with you, as a handoff with everything ready.",
   CH4: "Onward Scout drafts a personal email for each contact, sent from your own Gmail one recipient at a time, and reminds you when to follow up. Nothing is sent without your tap.",
   CH5: "Onward Scout prepares the document set (statements, checklists, summaries) from your sourced profile, ready to download as PDF or Word.",
   CH6: "This one is submitted on the organiser's own site, behind your login. Onward Scout prepares every answer and file in the form's order with one-tap copy, so submitting takes minutes; you mark it submitted when you're done.",
@@ -1804,22 +1824,39 @@ async function loadSeoData(): Promise<SeoData> {
 }
 
 /**
- * The whole public catalogue, once per render (React cache) and once per hour across renders
- * (Next's data cache; ISR pages regenerate on the same hour).
+ * How long the programmatic data caches live (seconds). Freshness comes from the
+ * `opportunities` cache tag, which every writer invalidates (the daily sources run, the expiry
+ * cron, the admin review/edit actions); the long life only keeps a crawler's visit from waking
+ * the database at an arbitrary time of day (the compute should wake once an hour, at :00).
+ */
+export const SEO_CACHE_SECONDS = 86_400;
+
+/**
+ * The whole public catalogue, once per render (React cache) and once per day across renders
+ * (Next's data cache), refreshed earlier whenever the `opportunities` tag is invalidated.
  */
 export const getSeoData = cache(async (): Promise<SeoData> => {
   if (!databaseConfigured()) return EMPTY;
   const { unstable_cache } = await import("next/cache");
-  const cached = unstable_cache(loadSeoData, ["programmatic-seo-data-v1"], { revalidate: 3600, tags: ["opportunities"] });
+  const cached = unstable_cache(loadSeoData, ["programmatic-seo-data-v1"], { revalidate: SEO_CACHE_SECONDS, tags: ["opportunities"] });
   return cached();
 });
 
-/** One listing in full (any status: closed rounds still get their "this round has closed" page). */
-export const getListingDetail = cache(async (slug: string): Promise<ListingDetail | null> => {
-  if (!databaseConfigured() || !isValidSlug(slug)) return null;
+async function loadListingDetail(slug: string): Promise<ListingDetail | null> {
   const { getOpportunityBySlug } = await engine();
   const row = await getOpportunityBySlug(slug);
   return row ? toDetail(row) : null;
+}
+
+/**
+ * One listing in full (any status: closed rounds still get their "this round has closed" page),
+ * from the data cache (tags `opportunities` and `opp:<slug>`), so an ISR regeneration or an OG
+ * image miss doesn't query the database.
+ */
+export const getListingDetail = cache(async (slug: string): Promise<ListingDetail | null> => {
+  if (!databaseConfigured() || !isValidSlug(slug)) return null;
+  const { unstable_cache } = await import("next/cache");
+  return unstable_cache(() => loadListingDetail(slug), ["listing-detail-v1", slug], { revalidate: SEO_CACHE_SECONDS, tags: ["opportunities", `opp:${slug}`] })();
 });
 
 /** Live listings of one organization (from the catalogue already in memory). */
@@ -1850,10 +1887,29 @@ export function listingsForRole(listings: PublicListing[], profile: CareerProfil
 }
 
 /** The careers quality inputs for one role, from the catalogue. */
-export function careerQualityFor(profile: CareerProfile, data: Pick<SeoData, "listings" | "counts">): ReturnType<typeof careerQuality> & { matched: PublicListing[] } {
+export function careerQualityFor(profile: CareerProfile, data: Pick<SeoData, "listings" | "counts">): ReturnType<typeof careerQuality> & { matched: PublicListing[]; targeted: PublicListing[] } {
   const matched = listingsForRole(data.listings, profile);
+  const pursued = new Set<string>(profile.publicTypes);
+  // Shown: everything relevant (industry/function fallbacks included). Counted: role-specific only.
+  const targeted = matched.filter((l) => listingTargetsRole(l, profile.occupation, pursued));
   const liveTypeCount = profile.publicTypes.filter((t) => (data.counts[t] ?? 0) >= MIN_INDEX_ITEMS).length;
-  return { ...careerQuality({ liveTypeCount, matchedListings: matched.length, relatedCount: profile.related.length }), matched };
+  return { ...careerQuality({ liveTypeCount, matchedListings: targeted.length, relatedCount: profile.related.length }), matched, targeted };
+}
+
+/**
+ * Career pages that would show the same thing (the same listings and the same opportunity
+ * types) keep one representative in the index: the one with the most role-specific listings,
+ * then the alphabetically first code. Pure, for tests.
+ */
+export function dedupeCareers<T extends { code: string; matchedSlugs: string[]; types: string[]; targeted: number }>(candidates: T[]): T[] {
+  const groups = new Map<string, T>();
+  for (const c of candidates) {
+    const key = `${[...c.matchedSlugs].sort().join(",")}|${[...c.types].sort().join(",")}`;
+    const best = groups.get(key);
+    if (!best || c.targeted > best.targeted || (c.targeted === best.targeted && c.code < best.code)) groups.set(key, c);
+  }
+  const keep = new Set([...groups.values()].map((c) => c.code));
+  return candidates.filter((c) => keep.has(c.code));
 }
 
 /** Program guides that pass the card-level check (the guide page re-checks the full listing). */
@@ -1861,29 +1917,62 @@ export function guideCandidates(listings: PublicListing[], now: number = Date.no
   return listings.filter((l) => cardGuideCandidate(l, now));
 }
 
-/** How many program-guide candidates are checked against their full listing per refresh. */
-const GUIDE_CHECK_LIMIT = 120;
-
 async function loadReadyGuides(): Promise<PublicListing[]> {
   const { listings } = await getSeoData();
   const now = Date.now();
-  const candidates = guideCandidates(listings, now).slice(0, GUIDE_CHECK_LIMIT);
-  const ready: PublicListing[] = [];
-  for (let i = 0; i < candidates.length; i += 10) {
-    const batch = candidates.slice(i, i + 10);
-    const details = await Promise.all(batch.map((l) => getListingDetail(l.slug)));
-    details.forEach((d, j) => {
-      if (d && guideReadiness(d, now).ready) ready.push(batch[j]);
-    });
+  const candidates = guideCandidates(listings, now);
+  if (!candidates.length) return [];
+  // Every candidate in ONE query over the columns guideReadiness reads (never `description`).
+  const { db } = await import("@/lib/db");
+  const { opportunities } = await import("@/lib/db/schema");
+  const { inArray } = await import("drizzle-orm");
+  const o = opportunities;
+  const rows = await db
+    .select({
+      id: o.id,
+      slug: o.slug,
+      type: o.type,
+      name: o.name,
+      orgName: o.orgName,
+      orgSlug: o.orgSlug,
+      url: o.url,
+      summary: o.summary,
+      deadline: o.deadline,
+      rolling: o.rolling,
+      cycle: o.cycle,
+      geo: o.geo,
+      benefits: o.benefits,
+      cost: o.cost,
+      tags: o.tags,
+      requiredMaterials: o.requiredMaterials,
+      eligibility: o.eligibility,
+      languages: o.languages,
+      industries: o.industries,
+      functions: o.functions,
+      apply: o.apply,
+      estEffortMinutes: o.estEffortMinutes,
+      qualityScore: o.qualityScore,
+      verifiedAt: o.verifiedAt,
+      status: o.status,
+      public: o.public,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+    })
+    .from(o)
+    .where(inArray(o.slug, candidates.map((l) => l.slug)));
+  const ready = new Set<string>();
+  for (const row of rows) {
+    const d = toDetail({ ...row, description: null });
+    if (d && guideReadiness(d, now).ready) ready.add(d.slug);
   }
-  return ready;
+  return candidates.filter((l) => ready.has(l.slug));
 }
 
-/** Listings whose program guide is complete (checked against the full listing), cached for an hour. */
+/** Listings whose program guide is complete (checked against the full listing), cached for a day (tag-invalidated). */
 export const getReadyProgramGuides = cache(async (): Promise<PublicListing[]> => {
   if (!databaseConfigured()) return [];
   const { unstable_cache } = await import("next/cache");
-  return unstable_cache(loadReadyGuides, ["programmatic-ready-guides-v1"], { revalidate: 3600, tags: ["opportunities"] })();
+  return unstable_cache(loadReadyGuides, ["programmatic-ready-guides-v2"], { revalidate: SEO_CACHE_SECONDS, tags: ["opportunities"] })();
 });
 
 export interface IndexableTargets {
@@ -1913,21 +2002,23 @@ async function loadIndexableTargets(): Promise<IndexableTargets> {
   }
   const careers: IndexableTargets["careers"] = [];
   if (data.listings.length) {
+    const candidates: { code: string; matchedSlugs: string[]; types: string[]; targeted: number; lastmod: string | null }[] = [];
     for (const o of OCCUPATIONS) {
       const profile = careerProfile(o.code);
       if (!profile) continue;
       const q = careerQualityFor(profile, data);
-      if (q.indexable) careers.push({ code: o.code, lastmod: newest(q.matched.map(lastmodOf)) });
+      if (q.indexable) candidates.push({ code: o.code, matchedSlugs: q.matched.map((l) => l.slug), types: profile.publicTypes, targeted: q.targeted.length, lastmod: newest(q.matched.map(lastmodOf)) });
     }
+    for (const c of dedupeCareers(candidates)) careers.push({ code: c.code, lastmod: c.lastmod });
   }
   return { types, regions, careers };
 }
 
-/** What is indexable right now (sitemap, autolinks, careers prerendering), cached for an hour. */
+/** What is indexable right now (sitemap, autolinks, careers prerendering), cached for a day (tag-invalidated). */
 export const getIndexableTargets = cache(async (): Promise<IndexableTargets> => {
   if (!databaseConfigured()) return { types: [], regions: [], careers: [] };
   const { unstable_cache } = await import("next/cache");
-  return unstable_cache(loadIndexableTargets, ["programmatic-indexable-v1"], { revalidate: 3600, tags: ["opportunities"] })();
+  return unstable_cache(loadIndexableTargets, ["programmatic-indexable-v3"], { revalidate: SEO_CACHE_SECONDS, tags: ["opportunities"] })();
 });
 
 /* ================================================================== 4. sitemap rules (pure) */

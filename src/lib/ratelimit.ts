@@ -1,7 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { sha256 } from "./ids";
+import { keyedHash } from "./crypto";
 
 export interface RateResult {
   ok: boolean;
@@ -41,9 +41,12 @@ export function clientIp(headers: Headers): string {
   return headers.get("x-real-ip") || headers.get("x-vercel-forwarded-for") || "0.0.0.0";
 }
 
-/** IPs are only ever stored as salted hashes. */
+/**
+ * IPs are only ever stored as keyed hashes (HMAC under a server secret, see `keyedHash`): a
+ * constant salt in public code would let anyone enumerate the IPv4 space back to addresses.
+ */
 export function ipHash(ip: string): string {
-  return sha256(`onwardscout:${ip}`).slice(0, 24);
+  return keyedHash("ip", ip, 24);
 }
 
 export function tooMany(r: RateResult): Response {

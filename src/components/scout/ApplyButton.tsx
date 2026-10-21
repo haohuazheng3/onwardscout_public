@@ -38,6 +38,7 @@ export function ApplyButton({
 }) {
   const t = useTranslations("scout.apply");
   const tc = useTranslations("common");
+  const ta = useTranslations("applications");
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -61,8 +62,11 @@ export function ApplyButton({
         body: JSON.stringify({ opportunityId, ...(goalId ? { goalId } : {}), ...(practice ? { practice: true } : {}) }),
       });
       status = res.status;
-      const data = (await res.json().catch(() => null)) as { applicationId?: string; error?: string } | null;
-      if (!res.ok || !data?.applicationId) throw new Error(data?.error || tc("errors.generic"));
+      const data = (await res.json().catch(() => null)) as { applicationId?: string; error?: string; code?: string } | null;
+      if (!res.ok || !data?.applicationId) {
+        // The server's code, in the person's language (applications.errors.*); its English sentence otherwise.
+        throw new Error(data?.code && ta.has(`errors.${data.code}`) ? ta(`errors.${data.code}`) : data?.error || tc("errors.generic"));
+      }
       onStarted?.(data.applicationId);
       router.push(`/app/applications/${data.applicationId}`);
       // Stay pressed: the application page's skeleton takes over.

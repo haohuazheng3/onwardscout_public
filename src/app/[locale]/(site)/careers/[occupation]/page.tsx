@@ -27,13 +27,12 @@ import {
 import { absoluteUrl, pageMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; occupation: string }> };
 
 /** Prerender the careers that pass the quality rule; the rest render on first visit. */
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
+export async function generateStaticParams() {
   const { careers } = await getIndexableTargets();
   return careers.map((c) => ({ occupation: c.code }));
 }
@@ -46,8 +45,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { occupation } = await params;
   const profile = careerProfile(occupation);
   if (!profile) return {};
-  const data = await getSeoData();
+  const [data, targets] = await Promise.all([getSeoData(), getIndexableTargets()]);
   const quality = careerQualityFor(profile, data);
+  // Indexed only as the representative of its group (pages showing the same listings and types
+  // keep one in the index; the others stay reachable, noindex but followed).
+  const representative = targets.careers.some((c) => c.code === profile.occupation.code);
   const label = profile.occupation.label.en;
   return pageMetadata({
     title: `${label}: what to apply for and how to win it`,
@@ -55,7 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: careerPath(profile.occupation.code),
     englishOnly: true,
     // Quality rule (careerQuality): indexed only with role-specific live listings behind it.
-    noindex: !quality.indexable,
+    noindex: !quality.indexable || !representative,
   });
 }
 

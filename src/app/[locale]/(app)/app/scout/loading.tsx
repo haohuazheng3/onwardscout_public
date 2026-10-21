@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl";
 import { CardGridSkeleton, PaneSkeleton } from "@/components/Skeletons";
 import { Skeleton } from "@/components/ui";
 
 /** The board's shape: header, the goal/status pane, view + search + chips, then card panes. */
 export default function ScoutLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
     <div className="min-w-0" aria-busy="true">
       <div className="pb-6 sm:pb-8">
@@ -11,7 +14,7 @@ export default function ScoutLoading() {
         <Skeleton className="mt-3 block h-3.5 w-80 max-w-full rounded-full" />
       </div>
       <div className="grid gap-4 sm:gap-5">
-        <PaneSkeleton lines={1} label="Loading" />
+        <PaneSkeleton lines={1} label={label} />
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex gap-1.5">
             <Skeleton className="block h-9 w-16 rounded-full" />

@@ -40,8 +40,10 @@ const Body = z.object({
 export const POST = withErrorCapture("/api/applications/[id]/upload", async (req: Request, ctx: RouteContext<"/api/applications/[id]/upload">) => {
   const session = await requireUserApi();
   if (isResponse(session)) return session;
-  const rl = await rateLimit(`applications:upload:${session.userId}`, 30, 600);
+  // Per burst, and per day: a signed link stores up to 20 MB whether or not the upload is used.
+  const [rl, day] = await Promise.all([rateLimit(`applications:upload:${session.userId}`, 30, 600), rateLimit(`applications:upload:day:${session.userId}`, 120, 86400)]);
   if (!rl.ok) return tooMany(rl);
+  if (!day.ok) return tooMany(day);
   const { id } = await ctx.params;
   if (!isAppId(id)) return NOT_FOUND();
   const parsed = Body.safeParse(await readJson(req));

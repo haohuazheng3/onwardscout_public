@@ -73,6 +73,7 @@ const cardColumns = {
   public: o.public,
   sourceRef: o.sourceRef,
   createdAt: o.createdAt,
+  updatedAt: o.updatedAt,
 };
 
 const matchColumns = {
@@ -120,6 +121,7 @@ type CardRow = {
   public: boolean;
   sourceRef: string | null;
   createdAt: Date | string;
+  updatedAt: Date | string | null;
 };
 
 type MatchRowPart = {
@@ -174,6 +176,7 @@ export function toCard(row: CardRow, userId?: string | null): OpportunityCard {
     estEffortMinutes: row.estEffortMinutes,
     qualityScore: row.qualityScore,
     verifiedAt: iso(row.verifiedAt),
+    updatedAt: iso(row.updatedAt),
     status: row.status,
     public: row.public,
     mine: isOwnedBy(row.sourceRef, userId),

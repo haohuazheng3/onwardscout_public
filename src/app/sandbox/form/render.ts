@@ -221,6 +221,7 @@ function page(title: string, body: string): string {
 <main class="pane">
 ${body}
 </main>
+<p class="small" style="margin-top:18px;text-align:center">What this form stores and for how long: <a href="/privacy#what-we-collect">privacy policy</a> · <a href="/terms">terms</a></p>
 </div>
 </body>
 </html>`;

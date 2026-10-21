@@ -36,7 +36,9 @@ export type NotifyKey =
   | "followup_ready"
   | "followup_sent"
   | "check_status"
-  | "closed_no_response";
+  | "closed_no_response"
+  | "outreach_blocked"
+  | "expired";
 
 export type Effect =
   | { type: "transition"; to: ApplicationStatus; actor: Actor; needsYouReason?: string | null }
@@ -53,7 +55,7 @@ export type Effect =
   | { type: "followup"; at: Date | null; sent?: number }
   | { type: "outcome"; outcome: ApplicationOutcome };
 
-export type PlanError = "not_ready" | "needs_confirmation" | "invalid_transition" | "not_submitted" | "busy" | "already_submitted" | "no_followup";
+export type PlanError = "not_ready" | "needs_confirmation" | "invalid_transition" | "not_submitted" | "busy" | "already_submitted" | "no_followup" | "guardian_required";
 
 export type Plan = { ok: true; effects: Effect[] } | { ok: false; error: PlanError };
 
@@ -75,11 +77,13 @@ export function creditCost(app: Pick<AppState, "practice">): number {
  * The person's "Confirm & submit" (or a standing authorization for this opportunity type).
  * Nothing moves without one of the two.
  */
-export function planConfirm(app: AppState, opts: { explicit: boolean; authorized?: boolean }): Plan {
+export function planConfirm(app: AppState, opts: { explicit: boolean; authorized?: boolean; guardianRequired?: boolean }): Plan {
   if (app.status === "submitting") return fail("busy");
   if (submittedOf(app)) return fail("already_submitted");
   if (app.status !== "ready") return fail("not_ready");
   if (!opts.explicit && !opts.authorized) return fail("needs_confirmation");
+  // Minors (identity S1) submit only once a parent or guardian's email is on their profile (honesty rule 5).
+  if (opts.guardianRequired && !app.practice) return fail("guardian_required");
   const actor: Actor = opts.explicit ? "user" : "system";
   if (!canTransition(app.status, "submitting", actor, { submitted: false })) return fail("invalid_transition");
   const cost = creditCost(app);
@@ -102,6 +106,9 @@ export interface SubmitContextInfo {
   /** The prepared handoff (used when a non-retryable failure turns into a handoff). */
   preparedHandoff?: HandoffPackage | null;
 }
+
+/** Outreach-policy refusals (channels/outreach-policy.ts) that must never become a handoff. */
+export const OUTREACH_STOP_CODES: ReadonlySet<string> = new Set(["do_not_contact", "minor", "recently_contacted", "invalid_email"]);
 
 export function planSubmitResult(app: AppState, result: SubmitResultLike, info: SubmitContextInfo): Plan {
   if (app.status !== "submitting") return fail("invalid_transition");
@@ -137,6 +144,17 @@ export function planSubmitResult(app: AppState, result: SubmitResultLike, info: 
         { type: "notify", key: "needs_you" },
       ]);
     case "failed":
+      if (result.code && OUTREACH_STOP_CODES.has(result.code)) {
+        // The outreach policy refused this email (opt-out, 30-day rule, minor, unusable address).
+        // Never turn that into a ready-made mailto to the same person: nothing is sent, the credit
+        // comes back (released while still `submitting`, so a new confirm opens a fresh round).
+        return ok([
+          ...(paid ? [{ type: "release" } as Effect] : []),
+          { type: "transition", to: "ready", actor: "system" },
+          { type: "event", kind: "application.outreach_blocked", data: { code: result.code, error: result.error.slice(0, 300) } },
+          { type: "notify", key: "outreach_blocked" },
+        ]);
+      }
       if (!result.retryable && info.preparedHandoff) {
         // Automation cannot finish this one: hand it over with everything prepared; the credit stays reserved.
         return ok([
@@ -146,9 +164,11 @@ export function planSubmitResult(app: AppState, result: SubmitResultLike, info: 
           { type: "notify", key: "needs_you" },
         ]);
       }
+      // Release first, while the application is still `submitting` (a confirm in between answers
+      // "busy"); releasing after the move to `ready` could free the reservation of a new confirm.
       return ok([
-        { type: "transition", to: "ready", actor: "system" },
         ...(paid ? [{ type: "release" } as Effect] : []),
+        { type: "transition", to: "ready", actor: "system" },
         { type: "event", kind: "application.submit_failed", data: { error: result.error.slice(0, 300), retryable: result.retryable } },
         { type: "notify", key: "submit_failed" },
       ]);

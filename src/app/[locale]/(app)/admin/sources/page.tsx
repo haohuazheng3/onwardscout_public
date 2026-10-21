@@ -1,27 +1,28 @@
-import { asc, desc } from "drizzle-orm";
+import { asc, count, desc } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import { SubmitButton } from "@/components/admin/AdminClient";
-import { AdminTable, AdminTitle, Json, Mono, StatusTag, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
+import { AdminPager, AdminTable, AdminTitle, Json, Mono, StatusTag, ago, fmtDate, fmtInt, type Column } from "@/components/admin/AdminUi";
 import { Tag } from "@/components/ui";
 import { db } from "@/lib/db";
 import { sources, type SourceRow } from "@/lib/db/schema";
 import { runAllSourcesAction, runSourceAction } from "../actions";
-import { adminLocale, appStateEntries, CRON_STATE_KEYS, lastRunOf, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
+import { adminLocale, appStateEntries, CRON_STATE_KEYS, lastRunOf, pageHref, pageRows, pageWindow, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 import { AdminNotice } from "../_lib/notice";
 
 export const dynamic = "force-dynamic";
-
-const PAGE = 300;
 
 export default async function AdminSourcesPage({ params, searchParams }: { params: LocaleParams; searchParams: SearchParams }) {
   const locale = await adminLocale(params);
   await requireAdminOnce();
   const sp = await searchParams;
   const [t, tc] = await Promise.all([getTranslations({ locale, namespace: "admin.sources" }), getTranslations({ locale, namespace: "admin.common" })]);
-  const [rows, state] = await Promise.all([
-    db.select().from(sources).orderBy(desc(sources.enabled), asc(sources.lastRunAt), asc(sources.name)).limit(PAGE),
+  const win = pageWindow(sp);
+  const [fetched, state, total] = await Promise.all([
+    db.select().from(sources).orderBy(desc(sources.enabled), asc(sources.lastRunAt), asc(sources.name), asc(sources.id)).limit(win.limit).offset(win.offset),
     appStateEntries([CRON_STATE_KEYS.sources]),
+    db.select({ n: count() }).from(sources),
   ]);
+  const { rows, hasNext } = pageRows(fetched);
   const lastPass = state.get(CRON_STATE_KEYS.sources);
   const lastAt = lastRunOf(lastPass);
   const path = "/admin/sources";
@@ -82,7 +83,7 @@ export default async function AdminSourcesPage({ params, searchParams }: { param
     <div className="space-y-5">
       <AdminTitle
         title={t("title")}
-        count={fmtInt(rows.length, locale)}
+        count={fmtInt(Number(total[0]?.n ?? rows.length), locale)}
         lede={t("lede")}
         actions={
           <form action={runAllSourcesAction}>
@@ -107,6 +108,7 @@ export default async function AdminSourcesPage({ params, searchParams }: { param
         ) : null}
       </div>
       <AdminTable columns={columns} rows={rows} keyOf={(s) => s.id} empty={t("empty")} />
+      <AdminPager page={win.page} hasNext={hasNext} href={(n) => pageHref("/admin/sources", sp, n)} labels={{ prev: tc("prevPage"), next: tc("nextPage"), page: tc("pageN", { page: win.page }) }} />
     </div>
   );
 }

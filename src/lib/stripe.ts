@@ -81,18 +81,26 @@ export function priceIdFor(sku: Sku): string | undefined {
   return env(OFFERS[sku].priceEnv);
 }
 
-export type PaymentsBlock = "not_configured" | "price_missing" | "nonprod";
+export type PaymentsBlock = "not_configured" | "price_missing" | "nonprod" | "not_open";
 
 /**
  * Live keys only take money on the production deployment. Preview and local deployments refuse
  * to open a live Checkout unless ALLOW_LIVE_CHECKOUT_NONPROD=1 (a supervised test).
  */
-export function paymentsEnabled(sku?: Sku): { ok: true } | { ok: false; code: PaymentsBlock; reason: string } {
+export function paymentsEnabled(sku?: Sku, opts: { adminTester?: boolean } = {}): { ok: true } | { ok: false; code: PaymentsBlock; reason: string } {
   const mode = stripeMode();
   if (mode === "missing") return { ok: false, code: "not_configured", reason: "Payments are not configured yet." };
   if (sku && !priceIdFor(sku)) return { ok: false, code: "price_missing", reason: `The ${OFFERS[sku].name.en} price is not configured yet.` };
   if (mode === "live" && !IS_PRODUCTION_DEPLOY && env("ALLOW_LIVE_CHECKOUT_NONPROD") !== "1") {
     return { ok: false, code: "nonprod", reason: `Checkout only opens on ${SITE.domain}.` };
+  }
+  // Live sales open only by an explicit switch: the Stripe account in use must be Onward Scout's
+  // own (merchant name, receipts and card statements), which the terms name as the seller. The
+  // interim shared account (another brand's public name) never takes real money from the public.
+  // Admins (ADMIN_EMAILS, verified) may still check out to run the owner's acceptance test with the
+  // 100%-off code — the closed loop is exercised end to end without any buyer seeing the wrong brand.
+  if (mode === "live" && env("PAYMENTS_OPEN") !== "1" && !opts.adminTester) {
+    return { ok: false, code: "not_open", reason: "Purchases open soon." };
   }
   return { ok: true };
 }

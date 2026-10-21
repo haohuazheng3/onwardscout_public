@@ -41,7 +41,7 @@
     "submitted": "Submitted",
     "waiting": "Waiting for a reply",
     "waiting_followup": "Waiting · follow-up scheduled",
-    "needs_you_handoff": "Your turn: about 30 seconds on the official site",
+    "needs_you_handoff": "Your turn: finish it on the official site (a few minutes)",
     "needs_you_captcha": "A CAPTCHA needs you: finish it on the official site",
     "needs_you_login": "Needs your login on the official site",
     "needs_you_payment": "The organiser asks for a fee: you pay it on their site",
@@ -154,7 +154,8 @@
     "fileHint": "PDF, Word, PowerPoint, images, ZIP or MP4, up to 20 MB",
     "answered": "Answered",
     "allDone": "Thanks, that's everything. Finishing your application…",
-    "moreLater": "{count, plural, one {# more question after these} other {# more questions after these}}"
+    "moreLater": "{count, plural, one {# more question after these} other {# more questions after these}}",
+    "uploadFailed": "That file didn't upload. Try again."
   },
   "documents": {
     "title": "Documents",
@@ -192,7 +193,7 @@
   },
   "answers": {
     "title": "Answers",
-    "lede": "What goes into each field of the form, in the form's order.",
+    "lede": "What goes into each field of the form, in the form's order. Tap an answer to see where it came from, or to change it.",
     "empty": "No form answers needed: the documents carry this application.",
     "fromProfile": "From your profile",
     "yourAnswer": "Your answer",
@@ -237,7 +238,7 @@
     "buy": "Get credits",
     "button": "Confirm & submit",
     "buttonPractice": "Submit practice run",
-    "buttonHandoff": "Start the 30-second handoff",
+    "buttonHandoff": "Start the handoff",
     "buttonEmail": "Confirm & send email",
     "buttonEmailMailto": "Confirm & prepare email",
     "submitting": "Submitting…",
@@ -246,11 +247,12 @@
     "waitingQuestions": "Answer the questions first, then you can confirm.",
     "preparing": "We're still preparing this application.",
     "submitted": "Submitted. Nothing else to do right now.",
-    "retryFailed": "The last attempt didn't go through. Nothing was sent and the credit is back. Try again when you're ready."
+    "retryFailed": "The last attempt didn't go through. Nothing was sent and the credit is back. Try again when you're ready.",
+    "unsavedEmail": "Your email has unsaved changes: they are saved when you confirm."
   },
   "handoff": {
-    "title": "Your 30-second handoff",
-    "lede": "This site needs you in person (a login, a CAPTCHA or a payment). Everything is prepared in the form's order: copy, paste, submit.",
+    "title": "Your handoff",
+    "lede": "This site needs you in person (a login, a CAPTCHA, a payment, or a platform that doesn't allow automation). Everything is prepared in the form's order: copy each field into the official form and submit it — usually a few minutes.",
     "reasons": {
       "captcha": "The form has a CAPTCHA, which only you can solve.",
       "login": "The site needs your own account to apply.",
@@ -280,7 +282,9 @@
     "submit": "I submitted it",
     "submitting": "Saving…",
     "done": "Recorded as submitted",
-    "credit": "This uses the credit reserved when you started the handoff."
+    "credit": "This uses the credit reserved when you started the handoff.",
+    "screenshotType": "Add the screenshot as a PNG or JPG.",
+    "uploadFailed": "The screenshot didn't upload. Try again."
   },
   "evidence": {
     "title": "Proof of submission",
@@ -358,5 +362,27 @@
     "title": "This application stopped moving",
     "body": "Something on the organiser's side or ours got in the way before it finished. Try again; if it keeps happening, the error is already logged for us.",
     "retry": "Try again"
+  },
+  "errors": {
+    "not_found": "We couldn't find that application.",
+    "conflict": "This application just changed. Reload to see where it is now.",
+    "insufficient_credits": "You need 1 credit to submit this application.",
+    "not_ready": "This application isn't ready for that step yet.",
+    "needs_confirmation": "Nothing is submitted without your confirmation.",
+    "invalid_transition": "That step isn't possible from where this application is now.",
+    "not_submitted": "Record an outcome once the application has been submitted.",
+    "busy": "We're submitting this right now. Give it a moment.",
+    "already_submitted": "This application was already submitted.",
+    "no_followup": "There is no follow-up waiting for this application.",
+    "invalid_answer": "That answer doesn't fit this question.",
+    "invalid_request": "That request isn't valid. Reload the page and try again.",
+    "outreach_blocked": "We can't send this email: the recipient can't be contacted right now.",
+    "guardian_required": "You're under 18: add a parent or guardian's email to your profile before your first submission.",
+    "outreach": {
+      "do_not_contact": "This person asked not to be contacted, so we won't write to them.",
+      "minor": "Email outreach isn't available for high-school students. Use the prepared text with a parent or teacher instead.",
+      "recently_contacted": "You wrote to this person in the last 30 days. We wait 30 days before writing to the same person again (from {date}).",
+      "invalid_email": "That isn't an email address we can write to."
+    }
   }
 }

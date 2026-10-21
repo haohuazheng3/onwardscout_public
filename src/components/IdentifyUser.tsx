@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
-import { ANALYTICS_LOADED_EVENT } from "./Consent";
+import { ANALYTICS_LOADED_EVENT, analyticsDeclined } from "./Consent";
 import { useHydrated } from "./use-hydrated";
 
 const SESSION_KEY = "os_identified";
@@ -20,7 +20,7 @@ export function IdentifyUser() {
   const email = user?.primaryEmailAddress?.emailAddress ?? null;
 
   useEffect(() => {
-    if (!hydrated || !isLoaded || !isSignedIn || !userRef) return;
+    if (!hydrated || !isLoaded || !isSignedIn || !userRef || analyticsDeclined()) return;
 
     let done = false;
     try {
@@ -31,7 +31,7 @@ export function IdentifyUser() {
     if (done) return;
 
     const send = () => {
-      if (!window.fw) return;
+      if (!window.fw || analyticsDeclined()) return;
       try {
         window.fw("identify", { userRef, email });
         try {

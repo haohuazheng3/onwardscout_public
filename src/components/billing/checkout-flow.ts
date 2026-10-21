@@ -14,7 +14,7 @@ export type CheckoutFrom = "pricing" | "billing";
 export const ATTEMPT_MS = 20 * 60 * 1000;
 
 /** Message keys (billing.checkout.errors.*) the client can show for a failed checkout start. */
-export const CHECKOUT_ERROR_KEYS = ["not_configured", "price_missing", "nonprod", "has_plan", "stale", "invalid", "rate_limited", "failed", "network"] as const;
+export const CHECKOUT_ERROR_KEYS = ["not_configured", "price_missing", "nonprod", "not_open", "has_plan", "stale", "invalid", "rate_limited", "failed", "network"] as const;
 export type CheckoutErrorKey = (typeof CHECKOUT_ERROR_KEYS)[number];
 
 /** Message keys (billing.portal.errors.*) for a failed portal opening. */

@@ -23,7 +23,6 @@ export function ApplicationCard({ card, locale, now }: { card: BoardCard; locale
     <Link
       href={`/app/applications/${card.id}`}
       className={cx("pane pane-hover block min-w-0 rounded-[20px] p-4 text-left", urgent && "shadow-[0_0_0_1.5px_var(--accent-soft)]")}
-      aria-label={t("card.open", { name: o.name })}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {type ? <Tag className="max-w-full truncate">{type}</Tag> : null}
@@ -36,7 +35,7 @@ export function ApplicationCard({ card, locale, now }: { card: BoardCard; locale
         <span className="min-w-0">{t(line.key, line.vars)}</span>
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[0.8rem] text-ink-4">
+        <span className="text-[0.8rem] text-ink-3">
           {card.submittedAt
             ? t("card.submittedOn", { date: format.dateTime(new Date(card.submittedAt), { dateStyle: "medium" }) })
             : o.deadline

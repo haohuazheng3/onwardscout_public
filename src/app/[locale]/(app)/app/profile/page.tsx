@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ProfileCard } from "@/components/onboarding/ProfileCard";
+import { LiveProfileCard } from "@/components/profile/LiveProfileCard";
 import { ConfirmProfileButton } from "@/components/profile/ConfirmProfileButton";
 import { ProfileRecord } from "@/components/profile/ProfileRecord";
 import { SourcesPanel } from "@/components/profile/SourcesPanel";
@@ -75,7 +75,7 @@ export default async function ProfilePage({ params }: Props) {
             )}
           </section>
 
-          <ProfileCard mode="user" locale={locale} profile={profile} roleHints={roleHintsOf(facts)} gaps={gaps} building={building} />
+          <LiveProfileCard mode="user" locale={locale} profile={profile} roleHints={roleHintsOf(facts)} gaps={gaps} building={building} />
 
           <div className="px-1 pt-2">
             <h2 className="title text-[1.2rem] text-ink">{t("recordTitle")}</h2>

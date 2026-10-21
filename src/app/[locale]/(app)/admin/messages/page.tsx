@@ -6,7 +6,7 @@ import { Tag, cx } from "@/components/ui";
 import { db } from "@/lib/db";
 import { contactMessages } from "@/lib/db/schema";
 import { SITE } from "@/lib/site";
-import { setMessageStatusAction } from "../actions";
+import { blockAddressAction, setMessageStatusAction } from "../actions";
 import { adminLocale, type LocaleParams, type SearchParams, requireAdminOnce } from "../_lib/data";
 import { AdminNotice } from "../_lib/notice";
 
@@ -41,6 +41,15 @@ export default async function AdminMessagesPage({ params, searchParams }: { para
     <div className="space-y-5">
       <AdminTitle title={t("title")} count={fmtInt(unanswered, locale)} lede={`${t("lede")} ${SITE.replyTime}`} />
       <AdminNotice sp={sp} locale={locale} />
+      <form action={blockAddressAction} className="pane flex flex-col gap-2 p-4 sm:flex-row sm:items-end">
+        <input type="hidden" name="locale" value={locale} />
+        <input type="hidden" name="path" value={path} />
+        <label className="grid min-w-0 flex-1 gap-1 text-[0.85rem] text-ink-3">
+          {t("blockLabel")}
+          <input name="email" type="email" required className="input" placeholder="name@example.com" />
+        </label>
+        <SubmitButton variant="ghost">{t("blockButton")}</SubmitButton>
+      </form>
       {rows.length === 0 ? (
         <EmptyRow>{t("empty")}</EmptyRow>
       ) : (

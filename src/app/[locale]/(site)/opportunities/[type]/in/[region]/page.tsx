@@ -6,13 +6,12 @@ import { opportunityTypeBySlug, publicOpportunityTypes } from "@/lib/core/opport
 import { REGION_LABELS, getSeoData, hubIndexable, isRegionId, regionPath, regionPhrase, regionsOf, shorten, typeCopy, renderTime } from "@/lib/programmatic";
 import { pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; type: string; region: string }> };
 
 /** Region pages that have listings (the rest render on demand, as noindex empty states). */
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
+export async function generateStaticParams() {
   const { listings } = await getSeoData();
   const out: { type: string; region: string }[] = [];
   for (const t of publicOpportunityTypes()) {

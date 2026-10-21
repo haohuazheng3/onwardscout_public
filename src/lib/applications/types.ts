@@ -55,7 +55,7 @@ export interface PreparedPackage {
 export type SubmitResultLike =
   | { status: "submitted"; evidence: { confirmationText?: string; url?: string; ref?: string; screenshotKey?: string; messageId?: string } }
   | { status: "needs_you"; reason: "captcha" | "login" | "payment" | "unsupported" | "blocked" | "no_gmail"; handoff: HandoffPackage }
-  | { status: "failed"; error: string; retryable: boolean };
+  | { status: "failed"; error: string; retryable: boolean; code?: string };
 
 /** Why an application waits for the person (applications.needs_you_reason). */
 export type NeedsYouReason =

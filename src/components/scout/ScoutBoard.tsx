@@ -357,7 +357,10 @@ export function ScoutBoard({
   const sheetCount = activeSheetFilters(filters);
   const narrowing = hasNarrowingFilters(filters);
   const showGoals = filters.view !== "all" && goals.length > 0;
-  const lastLooked = refresh.finishedAt ? format.relativeTime(new Date(refresh.finishedAt), now) : null;
+  // A refresh that finished after the page was rendered is newer than `now`: never "in 40 seconds".
+  const lastLooked = refresh.finishedAt
+    ? format.relativeTime(new Date(refresh.finishedAt), new Date(Math.max(now.getTime(), new Date(refresh.finishedAt).getTime())))
+    : null;
   const totalCount = data.counts ? BOARD_GROUPS.reduce((n, g) => n + (data.counts?.[g] ?? 0), 0) : null;
   const visibleItems = data.items;
   const empty = listState === "idle" && !visibleItems.length && !imports.length;

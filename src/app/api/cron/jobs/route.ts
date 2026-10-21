@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { queueStats } from "@/lib/jobs/queue";
 import { DRAIN_DEPTH_HEADER, kickDrain, runDue } from "@/lib/jobs/runner";
+import { notifyOwner } from "@/lib/notify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,6 +62,15 @@ async function drain(req: Request): Promise<Response> {
     );
   } catch (err) {
     await captureError(err, { route: "/api/cron/jobs", source: "cron" });
+    // The hourly drain is also the database probe (the scheduled health check is shallow, so it
+    // never wakes the database off the hour): when the scheduled run fails, tell the owner —
+    // the error inbox may be unreachable for the same reason.
+    if (req.method === "GET") {
+      await notifyOwner({
+        subject: "Onward Scout: the hourly job drain failed",
+        text: `The scheduled /api/cron/jobs run failed at ${startedAt.toISOString()}.\n\n${err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 1000) : String(err).slice(0, 1000)}`,
+      }).catch((e: unknown) => console.error("[cron/jobs] owner alert failed", e));
+    }
     return Response.json({ error: "The job drain failed; it has been logged." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

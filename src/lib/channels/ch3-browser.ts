@@ -2,13 +2,14 @@ import "server-only";
 import { features } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { putObject, screenKey } from "@/lib/files";
-import { getIntelligence } from "@/lib/llm";
+import { assertPublicUrl, isPrivateAddress, systemResolver } from "@/lib/ingest/url";
+import { fieldKey, getIntelligence } from "@/lib/llm";
 import type { Opportunity } from "@/lib/db/schema";
 import { detectBlockers, forbiddenPlatform, hostAllowed, hostOf } from "./detect";
 import { loadPersonContext } from "./context";
 import { loadPreparedFiles, loadPreparedFile } from "./files";
 import { buildHandoff } from "./handoff";
-import { channelGet, networkMessage } from "./http";
+import { channelGet, isTrustedOrigin, networkMessage } from "./http";
 import { formToRequirements, parseHtmlForms, pickMainForm, questionsOf, readResponse, TRUE_RE } from "./html-form";
 import type { Channel, ChannelDeps, FieldRequirement, LoadedFile, Requirements, SubmitContext, SubmitResult } from "./types";
 
@@ -74,7 +75,7 @@ async function analyze(opp: Opportunity): Promise<Requirements> {
       requiresPayment: base.requiresPayment || blockers.payment,
       notes: [
         ...base.notes,
-        ...(blockers.captcha ? ["This form uses a CAPTCHA, so you'll finish it yourself in a 30-second handoff."] : []),
+        ...(blockers.captcha ? ["This form uses a CAPTCHA, so you'll finish it yourself, with every answer ready to copy."] : []),
         ...(!form ? ["The form is drawn by JavaScript; we'll read its fields when we open it."] : []),
       ],
     };
@@ -117,19 +118,89 @@ interface DomField {
 type PwPage = import("playwright-core").Page;
 type PwBrowser = import("playwright-core").Browser;
 
+/** Local names Chromium must never resolve (defence in depth next to the per-request check). */
+const HOST_RESOLVER_RULES = "--host-resolver-rules=MAP localhost ~NOTFOUND, MAP *.localhost ~NOTFOUND, MAP *.local ~NOTFOUND, MAP *.internal ~NOTFOUND, MAP metadata.google.internal ~NOTFOUND";
+
 async function launch(): Promise<PwBrowser> {
   const { chromium } = await import("playwright-core");
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     const sparticuz = (await import("@sparticuz/chromium")).default;
-    return chromium.launch({ args: sparticuz.args, executablePath: await sparticuz.executablePath(), headless: true });
+    return chromium.launch({ args: [...sparticuz.args, HOST_RESOLVER_RULES], executablePath: await sparticuz.executablePath(), headless: true });
   }
   const executablePath = process.env.CHROME_EXECUTABLE_PATH?.trim();
-  if (executablePath) return chromium.launch({ executablePath, headless: true });
+  if (executablePath) return chromium.launch({ executablePath, headless: true, args: [HOST_RESOLVER_RULES] });
   try {
-    return await chromium.launch({ channel: "chrome", headless: true });
+    return await chromium.launch({ channel: "chrome", headless: true, args: [HOST_RESOLVER_RULES] });
   } catch {
-    return chromium.launch({ headless: true });
+    return chromium.launch({ headless: true, args: [HOST_RESOLVER_RULES] });
   }
+}
+
+/**
+ * Network guard for everything the browser loads (pages, frames, scripts, images, fetch/XHR,
+ * WebSockets): http(s) only, standard ports, and a host whose every DNS answer is public — the
+ * same rules as safeFetch (contracts-foundation §5.3). Our own origin (the sandbox) is trusted.
+ * Answers are cached per host for one run.
+ */
+export function createRequestGuard(resolver = systemResolver): (url: string) => Promise<boolean> {
+  const hosts = new Map<string, Promise<boolean>>();
+  return async (url: string) => {
+    if (isTrustedOrigin(url)) return true;
+    let u: URL;
+    try {
+      u = assertPublicUrl(url);
+    } catch {
+      return false;
+    }
+    const host = u.hostname.replace(/^\[|\]$/g, "");
+    let verdict = hosts.get(host);
+    if (!verdict) {
+      verdict = resolver(host).then(
+        (all) => all.length > 0 && !all.some((a) => isPrivateAddress(a.address)),
+        () => false,
+      );
+      hosts.set(host, verdict);
+    }
+    return verdict;
+  };
+}
+
+function answerFor(answers: Record<string, string>, label: string): string {
+  const want = label.trim().toLowerCase();
+  for (const [k, v] of Object.entries(answers)) if (k.trim().toLowerCase() === want) return (v ?? "").trim();
+  return "";
+}
+
+/**
+ * Deterministic guard on the planner's actions (contracts §5.1: consent, EEO, signatures,
+ * passwords, payment and date of birth are decided by rules, never by the model). A step that
+ * touches such a field is refused unless the person answered that very field in Onward Scout
+ * (consent: with a "yes"); a typed value must be one of the prepared values.
+ */
+export function guardBrowserStep(
+  step: { action: string; target: string | null; value: string | null },
+  ctx: { values: Record<string, string>; answers: Record<string, string>; groupLabel?: string | null },
+): { ok: true } | { ok: false; reason: string } {
+  if (!["fill", "select", "check", "uncheck", "click", "upload", "submit"].includes(step.action)) return { ok: true };
+  const t = parseTarget(step.target);
+  const labels = [t?.name ?? "", ctx.groupLabel ?? ""].filter(Boolean);
+  for (const label of labels) {
+    const key = fieldKey({ name: label, label, placeholder: null });
+    if (!key?.user) continue;
+    if (step.action === "submit" || (step.action === "click" && t?.role === "button" && key.key !== "consent")) continue; // a "Submit"/"I agree and submit" button is the submit gate, not a field
+    const answer = answerFor(ctx.answers, label);
+    if (key.key === "consent") {
+      if ((step.action === "check" || step.action === "click") && TRUE_RE.test(answer)) return { ok: true };
+      return { ok: false, reason: `“${label.slice(0, 80)}” is a consent box: only you can tick it.` };
+    }
+    if (answer && (step.action !== "fill" || (step.value ?? "") === answer)) return { ok: true };
+    return { ok: false, reason: `“${label.slice(0, 80)}” is yours to answer on the official form.` };
+  }
+  if (step.action === "fill" && step.value) {
+    const prepared = new Set([...Object.values(ctx.values), ...Object.values(ctx.answers)].map((v) => (v ?? "").trim()));
+    if (!prepared.has(step.value.trim())) return { ok: false, reason: "The agent tried to type something that wasn't prepared and confirmed." };
+  }
+  return { ok: true };
 }
 
 /** The visible text a person would see first: title, headings, alerts (data for the planner). */
@@ -203,6 +274,32 @@ function reasonOf(text: string): "captcha" | "login" | "payment" | "blocked" {
 
 const CONSENT_RE = /\b(confirm|consent|agree|certify|acknowledge|attest)\b|同意|确认/i;
 
+/**
+ * The label of the group a radio/option/checkbox target belongs to (its radiogroup's name,
+ * fieldset legend or the select's label): "Male" alone matches no rule, "Gender" does.
+ */
+async function groupLabelOf(page: PwPage, target: string): Promise<string | null> {
+  const t = parseTarget(target);
+  if (!t || !["radio", "option", "checkbox", "menuitemradio", "menuitemcheckbox"].includes(t.role)) return null;
+  try {
+    const loc = page.getByRole(t.role as Parameters<PwPage["getByRole"]>[0], { name: t.name, exact: true }).first();
+    return await loc.evaluate((el) => {
+      const text = (n: Element | null | undefined) => (n?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const group = el.closest("[role=radiogroup], [role=group], fieldset, select, [role=listbox]");
+      if (!group) return null;
+      const aria = group.getAttribute("aria-label");
+      if (aria) return aria.trim();
+      const by = group.getAttribute("aria-labelledby");
+      if (by) return by.split(/\s+/).map((id) => text(document.getElementById(id))).join(" ").trim() || null;
+      if (group.tagName === "FIELDSET") return text(group.querySelector("legend")) || null;
+      if (group.tagName === "SELECT") return Array.from((group as HTMLSelectElement).labels ?? []).map((l) => text(l)).join(" ").trim() || null;
+      return null;
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Runs the agent on one form. Never throws: every outcome is a BrowserRunResult. */
 export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRunResult> {
   const budget = input.deps?.timeBudgetMs ?? DEFAULT_BUDGET_MS;
@@ -230,6 +327,10 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
   if (!hostAllowed(input.url, input.allowedHost)) {
     return { status: "needs_you", reason: "blocked", note: `The application page isn't on ${input.allowedHost}, so the agent won't open it.` };
   }
+  const allowed = input.deps?.requestGuard ?? createRequestGuard();
+  if (!(await allowed(input.url))) {
+    return { status: "needs_you", reason: "blocked", note: "The application address isn't a public website, so the agent won't open it." };
+  }
 
   let browser: PwBrowser | null = null;
   try {
@@ -242,10 +343,15 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
   // Hard budget: whatever is still running when it expires is cut off by closing the browser.
   const killer = setTimeout(() => void browser?.close().catch(() => undefined), budget + 10_000);
   try {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: false, locale: "en-US", userAgent: undefined, javaScriptEnabled: true });
-    // The host allow-list: any top-level navigation off the apply host is refused.
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: false, locale: "en-US", userAgent: undefined, javaScriptEnabled: true, serviceWorkers: "block" });
+    // Every request (not only the page itself) passes the network guard: no private addresses,
+    // no other schemes. On top of that, any top-level navigation off the apply host is refused.
     await context.route("**/*", async (route) => {
       const req = route.request();
+      if (!(await allowed(req.url()))) {
+        await route.abort("blockedbyclient");
+        return;
+      }
       let topLevel = false;
       try {
         topLevel = req.isNavigationRequest() && req.frame() === req.frame().page().mainFrame();
@@ -257,6 +363,10 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
         return;
       }
       await route.continue();
+    });
+    await context.routeWebSocket(/.*/, async (ws) => {
+      if (await allowed(ws.url().replace(/^ws/i, "http"))) ws.connectToServer();
+      else await ws.close({ code: 1008, reason: "blocked" });
     });
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);
@@ -339,6 +449,13 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
         allowedHost: input.allowedHost,
         currentUrl: page.url(),
       });
+      // Rules, not the model, decide consent/EEO/signature/password/payment fields and what is typed.
+      const group = plan.target ? await groupLabelOf(page, plan.target) : null;
+      const guard = guardBrowserStep(plan, { values, answers: input.answers, groupLabel: group });
+      if (!guard.ok) {
+        await shoot(page, true);
+        return { status: "needs_you", reason: "blocked", note: guard.reason, screenshotKey: lastShot };
+      }
       if (plan.action === "stop") {
         const submitted = history.some((h) => h.ok && (h.action === "submit" || h.action === "click"));
         if (plan.needsUser) {

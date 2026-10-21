@@ -25,12 +25,16 @@ import {
   milestones,
   notifications,
   opportunities,
+  opportunitySnapshots,
   orders,
   profileVersions,
   profiles,
+  sandboxSubmissions,
   subscriptions,
   users,
+  userTombstones,
 } from "@/lib/db/schema";
+import { tombstoneHash } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { deleteObject, deleteUserObjects, userPrefixes } from "@/lib/files";
 import { sha256 } from "@/lib/ids";
@@ -126,6 +130,8 @@ export const EXPORT_FIELDS = {
   orders: ["kind", "sku", "amountTotal", "currency", "status", "promoCode", "createdAt"],
   subscriptions: ["sku", "status", "currentPeriodStart", "currentPeriodEnd", "cancelAtPeriodEnd"],
   contactMessages: ["topic", "message", "createdAt"],
+  sandboxSubmissions: ["ref", "fields", "files", "createdAt"],
+  importedOpportunities: ["id", "type", "name", "orgName", "url", "deadline", "status", "createdAt"],
 } as const;
 
 /** Columns that must never appear in an export, whatever a future allow-list says. */
@@ -168,6 +174,10 @@ export interface ExportSource {
   orders: Row[];
   subscriptions: Row[];
   contactMessages: Row[];
+  /** What our practice form stored for this person's practice runs. */
+  sandboxSubmissions?: Row[];
+  /** Opportunities this person added by link (private to them). */
+  importedOpportunities?: Row[];
   preferences: unknown;
 }
 
@@ -200,6 +210,8 @@ export interface ExportDocument {
   orders: Record<string, unknown>[];
   subscriptions: Record<string, unknown>[];
   contactMessages: Record<string, unknown>[];
+  sandboxSubmissions: Record<string, unknown>[];
+  importedOpportunities: Record<string, unknown>[];
 }
 
 export const EXPORT_NOTES = [
@@ -241,6 +253,8 @@ export function buildExport(src: ExportSource, now = new Date()): ExportDocument
     orders: many(src.orders, "orders"),
     subscriptions: many(src.subscriptions, "subscriptions"),
     contactMessages: many(src.contactMessages, "contactMessages"),
+    sandboxSubmissions: many(src.sandboxSubmissions ?? [], "sandboxSubmissions"),
+    importedOpportunities: many(src.importedOpportunities ?? [], "importedOpportunities"),
   };
 }
 
@@ -279,7 +293,7 @@ export async function collectUserData(userId: string): Promise<ExportSource> {
   const profileRow = profile[0] ?? null;
   const appIds = appRows.map((a) => a.id);
   const oppIds = [...new Set([...appRows.map((a) => a.opportunityId), ...matchRows.map((m) => m.opportunityId)])];
-  const [versionRows, stepRows, oppRows] = await Promise.all([
+  const [versionRows, stepRows, oppRows, sandboxRows, importedRows] = await Promise.all([
     profileRow ? db.select().from(profileVersions).where(eq(profileVersions.profileId, profileRow.id)) : Promise.resolve([]),
     appIds.length ? db.select().from(applicationSteps).where(inArray(applicationSteps.applicationId, appIds)) : Promise.resolve([]),
     oppIds.length
@@ -288,6 +302,16 @@ export async function collectUserData(userId: string): Promise<ExportSource> {
           .from(opportunities)
           .where(inArray(opportunities.id, oppIds))
       : Promise.resolve([]),
+    appIds.length
+      ? db
+          .select({ ref: sandboxSubmissions.ref, fields: sandboxSubmissions.fields, files: sandboxSubmissions.files, createdAt: sandboxSubmissions.createdAt })
+          .from(sandboxSubmissions)
+          .where(inArray(sql`${sandboxSubmissions.fields}->>'application_id'`, appIds))
+      : Promise.resolve([]),
+    db
+      .select({ id: opportunities.id, type: opportunities.type, name: opportunities.name, orgName: opportunities.orgName, url: opportunities.url, deadline: opportunities.deadline, status: opportunities.status, createdAt: opportunities.createdAt })
+      .from(opportunities)
+      .where(sql`starts_with(coalesce(${opportunities.sourceRef}, ''), ${ownRef(userId)})`),
   ]);
   return {
     user: user[0] ?? null,
@@ -313,6 +337,8 @@ export async function collectUserData(userId: string): Promise<ExportSource> {
     orders: orderRows,
     subscriptions: subRows,
     contactMessages: cmRows,
+    sandboxSubmissions: sandboxRows,
+    importedOpportunities: importedRows,
     preferences: prefRows[0]?.value ?? null,
   };
 }
@@ -415,8 +441,21 @@ export async function deleteUserData(userId: string, opts: { clerk: boolean }): 
     db.update(llmCalls).set({ userId: null }).where(eq(llmCalls.userId, userId)),
     db.update(orders).set({ userId: anonymizedUserId(userId), email: null, updatedAt: sql`now()` }).where(eq(orders.userId, userId)),
     db.delete(appState).where(eq(appState.key, prefsKey(userId))),
+    // Practice runs: what the sandbox form stored for this person's applications.
+    ...(appIds.length ? [db.delete(sandboxSubmissions).where(inArray(sql`${sandboxSubmissions.fields}->>'application_id'`, appIds))] : []),
+    // Links this person imported: removed when nobody else applied to or was matched with them,
+    // otherwise kept with the person's id taken out of the reference.
+    db.delete(opportunitySnapshots).where(sql`${opportunitySnapshots.opportunityId} in (select o.id from opportunities o where ${importedOnlyBy(userId)})`),
+    db.delete(opportunities).where(sql`${opportunities.id} in (select o.id from opportunities o where ${importedOnlyBy(userId)})`),
+    db
+      .update(opportunities)
+      .set({ sourceRef: sql`${`user:${anonymizedUserId(userId)}:`} || substr(${opportunities.sourceRef}, ${ownRef(userId).length + 1})`, updatedAt: sql`now()` })
+      .where(sql`starts_with(coalesce(${opportunities.sourceRef}, ''), ${ownRef(userId)})`),
     db.delete(profiles).where(eq(profiles.userId, userId)),
     db.delete(users).where(eq(users.id, userId)),
+    // A real account leaves a tombstone (a keyed hash, not the id): a still-valid session cannot
+    // recreate it, and Stripe events cannot grant it credits again.
+    ...(opts.clerk ? [db.insert(userTombstones).values({ userHash: tombstoneHash(userId) }).onConflictDoNothing()] : []),
   ];
   await db.batch(statements as [BatchItem<"pg">, ...BatchItem<"pg">[]]);
 
@@ -435,6 +474,17 @@ export async function deleteUserData(userId: string, opts: { clerk: boolean }): 
     }
   }
   return { objects, applications: appIds.length, documents: docRows.length, clerk };
+}
+
+function ownRef(userId: string): string {
+  return `user:${userId}:`;
+}
+
+/** SQL over alias `o`: an opportunity this person imported that no other person uses. */
+function importedOnlyBy(userId: string) {
+  return sql`starts_with(coalesce(o.source_ref, ''), ${ownRef(userId)})
+    and not exists (select 1 from applications a where a.opportunity_id = o.id and a.user_id <> ${userId})
+    and not exists (select 1 from matches m where m.opportunity_id = o.id and m.user_id <> ${userId})`;
 }
 
 /* ------------------------------------------------------------------ anonymous drafts */

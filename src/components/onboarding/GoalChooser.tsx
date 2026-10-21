@@ -25,6 +25,7 @@ import { defaultGoalsFor } from "@/lib/core/matrix";
 import { INTENSITY_LABELS } from "@/lib/core/playbooks";
 import type { GoalFamily, IdentityCode, Intensity, Profile, SubGoalId } from "@/lib/core/types";
 import { applicableSubGoals, defaultSubGoal, leadFamilies, snapHorizon, successOptions } from "@/lib/profile/success-params";
+import { radioKeys } from "@/components/radio-keys";
 
 /*
  * Step 3, "What do you want next?" (and "Add a goal" on /app/goals): goal families
@@ -209,7 +210,7 @@ export function GoalChooser({
             <p className="mt-6 text-[0.9rem] font-medium text-ink-2">{t("successTitle")}</p>
             <p className="mt-0.5 text-[0.85rem] text-ink-4">{t("successHint")}</p>
             <div className="mt-3 grid gap-2" role="radiogroup" aria-label={t("successTitle")}>
-              {options.map((o) => {
+              {options.map((o, i) => {
                 const on = !d.edited && d.templateId === o.templateId;
                 return (
                   <button
@@ -217,6 +218,9 @@ export function GoalChooser({
                     type="button"
                     role="radio"
                     aria-checked={on}
+                    {...radioKeys(i, options.length, d.edited ? -1 : options.findIndex((x) => x.templateId === d.templateId), (n) =>
+                      patch(f, { templateId: options[n].templateId, successDefinition: options[n].text, edited: false }),
+                    )}
                     onClick={() => patch(f, { templateId: o.templateId, successDefinition: o.text, edited: false })}
                     className={cx(
                       "press w-full min-w-0 rounded-[18px] px-4 py-3.5 text-left text-[0.96rem] leading-snug transition-colors",

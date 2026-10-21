@@ -6,7 +6,7 @@ import { subGoalsForOpportunityType } from "@/lib/core/goals";
 import { db } from "@/lib/db";
 import { applications } from "@/lib/db/schema";
 import { newId } from "@/lib/ids";
-import { ensurePracticeOpportunity, getOpportunity } from "@/lib/opportunities";
+import { ensurePracticeOpportunity, getDetailForUser, getOpportunity } from "@/lib/opportunities";
 import { activeGoals } from "@/lib/profile";
 import { recordEvent } from "@/lib/notifications";
 import { captureError } from "@/lib/errors";
@@ -45,7 +45,18 @@ export function pickGoal(goals: { id: string; family: string; sub: string | null
 export async function startApplication(input: { userId: string; opportunityId: string; goalId?: string; practice?: boolean }): Promise<{ applicationId: string; created: boolean }> {
   const opp = await getOpportunity(input.opportunityId);
   if (!opp) throw appError("not_found", 404);
-  const practice = Boolean(input.practice) || opp.type === "practice";
+  // Practice is a property of the opportunity (our own sandbox), never of the request: a client
+  // flag on a real opportunity would make a free, repeatable submission to a real organisation.
+  const practice = opp.type === "practice";
+  if (input.practice === true && !practice) throw appError("invalid_request", 400);
+  if (!practice) {
+    // Only what the person may see on their board (or what they already applied to: the reopen path).
+    const detail = await getDetailForUser(input.userId, opp.id);
+    const ownApplication = detail && !detail.visible
+      ? (await db.select({ id: applications.id }).from(applications).where(and(eq(applications.userId, input.userId), eq(applications.opportunityId, opp.id), eq(applications.practice, false))).limit(1))[0]
+      : null;
+    if (!detail || (!detail.visible && !ownApplication)) throw appError("not_found", 404);
+  }
   let goalId = input.goalId ?? null;
   if (!goalId) {
     try {

@@ -6,6 +6,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { EmptyState, cx } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
+import { isMinor } from "@/lib/core/identities";
 import { localize } from "@/lib/core/labels";
 import { isOccupationCode, occupationLabel } from "@/lib/core/occupations";
 import type { Profile } from "@/lib/core/types";
@@ -132,6 +133,8 @@ export function ProfileRecord({ profile: initialProfile, facts: initialFacts, do
     { key: "email", label: t("email"), value: id.email },
     { key: "phone", label: t("phone"), value: id.phone },
     { key: "location", label: t("location"), value: id.location },
+    // Minors only: the parent or guardian's email (asked for in the profile card above).
+    ...(isMinor(profile.roles.map((r) => r.code)) ? [{ key: "guardianEmail", label: t("guardianEmail"), value: id.guardianEmail }] : []),
   ];
 
   const packs = profile.packs;

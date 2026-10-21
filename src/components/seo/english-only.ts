@@ -16,7 +16,12 @@ export function englishOnly(locale: string, path: string): void {
   if (locale !== routing.defaultLocale) permanentRedirect({ href: path, locale: routing.defaultLocale });
 }
 
-/** generateStaticParams for English-only pages: prerender the English URLs only (zh requests redirect on demand). */
-export function forEnglish<T>(locale: string | undefined, make: () => T[]): T[] {
-  return locale === undefined || locale === routing.defaultLocale ? make() : [];
+/**
+ * generateStaticParams for English-only pages: the same list for every locale. Returning [] for
+ * zh made Next 16 pass the parent's {locale:"zh"} through as an incomplete path, which disables
+ * prerendering for the WHOLE route (English included). The zh entries prerender as the cached
+ * 308 to the English URL (`englishOnly` redirects before any data is read).
+ */
+export function forEnglish<T>(_locale: string | undefined, make: () => T[]): T[] {
+  return make();
 }

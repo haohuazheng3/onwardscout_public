@@ -9,7 +9,7 @@ import { getOpportunityType } from "@/lib/core/opportunity-types";
 import { OPPORTUNITIES_PATH, ORGANIZATIONS_PATH, ORG_MIN_ITEMS, getSeoData, orgPath, organizationsOf } from "@/lib/programmatic";
 import { pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string }> };
 

@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl";
 import { FormSkeleton, PaneSkeleton } from "@/components/Skeletons";
 import { Skeleton } from "@/components/ui";
 
 /** Settings skeleton: header, the section chips, then the panes in the order they render. */
 export default function SettingsLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
     <div className="min-w-0" aria-busy="true">
       <div className="pb-6 sm:pb-8">
@@ -16,7 +19,7 @@ export default function SettingsLoading() {
         ))}
       </div>
       <div className="grid gap-4">
-        <PaneSkeleton lines={2} label="Loading your settings" />
+        <PaneSkeleton lines={2} label={label} />
         <FormSkeleton fields={4} />
         <PaneSkeleton lines={3} />
         <PaneSkeleton lines={2} />

@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Button, Chip, Pane, Progress, Tag, Textarea, Input, cx } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import type { ApplicationQuestion } from "@/lib/core/types";
-import { call, putFile, uploadType } from "./api";
+import { call, putFile, RequestError, uploadType } from "./api";
 import type { RoomApi } from "./useApplication";
 
 /*
@@ -185,7 +185,7 @@ function FileQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
     } catch (err) {
       setProgress(null);
       setName(null);
-      toast.error(room.msgs.generic, { body: err instanceof Error ? err.message : undefined });
+      toast.error(t("uploadFailed"), { body: err instanceof RequestError && err.status >= 400 && err.status < 500 && !err.message.startsWith("upload ") ? err.message : undefined });
     }
   };
   return (
@@ -194,6 +194,8 @@ function FileQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
         ref={input}
         type="file"
         className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
         accept=".pdf,.doc,.docx,.pptx,.png,.jpg,.jpeg,.txt,.zip,.mp4"
         onChange={(e) => {
           const f = e.target.files?.[0];

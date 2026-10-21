@@ -37,8 +37,8 @@ const COPY: Record<NotifyKey, Copy> = {
   needs_you: {
     kind: "needs_you",
     email: true,
-    title: (x) => ({ en: `Needs you (about 30 seconds): ${x}`, zh: `需要你（约 30 秒）：${x}` }),
-    body: () => ({ en: "Everything is prepared in order. Copy each field, submit on the official site, then tap “I submitted it”.", zh: "所有内容已按顺序备好。逐项复制，在官方页面提交，然后点「我已提交」。" }),
+    title: (x) => ({ en: `Needs you: ${x}`, zh: `需要你：${x}` }),
+    body: () => ({ en: "Everything is prepared in the form's order. Open the application to see what's left for you, finish it on the official site, then tap “I submitted it”.", zh: "所有内容已按表单顺序备好。打开申请看看还剩哪一步，在官方页面完成，然后点「我已提交」。" }),
   },
   submit_failed: {
     kind: "needs_you",
@@ -62,6 +62,21 @@ const COPY: Record<NotifyKey, Copy> = {
     email: false,
     title: (x) => ({ en: `Any news from ${x}?`, zh: `${x}有消息了吗？` }),
     body: () => ({ en: "If they replied, record it in one tap: interview, offer, not selected or no response.", zh: "如果有回复，点一下记录：面试、录用、未通过或无回复。" }),
+  },
+  outreach_blocked: {
+    kind: "needs_you",
+    email: false,
+    title: (x) => ({ en: `We didn't send the email for ${x}`, zh: `${x}的邮件没有发出` }),
+    body: () => ({
+      en: "Our outreach rules stopped it: the person asked not to be contacted, was written to in the last 30 days, or email outreach isn't available on your profile. Nothing was sent and your credit is back.",
+      zh: "外联规则拦下了这封邮件：对方要求不再联系、过去 30 天内已经联系过，或你的档案不支持邮件外联。没有发出任何内容，额度已退回。",
+    }),
+  },
+  expired: {
+    kind: "progress",
+    email: false,
+    title: (x) => ({ en: `The deadline for ${x} has passed`, zh: `${x}已过截止日期` }),
+    body: () => ({ en: "It wasn't submitted in time, so we closed it and your reserved credit is back.", zh: "它没能在截止前提交，我们已关闭这份申请，预留的额度已退回。" }),
   },
   closed_no_response: {
     kind: "progress",

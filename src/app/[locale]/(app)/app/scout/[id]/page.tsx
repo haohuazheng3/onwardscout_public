@@ -21,6 +21,7 @@ import { hostOf } from "@/lib/opportunities/present";
 import { getDetailForUser, similarOpportunities } from "@/lib/opportunities/queries";
 import { getProfile } from "@/lib/profile";
 import { optionalUser, requireUser } from "@/lib/user";
+import { lastCallProvider } from "@/lib/llm";
 
 type Params = Promise<{ locale: string; id: string }>;
 
@@ -62,10 +63,11 @@ export default async function OpportunityPage({ params }: { params: Params }) {
   const detail = await getDetailForUser(userId, id);
   if (!detail) notFound();
   const { opportunity: o, match, application } = detail;
-  const [t, profileRow, similar] = await Promise.all([
+  const [t, profileRow, similar, scoredBy] = await Promise.all([
     getTranslations({ locale, namespace: "scout" }),
     getProfile(userId),
     similarOpportunities(userId, o.id, o.type, 4),
+    features().llmProvider === "anthropic" ? lastCallProvider(userId, "score_matches").catch(() => null) : Promise.resolve(null),
   ]);
 
   const now = new Date();
@@ -73,7 +75,8 @@ export default async function OpportunityPage({ params }: { params: Params }) {
   const practice = o.type === "practice";
   const checklist = eligibilityChecklist({ eligibility: o.eligibility, geo: o.geo, languages: o.languages }, readProfile(profileRow ?? {}), locale, now);
   const channel = getChannel(o.channel);
-  const scoringAi = features().llmProvider === "anthropic";
+  // "Ranked with AI" only when Claude actually scored the latest ranking.
+  const scoringAi = scoredBy === "anthropic";
   const officialUrl = o.url ?? o.applyUrl;
   const paragraphs = (o.description ?? "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 

@@ -192,7 +192,9 @@ export function rowFromNormalized(n: NormalizedOpportunity, ctx: { url: string; 
   const channel: ChannelId = n.apply.channel && (CHANNEL_IDS as readonly string[]).includes(n.apply.channel) ? (n.apply.channel as ChannelId) : def.defaultChannel;
   const apply = applyInfoSchema.parse({
     channel,
-    url: n.apply.url ?? ctx.url,
+    // The apply link comes from the imported page: only a public web address is kept (the
+    // channels open it server-side; a private or odd address would be an SSRF vector).
+    url: publicWebUrl(n.apply.url) ?? publicWebUrl(ctx.url),
     email: n.apply.email,
     platform: n.apply.platform,
     requiresAccount: n.apply.requiresAccount ?? false,
@@ -234,4 +236,26 @@ export function hostName(url: string): string {
   } catch {
     return url.slice(0, 80);
   }
+}
+
+const LOCAL_HOST = /^(localhost|localhost\.localdomain|metadata|metadata\.google\.internal|instance-data)$|\.(localhost|local|internal|intranet|lan|home\.arpa|corp|private)$/;
+
+/**
+ * A plain public web address, or null: http(s) only, no credentials, standard ports, a dotted
+ * host name that is not a local name or a bare IP address (real application pages never are).
+ */
+export function publicWebUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let u: URL;
+  try {
+    u = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  if (u.username || u.password || (u.port && u.port !== "80" && u.port !== "443")) return null;
+  const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  if (!host.includes(".") || LOCAL_HOST.test(host)) return null;
+  if (/^[\d.]+$/.test(host) || host.startsWith("[")) return null;
+  return u.toString();
 }

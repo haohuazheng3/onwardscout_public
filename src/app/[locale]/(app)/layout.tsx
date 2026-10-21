@@ -10,7 +10,9 @@ import { IntlProvider } from "@/i18n/IntlProvider";
 import { loadMessages } from "@/i18n/messages";
 import { APP_NAMESPACES } from "@/i18n/namespaces";
 import { localizePath } from "@/i18n/paths";
-import { TIME_ZONE } from "@/i18n/request";
+import { cookies } from "next/headers";
+import { TimeZoneCookie } from "@/components/TimeZoneCookie";
+import { TIME_ZONE_COOKIE, timeZoneFrom } from "@/i18n/request";
 import { routing } from "@/i18n/routing";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 
@@ -33,7 +35,9 @@ export default async function AppAreaLayout({ children, params }: { children: Re
   const { locale: raw } = await params;
   const locale = hasLocale(routing.locales, raw) ? raw : routing.defaultLocale;
   setRequestLocale(locale);
-  const messages = await loadMessages(locale, USER_NAMESPACES);
+  const [messages, jar] = await Promise.all([loadMessages(locale, USER_NAMESPACES), cookies()]);
+  // The person's own time zone (remembered by TimeZoneCookie); UTC until it is known.
+  const timeZone = timeZoneFrom(jar.get(TIME_ZONE_COOKIE)?.value);
 
   const signIn = localizePath("/sign-in", locale);
   const appHome = localizePath("/app", locale);
@@ -48,7 +52,8 @@ export default async function AppAreaLayout({ children, params }: { children: Re
       signUpFallbackRedirectUrl={appHome}
       afterSignOutUrl={localizePath("/", locale)}
     >
-      <IntlProvider locale={locale} messages={messages} timeZone={TIME_ZONE}>
+      <IntlProvider locale={locale} messages={messages} timeZone={timeZone}>
+        <TimeZoneCookie current={timeZone} />
         <IdentifyUser />
         {children}
         <Toaster />

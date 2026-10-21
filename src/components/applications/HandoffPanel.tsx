@@ -6,10 +6,10 @@ import { useRef, useState } from "react";
 import { Button, ButtonLink, Callout, Field, Input, Pane, Tag, cx } from "@/components/ui";
 import { CopyButton, toast } from "@/components/ui-client";
 import type { HandoffPackage } from "@/lib/applications/types";
-import { call, putFile } from "./api";
+import { call, putFile, RequestError } from "./api";
 
 /*
- * The 30-second handoff (plan §7.3, CH6): everything the official form needs, in the form's
+ * The handoff (plan §7.3, CH6): everything the official form needs, in the form's
  * order — steps, one-tap copy per field, the files, the exact link — then "I submitted it" with
  * an optional confirmation link, reference and screenshot. Phone-first: big copy buttons, one
  * column, long values collapsed until opened.
@@ -59,7 +59,7 @@ export function HandoffPanel({
   const uploadShot = async (file: File) => {
     const contentType = file.type === "image/jpeg" ? "image/jpeg" : file.type === "image/png" ? "image/png" : null;
     if (!contentType) {
-      toast.error(t("screenshot"));
+      toast.error(t("screenshotType"));
       return;
     }
     setUploading(true);
@@ -68,7 +68,8 @@ export function HandoffPanel({
       await putFile(signed.uploadUrl, file, contentType, () => undefined);
       setShot({ key: signed.key, name: file.name });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("screenshot"));
+      // A server refusal is a sentence; a failed transfer is a status code: say it in words.
+      toast.error(t("uploadFailed"), { body: err instanceof RequestError && err.status >= 400 && err.status < 500 && !err.message.startsWith("upload ") ? err.message : undefined });
     } finally {
       setUploading(false);
     }
@@ -204,6 +205,8 @@ export function HandoffPanel({
               type="file"
               accept="image/png,image/jpeg"
               className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) void uploadShot(f);
@@ -218,7 +221,7 @@ export function HandoffPanel({
           <Button type="submit" size="lg" block loading={completing} icon={<Check size={18} aria-hidden />}>
             {completing ? t("submitting") : t("submit")}
           </Button>
-          <p className="text-[0.84rem] text-ink-4">{t("credit")}</p>
+          <p className="text-[0.84rem] text-ink-3">{t("credit")}</p>
         </form>
       ) : null}
     </Pane>

@@ -35,31 +35,57 @@
         "id": "what-we-collect",
         "title": "What we collect, and why",
         "body": [
-          { "h3": "Your account" },
+          {
+            "h3": "Your account"
+          },
           "Signing in needs one thing: your email address. Our sign-in provider, **Clerk**, sends a one-time code to it and keeps your session. We store your Clerk user id, your email, your language, when the account was created and when you were last active, and a random token for your personal reply drop-box address (see “Replies you forward” below).",
-          { "h3": "Before you sign in" },
-          "You can start without an account. Your browser then gets a random identifier in the `os_anon` cookie, and the files, links and draft profile you add are kept under it. When you sign in, the draft moves into your account. To prevent abuse, uploads and parsing before sign-in are limited per network address; we store only a salted hash of that address.",
-          { "h3": "Your documents and links" },
+          {
+            "h3": "Before you sign in"
+          },
+          "You can start without an account. Your browser then gets a random identifier in the `os_anon` cookie, and the files, links and draft profile you add are kept under it. When you sign in, the draft moves into your account. To prevent abuse, uploads and parsing before sign-in are limited per network address; we store only a keyed hash of that address (computed with a secret key, so it can’t be turned back into the address).",
+          {
+            "h3": "Your documents and links"
+          },
           "The résumés, CVs, decks, business plans, portfolios, transcripts, certificates, licences, papers and other files you upload, and the links you paste. Files are kept in private storage (**Cloudflare R2**) and shown to you only through short-lived signed links. We extract their text to build your profile. For links, we fetch the public page (for GitHub and ORCID, their public records). We never log in anywhere as you, and we don’t read LinkedIn or Google Scholar pages.",
-          { "note": "Please don’t upload passports, ID cards or other government identity documents. We don’t need them, and the service isn’t designed to hold them." },
-          { "h3": "Your profile, goals and matches" },
+          {
+            "note": "Please don’t upload passports, ID cards or other government identity documents. We don’t need them, and the service isn’t designed to hold them."
+          },
+          {
+            "h3": "Your profile, goals and matches"
+          },
           "The profile we build from your documents: the identity details you provide (name, contact details, location, languages, links and, if you add them, work authorization and year of birth), roles, education, experience, projects, skills, achievements, publications and certifications. Each fact keeps a reference to the document and the words it came from, and whether you confirmed it. We also keep your goals, success definitions and milestones, the preferences you set (such as locations, remote work, budget or a salary floor), the opportunities matched to you with their scores, and the feedback you give.",
-          { "h3": "Applications" },
+          {
+            "h3": "Applications"
+          },
           "For each application: the requirements we read, the answers and documents we prepared, the questions we asked you and your answers, a log of every step with timestamps, **your confirmation** (what you approved and when), and the proof of submission — a confirmation page, a reference number, a sent message, or a screenshot of each step when a browser fills in a form. These records show what was submitted in your name and on whose instruction.",
-          { "h3": "Email you send through us" },
+          {
+            "h3": "Email you send through us"
+          },
           "If you connect Gmail, **Google** gives us permission to send email from your account (the `gmail.send` scope) and tells us your Google email address. We store an encrypted refresh token and the emails we send for you: recipient, subject, text and Gmail’s message ids. We don’t request — and can’t use — access to read your inbox. You can disconnect at any time in the app or in your Google account.",
-          { "h3": "People you contact" },
+          {
+            "h3": "People you contact"
+          },
           "To send outreach for you, we keep details about the recipients — investors, recruiters, professors, editors, brands or clients: name, work email, organisation, role and the public page the details came from, plus when they were last contacted and whether they asked not to be contacted again. We only use professional contact details that are publicly listed or that you give us, and we honour every opt-out.",
-          { "h3": "Replies you forward" },
+          {
+            "h3": "Replies you forward"
+          },
           "Each account has a personal drop-box address of the form in+(your token)@{domain}. Mail you forward there passes through **Cloudflare Email Routing**; we store its sender, subject and text, attach it to the right application and sort it (interested, meeting, needs information, rejected, automatic reply).",
-          { "h3": "Payments" },
+          {
+            "h3": "Payments"
+          },
           "Payments are handled by **Stripe** on its own pages; we never see or store your card number. Stripe tells us what we need to deliver and support the purchase: the product, the amount, the email used at checkout, and Stripe’s customer, subscription, invoice and payment identifiers. We keep a ledger of your credits: granted, reserved, spent and returned.",
-          { "h3": "Messages to us" },
-          "When you use the contact form: your name (optional), email, topic, message and language, your browser’s user agent, a salted hash of your network address, and your account id if you’re signed in. Email to our own addresses reaches us through Cloudflare Email Routing.",
-          { "h3": "Technical data" },
-          "Error reports (the error, the page or route, the browser and a stack trace), rate-limit counters keyed by salted hashes of network addresses, and the request logs our host keeps for a short time. For each AI processing call we log its purpose, size, cost and duration — not its content.",
-          { "h3": "Practice applications" },
-          "A practice application submits to our own test form. We store what it submits (the same fields and file a real one would), the browser’s user agent and a salted hash of the network address, to show you the result."
+          {
+            "h3": "Messages to us"
+          },
+          "When you use the contact form: your name (optional), email, topic, message and language, your browser’s user agent, a keyed hash of your network address, and your account id if you’re signed in. Email to our own addresses (contact@, support@, hello@) reaches us through Cloudflare Email Routing and arrives in our own **Google** (Gmail) mailbox; contact-form messages are also sent there as notifications.",
+          {
+            "h3": "Technical data"
+          },
+          "Error reports (the error, the page or route, the browser and a stack trace), rate-limit counters keyed by keyed hashes of network addresses, and the request logs our host keeps for a short time. For each AI processing call we log its purpose, size, cost and duration — not its content.",
+          {
+            "h3": "Practice applications"
+          },
+          "A practice application submits to our own test form. We store the fields it submits and the name, type and size of the attached file (not the file itself), with the user agent and a keyed hash of the network address of whatever sent it — for a submission Onward Scout makes for you, that is our server — to show you the result."
         ]
       },
       {
@@ -79,7 +105,7 @@
         "body": [
           "Reading documents, matching, drafting, answering form questions, mapping form fields and sorting replies can run in two ways.",
           "**On our own servers.** By default these tasks run on our own deterministic engine: rules and templates applied to your sourced facts. Nothing is sent to an AI provider, and drafts made this way are labelled “Drafted from your profile”.",
-          "**With Anthropic.** When AI processing is switched on, the text of the documents involved, the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API (Claude) to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
+          "**With Anthropic.** When AI processing is switched on, the documents involved (their text, or the file itself when it is a scan or a photo), the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API (Claude) to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
           "Every result goes through the same checks either way: facts must trace to your documents or your confirmations, and anything that doesn’t is flagged for you."
         ]
       },
@@ -90,17 +116,73 @@
           "These companies process personal data for us, only to provide their service, under their data processing terms:",
           {
             "table": {
-              "head": ["Provider", "What for", "What they receive", "Where"],
+              "head": [
+                "Provider",
+                "What for",
+                "What they receive",
+                "Where"
+              ],
               "rows": [
-                ["Clerk", "Sign-in and sessions", "Your email, one-time codes, session data, and the device and network address used to sign in", "United States"],
-                ["Neon", "Database", "The application data described above", "United States (AWS us-east-1)"],
-                ["Cloudflare", "File storage (R2), email routing for our domain, our file and mail services", "Uploaded and generated files, screenshots, and mail sent to our addresses and drop-boxes", "Global network"],
-                ["Vercel", "Hosting and server code", "Requests to the site and app, including network address and browser; short-lived logs", "United States and global edge network"],
-                ["Stripe", "Payments", "The card and billing details you enter on Stripe’s pages, the purchase and your checkout email", "United States and other countries"],
-                ["FlowGlance", "Analytics", "Page activity, including text typed into forms and images uploaded on our site (see “Analytics” below)", "See FlowGlance’s policy"],
-                ["Anthropic", "AI processing, when switched on", "The document text, profile facts, opportunity requirements and reply text a task needs", "United States"],
-                ["Google", "Sending email from Gmail, only if you connect it", "The emails you approve, sent from your account", "United States and other countries"],
-                ["Resend", "Product email such as the weekly brief, only when switched on", "Your email address and the content of the notification", "United States"]
+                [
+                  "Clerk",
+                  "Sign-in and sessions",
+                  "Your email, one-time codes, session data, and the device and network address used to sign in",
+                  "United States"
+                ],
+                [
+                  "Neon",
+                  "Database",
+                  "The application data described above",
+                  "United States (AWS us-east-1)"
+                ],
+                [
+                  "Cloudflare",
+                  "File storage (R2), email routing for our domain, our file and mail services",
+                  "Uploaded and generated files, screenshots, and mail sent to our addresses and drop-boxes",
+                  "Global network"
+                ],
+                [
+                  "Vercel",
+                  "Hosting and server code",
+                  "Requests to the site and app, including network address and browser; short-lived logs",
+                  "United States and global edge network"
+                ],
+                [
+                  "Stripe",
+                  "Payments",
+                  "The card and billing details you enter on Stripe’s pages, the purchase and your checkout email",
+                  "United States and other countries"
+                ],
+                [
+                  "FlowGlance",
+                  "Analytics",
+                  "Page activity, including text typed into forms and images uploaded on our site; when you’re signed in, your account id and email (see “Analytics” below)",
+                  "See FlowGlance’s policy"
+                ],
+                [
+                  "Anthropic",
+                  "AI processing, when switched on",
+                  "The documents a task needs (their text, or the file itself for scans and photos), profile facts, opportunity requirements and reply text",
+                  "United States"
+                ],
+                [
+                  "Google",
+                  "Sending email from Gmail if you connect it; also our own mailbox",
+                  "The emails you approve, sent from your account; messages you send to our addresses and contact-form notifications",
+                  "United States and other countries"
+                ],
+                [
+                  "Resend",
+                  "Product email such as the weekly brief, only when switched on",
+                  "Your email address and the content of the notification",
+                  "United States"
+                ],
+                [
+                  "GitHub (Actions)",
+                  "Runs our nightly database backup job",
+                  "A copy of the database passes through its servers on the way to our storage at Cloudflare R2",
+                  "United States"
+                ]
               ]
             }
           },
@@ -121,8 +203,8 @@
         "title": "Analytics: what FlowGlance records",
         "body": [
           "We use one analytics tool, **FlowGlance**, to understand which pages help people and where they get stuck. It records page views, clicks, scrolling and navigation, device and browser type, and an approximate location derived from your network address.",
-          "Because we have switched on its detailed capture, it also records **text you type into forms** on our website and in the app (for example the contact form, or answers you edit) and **images you upload** through our pages. Keep this in mind before typing anything you wouldn’t want recorded; you can turn analytics off at any time.",
-          "How consent works: visitors in the **EU and EEA, the UK and Switzerland** — and anyone whose location we can’t determine — are asked first, and FlowGlance loads only if they accept. Everywhere else it loads by default, with a notice and a one-tap opt-out. Your choice is kept in the `os_consent` cookie for 180 days and can be changed at any time from “Cookie settings” in the footer; opting out takes effect from the next page you load.",
+          "Because we have switched on its detailed capture, it also records **text you type into forms** on our website and in the app (for example the contact form, or answers you edit) and **images you upload** through our pages. When you’re signed in, recordings are linked to your account id and email address, so a support question can be matched to what you saw. Keep this in mind before typing anything you wouldn’t want recorded; you can turn analytics off at any time. Sign-in, checkout and admin pages are never recorded.",
+          "How consent works: visitors in the **EU and EEA, the UK and Switzerland** — and anyone whose location we can’t determine — are asked first, and FlowGlance loads only if they accept. Everywhere else it loads by default, with a notice and a one-tap opt-out. Your choice is kept in the `os_consent` cookie for 180 days and can be changed at any time from “Cookie settings”; opting out takes effect at once (the page reloads without analytics).",
           "The [cookie policy](/cookie-policy) lists every cookie we set."
         ]
       },
@@ -140,19 +222,63 @@
         "body": [
           {
             "table": {
-              "head": ["Data", "Kept"],
+              "head": [
+                "Data",
+                "Kept"
+              ],
               "rows": [
-                ["Account, profile, goals and matches", "Until you delete them or your account"],
-                ["Documents you uploaded", "Until you delete the document or your account"],
-                ["Applications, generated documents, step logs, proof of submission and messages", "Until you delete your account: they are the record of what was sent in your name"],
-                ["Drafts started before signing in", "Until you sign in and save them, at most 30 days"],
-                ["Gmail connection", "Until you disconnect Gmail or delete your account; the token is deleted then"],
-                ["Credit ledger, orders and payment records", "7 years, as accounting records"],
-                ["Messages to us", "2 years after our last reply"],
-                ["Error reports", "Until the error is fixed, and no longer than 12 months"],
-                ["Rate-limit counters", "Only the current window for each hashed address"],
-                ["Database backups", "Taken nightly and kept 30 days, so deleted data leaves the backups within 30 days"],
-                ["Analytics and hosting logs", "As set by FlowGlance and Vercel"]
+                [
+                  "Account, profile, goals and matches",
+                  "Until you delete them or your account"
+                ],
+                [
+                  "Documents you uploaded",
+                  "Until you delete the document or your account"
+                ],
+                [
+                  "Applications, generated documents, step logs, proof of submission and messages",
+                  "Until you delete your account: they are the record of what was sent in your name"
+                ],
+                [
+                  "Drafts started before signing in",
+                  "Until you sign in and save them, at most 30 days"
+                ],
+                [
+                  "Gmail connection",
+                  "Until you disconnect Gmail or delete your account; the token is deleted then"
+                ],
+                [
+                  "Orders and payment records",
+                  "7 years, as accounting records (if you delete your account, your name and email are removed from them)"
+                ],
+                [
+                  "Messages to us",
+                  "2 years after you sent them"
+                ],
+                [
+                  "Error reports",
+                  "Until the error is fixed, and no longer than 12 months"
+                ],
+                [
+                  "Rate-limit counters",
+                  "2 days"
+                ],
+                [
+                  "Database backups",
+                  "Taken nightly and kept 30 days, so deleted data leaves the backups within 30 days"
+                ],
+                [
+                  "Analytics and hosting logs",
+                  "As set by FlowGlance and Vercel"
+                ],
+                [
+                  "Credit ledger (credits granted, reserved, spent and returned)",
+                  "Until you delete your account"
+                ],
+                [
+                  "Practice-form submissions",
+                  "90 days, and deleted with your account"
+                ]
               ]
             }
           }
@@ -167,7 +293,7 @@
               "HTTPS everywhere, and encryption at rest by our database and storage providers.",
               "Files in a private bucket, reachable only through signed links that expire.",
               "Gmail tokens encrypted with AES-256-GCM before they are stored.",
-              "Network addresses stored only as salted hashes.",
+              "Network addresses stored only as keyed hashes (computed with a secret key).",
               "Access to production data limited to the people who run the service, for support and operations.",
               "Every automated action logged, and every submission tied to your confirmation."
             ]
@@ -207,7 +333,7 @@
         "id": "children",
         "title": "Children and students under 18",
         "body": [
-          "Onward Scout is not for children under 13. High-school students under 18 can use it only with a parent or guardian: we ask for a guardian’s email during setup, and outreach email is switched off for them. If you believe a child has given us data without that, write to {email} and we will delete it."
+          "Onward Scout is not for children under 13. High-school students under 18 can use it only with a parent or guardian: we ask for a guardian’s email on the profile before the first submission, and outreach email is switched off for them. If you believe a child has given us data without that, write to {email} and we will delete it."
         ]
       },
       {
@@ -220,7 +346,9 @@
       {
         "id": "contact",
         "title": "Contact",
-        "body": ["Write to [{email}](mailto:{email}) with any question or request about your data. {replyTime}"]
+        "body": [
+          "Write to [{email}](mailto:{email}) with any question or request about your data. {replyTime}"
+        ]
       }
     ]
   },
@@ -282,7 +410,7 @@
               "send follow-ups or submit applications in a category **only where you have switched on a standing authorization** for it in Settings."
             ]
           },
-          "This authorization does not cover creating accounts for you, logging in as you, solving CAPTCHAs, making payments, signing anything, or accepting a third party’s terms on your behalf. We never do those things.",
+          "This authorization does not cover creating accounts for you, logging in as you, solving CAPTCHAs, making payments or signing anything — we never do those things. We tick a third party’s consent or terms box only when you have answered that very box yourself in Onward Scout for that application; we never accept terms you haven’t seen.",
           "You can withdraw a standing authorization or disconnect Gmail at any time in the app. That stops future actions, not ones already completed. For every submission we keep a record of what you approved and when."
         ]
       },
@@ -336,7 +464,7 @@
               "New accounts receive {trialCredits} free credits, valid for {trialDays} days. Free credits have no cash value.",
               "Pro costs {proPrice} per month for {proCredits} credits, billed monthly in advance until you cancel. Its credits stay usable for {proRollover} days after each billing month. You can cancel at any time and keep Pro until the end of the paid period.",
               "Credit packs are one-time purchases ({pack10Credits} credits for {pack10Price}, {pack40Credits} credits for {pack40Price}); their credits are valid for {packDays} days.",
-              "Prices are in US dollars. Taxes are shown at checkout where they apply. We may change prices for future billing periods and will tell you before a change affects your subscription.",
+              "Prices are in US dollars. We may change prices for future billing periods and will tell you before a change affects your subscription.",
               "Payments are processed by Stripe. Refunds follow our [refund policy](/refund-policy). If a payment is disputed, the credits from it are paused until the dispute is settled."
             ]
           }
@@ -391,7 +519,9 @@
       {
         "id": "contact",
         "title": "Contact",
-        "body": ["Questions about these terms: [{email}](mailto:{email}). {replyTime}"]
+        "body": [
+          "Questions about these terms: [{email}](mailto:{email}). {replyTime}"
+        ]
       }
     ]
   },
@@ -472,7 +602,9 @@
       {
         "id": "minors",
         "title": "Minors",
-        "body": ["If you are under 18, use Onward Scout with a parent or guardian, as described in the [terms](/terms). Outreach email is not available to minors."]
+        "body": [
+          "If you are under 18, use Onward Scout with a parent or guardian, as described in the [terms](/terms). Outreach email is not available to minors."
+        ]
       },
       {
         "id": "enforcement",
@@ -485,7 +617,7 @@
         "id": "report",
         "title": "Report a problem",
         "body": [
-          "If you received an email you didn’t want from someone using Onward Scout, or you see misuse, write to [{email}](mailto:{email}). We will make sure our users don’t contact you again and look into what happened."
+          "If you received an email you didn’t want from someone using Onward Scout, or you see misuse, write to [{email}](mailto:{email}). We add your address to our do-not-contact list, so no Onward Scout user can email you through us again, and we look into what happened."
         ]
       }
     ]
@@ -512,13 +644,67 @@
           "These are needed for the site to work, so they can’t be switched off in our settings. They aren’t used for analytics or advertising.",
           {
             "table": {
-              "head": ["Name", "Set by", "What it does", "Kept for"],
+              "head": [
+                "Name",
+                "Set by",
+                "What it does",
+                "Kept for"
+              ],
               "rows": [
-                ["__session, __client_uat and related Clerk cookies", "Clerk (sign-in)", "Keep you signed in and let the app check your session securely", "__session: about a minute, renewed while you’re signed in; the others until you sign out, at most a year"],
-                ["os_anon", "Onward Scout", "Links the draft you start before signing in to your browser; signed, so it can’t be forged", "Until you sign in and save the draft, at most 30 days"],
-                ["NEXT_LOCALE", "Onward Scout", "Remembers the language you chose", "1 year"],
-                ["os_consent", "Onward Scout", "Remembers your analytics choice", "180 days"],
-                ["os-theme (local storage)", "Onward Scout", "Remembers light or dark mode if you picked one; stays in your browser and is never sent to us", "Until you change it or clear your browser data"]
+                [
+                  "__session, __client_uat and related Clerk cookies",
+                  "Clerk (sign-in)",
+                  "Keep you signed in and let the app check your session securely",
+                  "__session: about a minute, renewed while you’re signed in; the others until you sign out, at most a year"
+                ],
+                [
+                  "os_anon",
+                  "Onward Scout",
+                  "Links the draft you start before signing in to your browser; signed, so it can’t be forged",
+                  "Until you sign in and save the draft, at most 30 days"
+                ],
+                [
+                  "NEXT_LOCALE",
+                  "Onward Scout",
+                  "Remembers the language you chose",
+                  "1 year"
+                ],
+                [
+                  "os_consent",
+                  "Onward Scout",
+                  "Remembers your analytics choice",
+                  "180 days"
+                ],
+                [
+                  "os-theme (local storage)",
+                  "Onward Scout",
+                  "Remembers light or dark mode if you picked one; stays in your browser and is never sent to us",
+                  "Until you change it or clear your browser data"
+                ],
+                [
+                  "os_region",
+                  "Onward Scout",
+                  "Remembers whether your region needs analytics consent first, so we don’t look it up on every page",
+                  "180 days"
+                ],
+                [
+                  "os_tz",
+                  "Onward Scout",
+                  "Remembers your time zone so dates in the app show in your local time",
+                  "1 year"
+                ],
+                [
+                  "os_google_oauth",
+                  "Onward Scout",
+                  "Protects the Gmail connection step against forgery while you are at Google",
+                  "10 minutes"
+                ],
+                [
+                  "os_checkout_nonce, os_checkout_url, os_checkout_resume (session storage)",
+                  "Onward Scout",
+                  "Keep a checkout you started from being sent twice and bring you back to it after signing in",
+                  "Until you close the tab"
+                ]
               ]
             }
           }
@@ -528,7 +714,7 @@
         "id": "analytics",
         "title": "Analytics",
         "body": [
-          "**FlowGlance** is our only analytics tool. It may store identifiers in cookies or local storage to recognise sessions and repeat visits. Its detailed capture records page activity, including text typed into forms and images uploaded on our site, as explained in the [privacy policy](/privacy#analytics).",
+          "**FlowGlance** is our only analytics tool. It may store identifiers in cookies or local storage to recognise sessions and repeat visits. Its detailed capture records page activity, including text typed into forms and images uploaded on our site, as explained in the [privacy policy](/privacy#analytics). Only when analytics are on, we also keep three small markers in your browser: `os_identified` (session storage: the signed-in session was linked to your account once), `os:unlock-tracked` and `os_purchase_<id>` (local storage: an event was already counted, so it isn’t counted twice).",
           "In the EU/EEA, the UK and Switzerland — and wherever we can’t tell your location — FlowGlance loads only after you choose “Accept analytics”. Elsewhere it loads by default, and you can opt out with one tap. Change your choice at any time from “Cookie settings” in the footer."
         ]
       },
@@ -542,7 +728,9 @@
       {
         "id": "not-used",
         "title": "What we don’t use",
-        "body": ["No advertising cookies, no cross-site tracking pixels and no social media trackers."]
+        "body": [
+          "No advertising cookies, no cross-site tracking pixels and no social media trackers."
+        ]
       },
       {
         "id": "choices",
@@ -554,7 +742,9 @@
       {
         "id": "contact",
         "title": "Questions",
-        "body": ["Write to [{email}](mailto:{email}). {replyTime}"]
+        "body": [
+          "Write to [{email}](mailto:{email}). {replyTime}"
+        ]
       }
     ]
   },

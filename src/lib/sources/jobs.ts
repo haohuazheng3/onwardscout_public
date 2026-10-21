@@ -44,6 +44,13 @@ async function sourcesRun(ctx: JobContext): Promise<JobResult> {
     expiredByDeadline: report.expiredByDeadline,
     verify: report.verify ? { checked: report.verify.checked, ok: report.verify.ok, gone: report.verify.gone, blocked: report.verify.blocked } : null,
   };
+  // Public opportunity pages and their data caches (a day long) pick up what this pass changed.
+  try {
+    const { revalidateTag } = await import("next/cache");
+    revalidateTag("opportunities", "max");
+  } catch (err) {
+    await captureError(err, { route: "job:sources.run#revalidate", source: "cron", severity: "warn" });
+  }
   if (p.full && report.boards.remaining > 0) {
     return { status: "continue", state: { cycleStart: cycleStart.toISOString(), last: summary }, delayMs: 5_000 };
   }

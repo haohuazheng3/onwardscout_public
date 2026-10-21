@@ -39,6 +39,14 @@ const REFRESHED: OppKey[] = [
 
 const KEEP_REJECTED = sql`case when ${opportunities.status} = 'rejected' then 'rejected' else excluded."status" end`;
 
+/** Content columns (REFRESHED minus the bookkeeping ones) whose change is a real update. */
+const CONTENT_KEYS = REFRESHED.filter((k) => k !== "verifiedAt" && k !== "qualityScore" && k !== "estAcceptanceRate");
+
+/** `now()` when any content column differs from what is stored, else the stored updated_at. */
+const CONTENT_CHANGED_AT = sql.raw(
+  `case when (${CONTENT_KEYS.map((k) => `"opportunities"."${OPP_COLUMNS[k].name}"`).join(", ")}) is distinct from (${CONTENT_KEYS.map((k) => `excluded."${OPP_COLUMNS[k].name}"`).join(", ")}) then now() else "opportunities"."updated_at" end`,
+);
+
 function rowsFor(sourceId: string | null, items: readonly MappedOpportunity[]) {
   return items.map((m) => ({ id: newId("opp"), ...m.draft, sourceId, sourceRef: m.sourceRef }));
 }
@@ -88,7 +96,9 @@ export async function upsertBySlug(sourceId: string | null, items: readonly Mapp
       .values(rowsFor(sourceId, part))
       .onConflictDoUpdate({
         target: opportunities.slug,
-        set: { ...excludedSet([...REFRESHED, "sourceId", "sourceRef"]), status: KEEP_REJECTED, updatedAt: sql`now()` },
+        // updated_at moves only when the content changed: a re-seed of unchanged entries must not
+        // make every curated listing look freshly modified (it is the sitemap's lastmod).
+        set: { ...excludedSet([...REFRESHED, "sourceId", "sourceRef"]), status: KEEP_REJECTED, updatedAt: CONTENT_CHANGED_AT },
       })
       .returning({ id: opportunities.id, slug: opportunities.slug });
     for (const r of rows) ids.set(r.slug, r.id);

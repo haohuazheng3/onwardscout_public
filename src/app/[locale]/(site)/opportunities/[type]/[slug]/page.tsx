@@ -46,13 +46,12 @@ import {
 import { absoluteUrl, eventLd, pageMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
 type Props = { params: Promise<{ locale: string; type: string; slug: string }> };
 
 /** Prerender the best-documented listings; every other listing renders on its first visit and is cached. */
-export async function generateStaticParams({ params }: { params: { locale?: string } }) {
-  if (params?.locale && params.locale !== "en") return [];
+export async function generateStaticParams() {
   const { listings } = await getSeoData();
   return [...listings]
     .sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0))

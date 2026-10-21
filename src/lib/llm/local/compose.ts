@@ -507,7 +507,13 @@ function investorEmail(ctx: Ctx, tone: string, contactName: string | null | unde
       zh ? `为什么联系${ctx.org ?? "这位投资人"}？提一个你真正研究过的投资案例或投资方向。` : `Why ${ctx.org ?? "this investor"}? Mention a portfolio company or thesis you've genuinely looked at.`,
       zh ? `【为什么是${ctx.org ?? "这位投资人"}：一句你自己的话】` : `[Why ${ctx.org ?? "this investor"}: one sentence in your own words]`,
     );
-  doc.closing(zh ? "如果方便，能否在未来两周内约 20 分钟聊聊？我可以提前发送完整材料。" : "Would you be open to a 20-minute call in the next two weeks? Happy to send the full deck ahead of time.");
+  // Offer the deck only when there is one (a venture read from an uploaded deck or business plan).
+  const hasDeck = Boolean(v.venture.deckDocumentId);
+  doc.closing(
+    zh
+      ? `如果方便，能否在未来两周内约 20 分钟聊聊？${hasDeck ? "我可以提前发送完整材料。" : "如有需要，我可以补充更多信息。"}`
+      : `Would you be open to a 20-minute call in the next two weeks? ${hasDeck ? "Happy to send the full deck ahead of time." : "Happy to share more detail if useful."}`,
+  );
   signOff(ctx, { en: "Best,", zh: "祝好" });
   return zh ? `投资人邮件——${v.company.value}${ctx.org ? ` → ${ctx.org}` : ""}` : `Investor email — ${v.company.value}${ctx.org ? ` → ${ctx.org}` : ""}`;
 }
@@ -601,15 +607,31 @@ function pitchEmail(ctx: Ctx, kind: "email_editor" | "email_brand" | "email_clie
     }[key]!;
     doc.gap(key, q[0], q[1]);
   }
+  // A closing offers only what the profile actually holds (rates, audience numbers, past brands).
+  const creator = ctx.view.profile.packs.creator;
+  const hasRates = Boolean(creator?.rates && (creator.rates.min != null || creator.rates.max != null));
+  const hasResults = ctx.view.audience().length > 0 || ctx.view.brands().length > 0;
   doc.closing(
     kind === "email_editor"
       ? zh
-        ? "如果您感兴趣，我可以发送完整提纲。"
-        : "If it's a fit, I can send a full outline."
+        ? "如果您感兴趣，我很乐意进一步展开。"
+        : "If it's a fit, I'd be glad to develop it further."
       : kind === "email_brand"
-        ? zh
-          ? "如果契合，我可以发送报价和过往合作数据。"
-          : "If this fits your plans, I can share rates and past results."
+        ? hasRates && hasResults
+          ? zh
+            ? "如果契合，我可以发送报价和过往合作数据。"
+            : "If this fits your plans, I can share rates and past results."
+          : hasRates
+            ? zh
+              ? "如果契合，我可以发送报价。"
+              : "If this fits your plans, I can share my rates."
+            : hasResults
+              ? zh
+                ? "如果契合，我可以发送过往合作数据。"
+                : "If this fits your plans, I can share past results."
+              : zh
+                ? "如果契合，我很乐意进一步沟通细节。"
+                : "If this fits your plans, I'd be glad to talk through the details."
         : zh
           ? "方便的话，我们可以约个时间聊聊需求。"
           : "If useful, I'd be glad to set up a short call to hear what you need.",

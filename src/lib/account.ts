@@ -55,7 +55,7 @@ export async function getActiveSubscription(userId: string): Promise<Subscriptio
 }
 
 /**
- * The plan in force and its perks (automatic follow-ups, weekly brief, priority processing).
+ * The plan in force and its perks (automatic follow-ups, the weekly brief by email).
  * Other features read perks from here: `(await currentPlan(userId)).perks.weeklyDigest`.
  */
 export async function currentPlan(userId: string): Promise<PlanView> {

@@ -1,5 +1,5 @@
 /*
- * The 30-second handoff (CH6, and the fallback of every other channel): everything the person
+ * The handoff (CH6, and the fallback of every other channel): everything the person
  * needs to finish an application themselves, in the order the real form asks for it — the exact
  * link, numbered steps, every field with its prepared value (one-tap copy in the UI), the files,
  * and honest notes. Pure: no I/O, so P3a can rebuild it for any state and tests can pin it.

@@ -17,7 +17,8 @@
       "invalid": "Pick Pro or a credit pack to continue.",
       "rate_limited": "Too many checkout attempts in a row. Wait a few minutes, then try again.",
       "failed": "We couldn’t open checkout. Please try again in a moment.",
-      "network": "We couldn’t reach the server. Check your connection and try again."
+      "network": "We couldn’t reach the server. Check your connection and try again.",
+      "not_open": "Purchases open soon. Your free credits and practice runs work in the meantime."
     },
     "resumingTitle": "Picking up where you left off",
     "resumingBody": "Opening secure checkout for {name}…",

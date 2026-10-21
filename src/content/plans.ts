@@ -35,8 +35,12 @@ export interface Offer {
   rolloverDays: number;
   /** Environment variable holding the Stripe price id. */
   priceEnv: string;
-  /** Plan perks the app checks (packs inherit the perks of the plan the user is on). */
-  perks: { autoFollowUps: boolean; weeklyDigest: boolean; priority: boolean };
+  /**
+   * Plan perks the app checks (packs inherit the perks of the plan the user is on):
+   * automatic follow-ups (the `auto_followup` switch only acts with this perk), and the weekly
+   * brief by email (the in-app brief is free for everyone).
+   */
+  perks: { autoFollowUps: boolean; weeklyDigest: boolean };
 }
 
 export const PLANS: Record<PlanSku, Offer> = {
@@ -54,23 +58,23 @@ export const PLANS: Record<PlanSku, Offer> = {
       en: [
         "60 credits every month: about two submitted applications a day",
         "Every channel: forms, outreach from your own Gmail, guided handoffs",
-        "Automatic follow-ups when nobody answers",
-        "Weekly brief: new picks, progress, decisions waiting for you",
+        "Automatic follow-ups (once you switch them on) until a reply is recorded",
+        "The weekly brief by email too: new picks, progress, decisions waiting for you",
         "Tailored documents for every application, unlimited drafts",
         "Unused credits stay usable for 30 days after each month",
       ],
       zh: [
         "每月 60 个额度：约每天替你提交两份申请",
         "全部通道：表单代填、用你自己的 Gmail 外联、引导式本人提交",
-        "对方没回复时自动跟进",
-        "每周简报：新机会、进展、等你拍板的事",
+        "自动跟进（由你开启），直到记录到对方回复为止",
+        "每周简报同时发到邮箱：新机会、进展、等你拍板的事",
         "每份申请都有量身定制的材料，草稿不限次数",
         "当月未用完的额度，月末后还能再用 30 天",
       ],
     },
     rolloverDays: 30,
     priceEnv: "STRIPE_PRICE_PRO",
-    perks: { autoFollowUps: true, weeklyDigest: true, priority: true },
+    perks: { autoFollowUps: true, weeklyDigest: true },
   },
 };
 
@@ -88,7 +92,7 @@ export const PACKS: Record<PackSku, Offer> = {
     },
     rolloverDays: 180,
     priceEnv: "STRIPE_PRICE_PACK_10",
-    perks: { autoFollowUps: false, weeklyDigest: false, priority: false },
+    perks: { autoFollowUps: false, weeklyDigest: false },
   },
   pack40: {
     sku: "pack40",
@@ -103,7 +107,7 @@ export const PACKS: Record<PackSku, Offer> = {
     },
     rolloverDays: 180,
     priceEnv: "STRIPE_PRICE_PACK_40",
-    perks: { autoFollowUps: false, weeklyDigest: false, priority: false },
+    perks: { autoFollowUps: false, weeklyDigest: false },
   },
 };
 
@@ -165,7 +169,7 @@ export const CREDIT_RULES: { lines: Record<Locale, readonly string[]> } = {
 /* ------------------------------------------------------------------ helpers (P4) */
 
 /** Perks of an account without a plan (trial and pack credits only). */
-export const NO_PLAN_PERKS: Offer["perks"] = { autoFollowUps: false, weeklyDigest: false, priority: false };
+export const NO_PLAN_PERKS: Offer["perks"] = { autoFollowUps: false, weeklyDigest: false };
 
 /** The offer's display name in a locale ("Pro", "10 credits" / "Pro 会员", "10 个额度"). */
 export function offerName(sku: Sku, locale: Locale): string {

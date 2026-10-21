@@ -5,7 +5,7 @@ import { detectBlockers, forbiddenPlatform, isGoogleFormUrl, jsOnlyFormHost, mat
 import { loadPreparedFile, loadPreparedFiles } from "./files";
 import { buildGooglePayload, googleFormRequirements, isGoogleSignInPage, parseGoogleForm, readGoogleConfirmation } from "./gforms";
 import { buildHandoff } from "./handoff";
-import { channelGet, channelPost, isRetryableNetwork, isTrustedOrigin, networkMessage } from "./http";
+import { channelGet, channelPost, isRetryableNetwork, isTrustedOrigin, localSandboxUrl, networkMessage } from "./http";
 import { buildFormEntries, formToRequirements, multipartBody, parseHtmlForms, pickMainForm, questionsOf, readResponse, urlencodedBody } from "./html-form";
 import type { Channel, ChannelDeps, LoadedFile, NeedsYouReason, Requirements, SubmitContext, SubmitResult } from "./types";
 
@@ -52,8 +52,10 @@ function fallbackFields(opp: Opportunity): Requirements["fields"] {
 
 /** The form URL for this application (the sandbox gets `?app=` so the submission is traceable). */
 export function formUrlFor(opp: Pick<Opportunity, "apply" | "url">, applicationId?: string): string | null {
-  const raw = opp.apply.url ?? opp.url;
-  if (!raw) return null;
+  const stored = opp.apply.url ?? opp.url;
+  if (!stored) return null;
+  // The practice sandbox is this deployment's own (preview and local runs never write to production).
+  const raw = localSandboxUrl(stored);
   try {
     const u = new URL(raw);
     if (applicationId && u.pathname.replace(/\/$/, "") === "/sandbox/form" && isTrustedOrigin(u.toString())) u.searchParams.set("app", applicationId);

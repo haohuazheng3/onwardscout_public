@@ -11,6 +11,7 @@ import { CHANNEL_PLAIN, DRAFT_LABELS, HANDOFF, SAFETY_RULES, STEPS, pick } from 
 import { routing } from "@/i18n/routing";
 import { CHANNELS } from "@/lib/core/channels";
 import { howToLd, localizedPath, pageMetadata } from "@/lib/seo";
+import { features } from "@/lib/env";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -25,6 +26,7 @@ export default async function HowItWorksPage({ params }: Props) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
+  const browserAgent = features().browserAgent;
 
   const t = await getTranslations({ locale, namespace: "site" });
   const em = { em: (chunks: ReactNode) => <em>{chunks}</em> };
@@ -109,7 +111,10 @@ export default async function HowItWorksPage({ params }: Props) {
         <SectionHeading eyebrow={t("howItWorks.channels.eyebrow")} title={t("howItWorks.channels.title")} lede={t("howItWorks.channels.lede")} />
         <ul className="grid gap-4 md:grid-cols-2">
           {CHANNELS.map((c) => {
-            const live = c.status === "live";
+            // The browser agent (CH3, and CH1's submission through it) is off until BROWSER_AGENT_ENABLED=1:
+            // those channels prepare everything for you to paste meanwhile (read at build time; the page is static).
+            const browserOff = !browserAgent && (c.id === "CH3" || c.id === "CH1");
+            const live = c.status === "live" && !browserOff;
             return (
               <li key={c.id} className={cx("pane flex min-w-0 flex-col p-6 sm:p-7", !live && "opacity-90")}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -119,7 +124,9 @@ export default async function HowItWorksPage({ params }: Props) {
                     </span>
                     <h3 className="title text-[1.18rem] text-ink">{pick(c.label, locale)}</h3>
                   </span>
-                  <span className={cx("tag", live ? "tag-ok" : "tag-warn")}>{live ? t("howItWorks.channels.live") : t("howItWorks.channels.notYet")}</span>
+                  <span className={cx("tag", live ? "tag-ok" : "tag-warn")}>
+                    {live ? t("howItWorks.channels.live") : browserOff ? t("howItWorks.channels.handoffForNow") : t("howItWorks.channels.notYet")}
+                  </span>
                 </div>
                 <p className="mt-3 text-[0.96rem] leading-relaxed text-ink-3">{pick(CHANNEL_PLAIN[c.id], locale)}</p>
                 <div className="mt-auto pt-4">

@@ -20,6 +20,16 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const started = Date.now();
   const detailed = bearerMatches(req, env("CRON_SECRET"));
+  // `?shallow=1` (the scheduled GitHub probe): configuration only, no database query, so a probe
+  // off the hour never wakes the Neon compute. The hourly :00 job drain covers the database.
+  if (new URL(req.url).searchParams.get("shallow") === "1") {
+    const problems = envProblems();
+    const ok = problems.missing.length === 0 && problems.invalid.length === 0;
+    return Response.json(
+      { ok, shallow: true, env: VERCEL_ENV, time: new Date().toISOString(), config: { required: REQUIRED_ENV.length, missingCount: problems.missing.length, invalidCount: problems.invalid.length } },
+      { status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   let dbOk = false;
   let dbMs = 0;
   let unresolved = -1;

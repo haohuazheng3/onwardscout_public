@@ -1,10 +1,13 @@
+import { useTranslations } from "next-intl";
 import { PaneSkeleton } from "@/components/Skeletons";
 import { Skeleton } from "@/components/ui";
 
 /** The room's shape: back link, header pane with the trail, then the panes and the side action. */
 export default function ApplicationRoomLoading() {
+  // The skeleton is announced in the page language (the layout set the request locale).
+  const label = useTranslations("common")("status.loading");
   return (
-    <div className="min-w-0" aria-busy="true" aria-label="Loading">
+    <div className="min-w-0" aria-busy="true" role="status" aria-label={label}>
       <Skeleton className="block h-4 w-32 rounded-full" />
       <div className="pane mt-4 p-5 sm:p-7">
         <Skeleton className="block h-3 w-40 rounded-full" />

@@ -628,3 +628,20 @@ export async function applicationsHoldingCredits(userId: string): Promise<string
   for (const key of open) if (!closed.has(key)) held.add(parseRoundKey(key).applicationId);
   return [...held];
 }
+
+/**
+ * Every application (any person) whose latest reservation round is still held, oldest first —
+ * the input of the daily credit reconciliation (`reconcileApplicationCredits`).
+ */
+export async function allApplicationsHoldingCredits(limit = 500): Promise<string[]> {
+  // One row per reservation round key: held = it has a reserve and neither a debit nor a release.
+  const rows = await db
+    .select({ key: creditEvents.applicationId })
+    .from(creditEvents)
+    .where(and(inArray(creditEvents.kind, ["reserve", "debit", "release"]), ne(creditEvents.lotId, CLAIM_LOT), sql`${creditEvents.applicationId} is not null`))
+    .groupBy(creditEvents.applicationId)
+    .having(sql`bool_or(${creditEvents.kind} = 'reserve') and not bool_or(${creditEvents.kind} in ('debit', 'release'))`)
+    .orderBy(sql`min(${creditEvents.createdAt})`)
+    .limit(Math.max(1, Math.min(limit, 2000)));
+  return [...new Set(rows.map((r) => (r.key ? parseRoundKey(r.key).applicationId : "")).filter(Boolean))];
+}

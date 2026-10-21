@@ -6,7 +6,9 @@ import { opportunityTypeBySlug, publicOpportunityTypes } from "@/lib/core/opport
 import { LIST_PAGE_SIZE, getSeoData, hubIndexable, shorten, typeCopy, typePath, renderTime } from "@/lib/programmatic";
 import { pageMetadata } from "@/lib/seo";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
+/** The values are a fixed list (types / blog categories from code): anything else is a static 404, not a render. */
+export const dynamicParams = false;
 
 type Props = { params: Promise<{ locale: string; type: string }> };
 

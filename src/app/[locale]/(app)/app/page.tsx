@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, notLike } from "drizzle-orm";
 import { Activity, ArrowRight, Bell, FileUp } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -18,6 +18,8 @@ import { topMatches } from "@/lib/opportunities";
 import { listGoals } from "@/lib/profile/goals";
 import { getProfile, profileOf } from "@/lib/profile/store";
 import { requireUser } from "@/lib/user";
+import { cookies } from "next/headers";
+import { TIME_ZONE_COOKIE, timeZoneFrom } from "@/i18n/request";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -45,7 +47,9 @@ export default async function HomePage({ params }: Props) {
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const { userId } = await requireUser({ locale, returnTo: localizePath("/app", locale) });
-  const [t, format] = await Promise.all([getTranslations({ locale, namespace: "profile.home" }), getFormatter({ locale })]);
+  const [t, format, jar] = await Promise.all([getTranslations({ locale, namespace: "profile.home" }), getFormatter({ locale }), cookies()]);
+  // "Today" in the person's own time zone (remembered by TimeZoneCookie), not the server's UTC day.
+  const timeZone = timeZoneFrom(jar.get(TIME_ZONE_COOKIE)?.value);
 
   const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity] = await Promise.all([
     getProfile(userId),
@@ -69,7 +73,8 @@ export default async function HomePage({ params }: Props) {
         .select({ id: events.id, kind: events.kind, data: events.data, createdAt: events.createdAt, name: opportunities.name })
         .from(events)
         .leftJoin(opportunities, eq(opportunities.id, events.opportunityId))
-        .where(eq(events.userId, userId))
+        // Status moves and milestone markers repeat what the named events already say.
+        .where(and(eq(events.userId, userId), ne(events.kind, "application.status"), notLike(events.kind, "milestone.%")))
         .orderBy(desc(events.createdAt))
         .limit(8),
     ),
@@ -101,6 +106,10 @@ export default async function HomePage({ params }: Props) {
     ? notes.map((n) => ({ id: n.id, title: n.title, body: n.body, href: n.href, when: format.relativeTime(new Date(n.createdAt), now), unread: !n.readAt }))
     : null;
 
+  const needsYouItems: NeedsYouItem[] | null = needsYou
+    ? needsYou.map((a) => ({ ...a, reason: a.reason && t.has(`needsYou.reasons.${a.reason}`) ? t(`needsYou.reasons.${a.reason}`) : null }))
+    : null;
+
   const feedActivity: FeedItem[] | null = activity
     ? activity.map((e) => {
         const key = `events.${e.kind.replace(/[^a-zA-Z0-9_]/g, "_")}`;
@@ -112,7 +121,7 @@ export default async function HomePage({ params }: Props) {
   return (
     <>
       <PageHeader
-        eyebrow={t("eyebrow", { date: format.dateTime(now, { weekday: "long", month: "long", day: "numeric" }) })}
+        eyebrow={t("eyebrow", { date: format.dateTime(now, { weekday: "long", month: "long", day: "numeric", timeZone }) })}
         title={firstName ? t("titleNamed", { name: firstName }) : t("title")}
         description={isNew ? t("ledeNew") : t("lede")}
         actions={
@@ -151,7 +160,7 @@ export default async function HomePage({ params }: Props) {
             strings={{ eyebrow: t("hero.eyebrow"), empty: t("hero.empty"), emptyBody: t("hero.emptyBody"), set: t("hero.set"), all: t("hero.all"), more: t("hero.more", { count: Math.max(0, (goals?.length ?? 0) - 1) }) }}
           />
           <NeedsYouPane
-            items={needsYou as NeedsYouItem[] | null}
+            items={needsYouItems}
             locale={locale}
             strings={{ title: t("needsYou.title"), empty: t("needsYou.empty"), error: t("sectionError"), practice: t("needsYou.practice"), open: t("needsYou.open") }}
           />

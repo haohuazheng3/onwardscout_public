@@ -20,6 +20,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
+import { LegalLinks } from "./LegalLinks";
 import { LocaleList, LocaleSwitcher } from "./LocaleSwitcher";
 import { LogoLink, LogoMark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
@@ -76,9 +77,18 @@ function useActiveNav() {
     setPending(null);
   }
   const isActive = (item: NavItem) => (pending ? pending === item.href : matches(pathname, item));
-  const press = (item: NavItem) => {
+  // Set on click (not pointer-down: a scroll that starts on the tab bar cancels the press and no
+  // navigation follows); a click that opens a new tab never navigates here either.
+  const press = (item: NavItem, e?: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number }) => {
+    if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
     if (!matches(pathname, item) || pathname !== item.href) setPending(item.href);
   };
+  // Safety net: a press that never turned into a navigation stops claiming to be the current page.
+  useEffect(() => {
+    if (!pending) return;
+    const id = window.setTimeout(() => setPending(null), 3000);
+    return () => window.clearTimeout(id);
+  }, [pending]);
   return { pathname, isActive, press, pending };
 }
 
@@ -269,7 +279,7 @@ function NeedsYouPill({ className, short = false }: { className?: string; short?
 
 /* ======================================================================= desktop rail */
 
-function RailLink({ item, active, onPress, small = false }: { item: NavItem; active: boolean; onPress: () => void; small?: boolean }) {
+function RailLink({ item, active, onPress, small = false }: { item: NavItem; active: boolean; onPress: (e: MouseEvent) => void; small?: boolean }) {
   const t = useTranslations("common.appNav");
   const { Icon } = item;
   return (
@@ -277,7 +287,6 @@ function RailLink({ item, active, onPress, small = false }: { item: NavItem; act
       href={item.href}
       prefetch={item.key === "home" || item.key === "scout" || item.key === "applications" ? undefined : false}
       aria-current={active ? "page" : undefined}
-      onPointerDown={onPress}
       onClick={onPress}
       className={cx(
         "press group relative flex items-center gap-3 rounded-[16px] px-3 font-medium transition-colors",
@@ -306,11 +315,11 @@ export function AppRail() {
         </div>
         <nav aria-label={t("a11y.appNav")} className="flex flex-col gap-1">
           {APP_PRIMARY_NAV.map((item) => (
-            <RailLink key={item.href} item={item} active={isActive(item)} onPress={() => press(item)} />
+            <RailLink key={item.href} item={item} active={isActive(item)} onPress={(e) => press(item, e)} />
           ))}
           <p className="eyebrow mb-1 mt-5 px-3">{t("appNav.more")}</p>
           {APP_MORE_NAV.map((item) => (
-            <RailLink key={item.href} item={item} active={isActive(item)} onPress={() => press(item)} small />
+            <RailLink key={item.href} item={item} active={isActive(item)} onPress={(e) => press(item, e)} small />
           ))}
         </nav>
         <div className="mt-auto space-y-3 px-1 pt-6">
@@ -325,6 +334,7 @@ export function AppRail() {
             <ArrowLeft size={15} aria-hidden />
             {t("appNav.backToSite")}
           </Link>
+          <LegalLinks className="px-0.5" />
         </div>
       </div>
     </aside>
@@ -363,7 +373,7 @@ export function AppTopBar({ credits, notifications }: { credits?: ReactNode; not
 
 /* ======================================================================= mobile tab bar */
 
-function MoreSheet({ open, onClose, isActive, press }: { open: boolean; onClose: () => void; isActive: (i: NavItem) => boolean; press: (i: NavItem) => void }) {
+function MoreSheet({ open, onClose, isActive, press }: { open: boolean; onClose: () => void; isActive: (i: NavItem) => boolean; press: (i: NavItem, e?: MouseEvent) => void }) {
   const t = useTranslations("common");
   return (
     <Dialog open={open} onClose={onClose} title={t("appNav.moreTitle")}>
@@ -377,8 +387,8 @@ function MoreSheet({ open, onClose, isActive, press }: { open: boolean; onClose:
               href={item.href}
               prefetch={false}
               aria-current={active ? "page" : undefined}
-              onClick={() => {
-                press(item);
+              onClick={(e) => {
+                press(item, e);
                 onClose();
               }}
               className={cx(
@@ -400,6 +410,7 @@ function MoreSheet({ open, onClose, isActive, press }: { open: boolean; onClose:
           {t("appNav.backToSite")}
         </Link>
       </div>
+      <LegalLinks className="mt-4 border-t border-line pt-3" />
     </Dialog>
   );
 }
@@ -430,8 +441,7 @@ export function AppTabBar() {
                 href={item.href}
                 prefetch={item.key === "profile" ? false : undefined}
                 aria-current={active ? "page" : undefined}
-                onPointerDown={() => press(item)}
-                onClick={() => press(item)}
+                onClick={(e) => press(item, e)}
                 className={cx(cell, active ? "text-ink" : "text-ink-3")}
               >
                 <span

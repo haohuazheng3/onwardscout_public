@@ -62,8 +62,13 @@ describe("paymentsEnabled", () => {
     vi.stubEnv("ALLOW_LIVE_CHECKOUT_NONPROD", "");
     expect(paymentsEnabled("pack10")).toMatchObject({ ok: false, code: "nonprod" });
     vi.stubEnv("ALLOW_LIVE_CHECKOUT_NONPROD", "1");
+    // Live sales also need the explicit switch (the Stripe account must be Onward Scout's own).
+    vi.stubEnv("PAYMENTS_OPEN", "");
+    expect(paymentsEnabled("pack10")).toMatchObject({ ok: false, code: "not_open" });
+    vi.stubEnv("PAYMENTS_OPEN", "1");
     expect(paymentsEnabled("pack10").ok).toBe(true);
-    // test keys are always fine off production
+    vi.stubEnv("PAYMENTS_OPEN", "");
+    // test keys are always fine off production (and need no switch)
     vi.stubEnv("ALLOW_LIVE_CHECKOUT_NONPROD", "");
     vi.stubEnv("STRIPE_SECRET_KEY", key("sk", "test", "x"));
     expect(paymentsEnabled("pack10").ok).toBe(true);

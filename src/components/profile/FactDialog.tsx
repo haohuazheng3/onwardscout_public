@@ -85,6 +85,8 @@ export function FactDialog({
     try {
       await onConfirm(fact);
       onClose();
+    } catch {
+      // onConfirm already rolled back and showed a toast; the dialog stays open to try again.
     } finally {
       setBusy(null);
     }
@@ -96,6 +98,8 @@ export function FactDialog({
     try {
       await onFix(fact, target.shape === "scalar" ? (draft.value ?? "") : draft);
       onClose();
+    } catch {
+      // onFix already rolled back and showed a toast; the dialog stays open with the edit.
     } finally {
       setBusy(null);
     }

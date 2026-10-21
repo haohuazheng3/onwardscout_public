@@ -1,6 +1,7 @@
 "use server";
 
 import { waitUntil } from "@vercel/functions";
+import { revalidateTag } from "next/cache";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { redirect } from "@/i18n/navigation";
@@ -20,6 +21,15 @@ import type { NoticeKey } from "./_lib/notice";
  * and redirects back to the page it came from — filters kept — with a notice. Credits move only
  * through src/lib/credits.ts (grantAdjustment); jobs only through src/lib/jobs/queue.ts.
  */
+
+/** Public opportunity pages and their data caches refresh after an edit (tag-based ISR). */
+async function staleOpportunities(): Promise<void> {
+  try {
+    revalidateTag("opportunities", "max");
+  } catch (err) {
+    await captureError(err, { route: "admin/actions#revalidate", severity: "warn" });
+  }
+}
 
 const ADMIN_PATH = /^\/admin(?:\/[A-Za-z0-9_-]+)*$/;
 const SAFE_QUERY = /^[A-Za-z0-9_=&%.:\-+]*$/;
@@ -123,13 +133,16 @@ export async function reviewOpportunityAction(formData: FormData): Promise<void>
       .update(opportunities)
       .set({ status: "active", public: publicSeo, verifiedAt: sql`now()`, updatedAt: sql`now()` })
       .where(eq(opportunities.id, id.data));
+    await staleOpportunities();
     back(formData, "approved");
   }
   if (decision.data === "reject") {
     await db.update(opportunities).set({ status: "rejected", public: false, updatedAt: sql`now()` }).where(eq(opportunities.id, id.data));
+    await staleOpportunities();
     back(formData, "rejected");
   }
   await db.update(opportunities).set({ status: "expired", updatedAt: sql`now()` }).where(eq(opportunities.id, id.data));
+  await staleOpportunities();
   back(formData, "expired");
 }
 
@@ -182,6 +195,7 @@ export async function updateOpportunityAction(formData: FormData): Promise<void>
     })
     .where(eq(opportunities.id, f.id))
     .returning({ id: opportunities.id });
+  if (rows[0]) await staleOpportunities();
   back(formData, rows[0] ? "saved" : "notFound");
 }
 
@@ -232,4 +246,19 @@ export async function setMessageStatusAction(formData: FormData): Promise<void> 
   if (!id.success || !status.success) back(formData, "invalid");
   await db.update(contactMessages).set({ status: status.data }).where(and(eq(contactMessages.id, id.data)));
   back(formData, "messageUpdated");
+}
+
+/* ------------------------------------------------------------------ outreach opt-outs */
+
+/**
+ * "Block this address": nobody on Onward Scout can email it again (AUP: someone who wrote to us
+ * about unwanted email). Stored as a keyed hash; every user's matching contact is marked too.
+ */
+export async function blockAddressAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const email = z.email().max(254).safeParse(field(formData, "email").trim().toLowerCase());
+  if (!email.success) back(formData, "invalid");
+  const { blockOutreach } = await import("@/lib/channels/outreach-blocks");
+  await blockOutreach(email.data, "admin");
+  back(formData, "addressBlocked");
 }

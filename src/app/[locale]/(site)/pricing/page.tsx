@@ -16,6 +16,7 @@ import { FREE_INCLUDES, pick } from "@/content/site-copy";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { faqLd, pageMetadata, softwareApplicationLd } from "@/lib/seo";
+import { features } from "@/lib/env";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -84,7 +85,8 @@ export default async function PricingPage({ params }: Props) {
 
   const pro = PLANS.pro;
   const packs: Offer[] = [PACKS.pack10, PACKS.pack40];
-  const rows = compareRows((key, values) => tcmp(key, values));
+  // Read at build time (the page is static): the email brief shows "coming soon" until product email is on.
+  const rows = compareRows((key, values) => tcmp(key, values), { mailer: features().mailer });
   const billingFaqs = faqsByGroup("billing").map((f) => ({
     id: f.id,
     q: pick(f.q, locale),

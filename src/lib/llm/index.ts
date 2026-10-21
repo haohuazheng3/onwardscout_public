@@ -3,7 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { llmCalls } from "@/lib/db/schema";
-import { env, llmUserMonthlyCents, selectLlmProvider } from "@/lib/env";
+import { env, intEnv, llmUserMonthlyCents, selectLlmProvider } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
 import { AnthropicIntelligence } from "./provider-anthropic";
@@ -98,21 +98,59 @@ export async function monthlySpendCents(userId: string, now = new Date()): Promi
 
 const budgetCache = new Map<string, { at: number; spent: number }>();
 
+/** An anonymous draft (`anon_*`, the signed-out /app/start) — budgeted separately and tightly. */
+export function isAnonymousOwner(userId: string): boolean {
+  return userId.startsWith("anon_");
+}
+
+/** Model spend allowed per anonymous draft (cents; it is claimed or erased within 30 days). */
+export function llmAnonDraftCents(): number {
+  return Math.max(0, intEnv("LLM_ANON_DRAFT_CENTS", 30));
+}
+
+/** Model spend allowed per UTC day across every anonymous draft together (cents). */
+export function llmAnonDailyCents(): number {
+  return Math.max(0, intEnv("LLM_ANON_DAILY_CENTS", 500));
+}
+
+/** Cents spent today (UTC) by all anonymous drafts together. */
+async function anonymousSpendTodayCents(now = new Date()): Promise<number> {
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const rows = await db
+    .select({ total: sql<string | number | null>`coalesce(sum(${llmCalls.costCents}), 0)` })
+    .from(llmCalls)
+    .where(and(sql`${llmCalls.userId} like 'anon\_%'`, gte(llmCalls.createdAt, dayStart)));
+  return Number(rows[0]?.total ?? 0);
+}
+
+const ANON_ALL = "anon:*";
+
+async function cachedSpend(key: string, read: () => Promise<number>): Promise<number> {
+  const cached = budgetCache.get(key);
+  if (cached && Date.now() - cached.at < BUDGET_TTL_MS) return cached.spent;
+  const spent = await read();
+  budgetCache.set(key, { at: Date.now(), spent });
+  return spent;
+}
+
 async function withinBudget(userId: string): Promise<boolean> {
-  const cached = budgetCache.get(userId);
-  let spent: number;
-  if (cached && Date.now() - cached.at < BUDGET_TTL_MS) spent = cached.spent;
-  else {
-    spent = await monthlySpendCents(userId);
-    budgetCache.set(userId, { at: Date.now(), spent });
+  if (isAnonymousOwner(userId)) {
+    // Signed-out drafts: a small allowance per draft and a global daily ceiling, so re-uploads
+    // and re-parses from rotating addresses can't run up the model bill. Over it → local engine.
+    const [draft, all] = await Promise.all([cachedSpend(userId, () => monthlySpendCents(userId)), cachedSpend(ANON_ALL, () => anonymousSpendTodayCents())]);
+    return draft < llmAnonDraftCents() && all < llmAnonDailyCents();
   }
-  return spent < llmUserMonthlyCents();
+  return (await cachedSpend(userId, () => monthlySpendCents(userId))) < llmUserMonthlyCents();
 }
 
 function noteSpend(userId: string | null | undefined, cents: number): void {
   if (!userId) return;
   const c = budgetCache.get(userId);
   if (c) c.spent += cents;
+  if (isAnonymousOwner(userId)) {
+    const all = budgetCache.get(ANON_ALL);
+    if (all) all.spent += cents;
+  }
 }
 
 function sumUsage(usages: UsageReport[]): { model: string; inputTokens: number; outputTokens: number; cachedTokens: number; costCents: number } {
@@ -152,6 +190,8 @@ export interface GetIntelligenceOptions {
 class TrackedIntelligence implements Intelligence {
   /** The configured provider; a call may still run on `local` (budget spent, Claude failed). */
   readonly provider: ProviderName;
+  /** The engine that actually produced the last result (labels: "Written with AI" only when it was Claude). */
+  lastProvider: ProviderName | null = null;
 
   constructor(private readonly opts: GetIntelligenceOptions) {
     this.provider = opts.provider ?? selectLlmProvider();
@@ -183,6 +223,7 @@ class TrackedIntelligence implements Intelligence {
     const started = Date.now();
     try {
       const result = await run(engine, ctx);
+      this.lastProvider = engine.provider;
       const u = sumUsage(usages);
       noteSpend(userId, u.costCents);
       background(logCall({ userId, purpose, provider: engine.provider, model: engine.provider === "local" ? LOCAL_MODEL : u.model, inputTokens: u.inputTokens, outputTokens: u.outputTokens, cachedTokens: u.cachedTokens, costCents: u.costCents, ms: Date.now() - started, ok: true }));
@@ -198,6 +239,7 @@ class TrackedIntelligence implements Intelligence {
       // The person still gets an answer: the deterministic engine takes over.
       const t2 = Date.now();
       const result = await run(localIntelligence, { userId });
+      this.lastProvider = "local";
       background(logCall({ userId, purpose, provider: "local", model: LOCAL_MODEL, ms: Date.now() - t2, ok: true }));
       return result;
     }
@@ -227,6 +269,25 @@ class TrackedIntelligence implements Intelligence {
   planBrowserStep(input: PlanBrowserStepInput) {
     return this.call("plan_browser_step", (e, ctx) => e.planBrowserStep(input, ctx));
   }
+}
+
+/** The engine that actually ran an intelligence's last call (falls back to the configured one). */
+export function actualProvider(ai: Intelligence): ProviderName {
+  return (ai as { lastProvider?: ProviderName | null }).lastProvider ?? ai.provider;
+}
+
+/**
+ * The engine that produced a person's latest successful call of a kind (from `llm_calls`), e.g.
+ * whether their current match ranking really came from Claude. Null when there is none.
+ */
+export async function lastCallProvider(userId: string, purpose: Purpose): Promise<string | null> {
+  const rows = await db
+    .select({ provider: llmCalls.provider })
+    .from(llmCalls)
+    .where(and(eq(llmCalls.userId, userId), eq(llmCalls.purpose, purpose), eq(llmCalls.ok, true)))
+    .orderBy(sql`${llmCalls.createdAt} desc`)
+    .limit(1);
+  return rows[0]?.provider ?? null;
 }
 
 /**

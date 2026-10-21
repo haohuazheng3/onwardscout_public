@@ -8,6 +8,7 @@ import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
 import { attachForwardedReply } from "@/lib/integrations/replies";
 import { htmlToText } from "@/lib/integrations/reply-parse";
+import { rateLimit } from "@/lib/ratelimit";
 import { inboundTokenFrom } from "@/lib/site";
 import { userIdForInboundToken } from "@/lib/user";
 
@@ -32,6 +33,17 @@ const Body = z.object({
 
 export type IngestBody = z.infer<typeof Body>;
 
+/** Test mail kept per day (all senders together), its text size, and headers kept per message. */
+const TEST_MAIL_PER_DAY = 300;
+const TEST_TEXT_CHARS = 20_000;
+const MAX_HEADERS = 24;
+
+/** test@ and test+tag@ at any of our domains: the only non-drop-box mail worth keeping. */
+function isTestAddress(to: string): boolean {
+  const local = to.trim().toLowerCase().split("@")[0] ?? "";
+  return local === "test" || local.startsWith("test+");
+}
+
 /**
  * Called only by the Cloudflare mail worker (Bearer INBOX_INGEST_SECRET) for mail to test@,
  * the catch-all, and the reply drop-boxes `in+<token>@onwardscout.com`.
@@ -51,7 +63,17 @@ export async function POST(req: Request) {
     const userId = token ? await userIdForInboundToken(token) : null;
     const kind: InboxKind = userId ? "reply" : "test";
 
+    // Test mail is bounded: only test@ / test+tag@ is kept (the catch-all would otherwise store
+    // any address anyone writes to), bodies are trimmed, HTML is not kept, and a global daily cap
+    // stops a flood from filling the database. Dropped mail still answers 200: never re-sent.
+    if (kind === "test") {
+      if (!isTestAddress(d.to)) return Response.json({ ok: true, id: null, kind: "dropped" }, { headers: NO_STORE });
+      const day = await rateLimit("inbox:test:day", TEST_MAIL_PER_DAY, 86400);
+      if (!day.ok) return Response.json({ ok: true, id: null, kind: "dropped" }, { headers: NO_STORE });
+    }
+
     const id = newId("inb");
+    const headers = d.headers ? Object.fromEntries(Object.entries(d.headers).slice(0, MAX_HEADERS)) : null;
     await db.insert(inboxMessages).values({
       id,
       kind,
@@ -59,13 +81,13 @@ export async function POST(req: Request) {
       toAddr: d.to.trim().toLowerCase(),
       fromAddr: d.from.trim(),
       subject: d.subject ?? null,
-      textBody: d.text ?? null,
-      htmlBody: d.html ? d.html.slice(0, 200_000) : null,
+      textBody: kind === "test" ? (d.text ? d.text.slice(0, TEST_TEXT_CHARS) : d.html ? htmlToText(d.html).slice(0, TEST_TEXT_CHARS) : null) : (d.text ?? null),
+      htmlBody: kind === "test" ? null : d.html ? d.html.slice(0, 200_000) : null,
       spf: d.spf ?? null,
       dkim: d.dkim ?? null,
       dmarc: d.dmarc ?? null,
       authResults: d.authResults ?? null,
-      headers: d.headers ?? null,
+      headers,
       rawSize: d.rawSize ?? 0,
     });
 
