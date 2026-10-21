@@ -16,10 +16,10 @@ import { registerJob, registeredJob, type JobHandler, type JobOptions, type Know
  * (Calling `registerJob(kind, handler)` at import time works as well.)
  *
  * WHY THE LIST BELOW IS EXPLICIT: a static `import()` of a module that doesn't exist fails
- * the TypeScript check and the Next build. Each line is enabled when its module exists —
- * the integrator uncomments it (owners can't edit this F4 file). A job whose kind has no
- * loader stays queued with a "no handler" error and is retried with backoff until its
- * module ships, then fails after max attempts; nothing is lost silently.
+ * the TypeScript check and the Next build, and a lazy per-kind loader keeps each function's
+ * bundle small. A new kind gets its line here when its module ships. A job whose kind has no
+ * loader stays queued with a "no handler" error and is retried with backoff, then fails after
+ * max attempts; nothing is lost silently.
  */
 
 export type JobModuleEntry = JobHandler | ({ handler: JobHandler } & JobOptions);
@@ -28,16 +28,15 @@ export type JobModule = Partial<Record<KnownJobKind | (string & {}), JobModuleEn
 type Loader = () => Promise<{ jobHandlers?: JobModule } & Record<string, unknown>>;
 
 export const JOB_MODULES: Partial<Record<KnownJobKind, Loader>> = {
-  // Enable each line once its module exists (P1, P2a, P2b, P3a, P6):
-  // "profile.parse": () => import("@/lib/profile/jobs"),
-  // "profile.extract": () => import("@/lib/profile/jobs"),
-  // "matches.refresh": () => import("@/lib/opportunities/jobs"),
-  // "application.prepare": () => import("@/lib/applications/jobs"),
-  // "application.submit": () => import("@/lib/applications/jobs"),
-  // "application.followup": () => import("@/lib/applications/jobs"),
-  // "sources.run": () => import("@/lib/sources/jobs"),
-  // "digest.send": () => import("@/lib/digest"),
-  // "notify.email": () => import("@/lib/notifications"),
+  "profile.parse": () => import("@/lib/profile/jobs"),
+  "profile.extract": () => import("@/lib/profile/jobs"),
+  "matches.refresh": () => import("@/lib/opportunities/jobs"),
+  "application.prepare": () => import("@/lib/applications/jobs"),
+  "application.submit": () => import("@/lib/applications/jobs"),
+  "application.followup": () => import("@/lib/applications/jobs"),
+  "sources.run": () => import("@/lib/sources/jobs"),
+  "digest.send": () => import("@/lib/digest"),
+  "notify.email": () => import("@/lib/notifications"),
 };
 
 /** Registers every handler a module exports in `jobHandlers`. */

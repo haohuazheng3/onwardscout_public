@@ -17,8 +17,11 @@ import { clerkAppearance } from "@/lib/clerk-appearance";
 /*
  * The personal area: sign-in, /app, checkout and admin. Clerk's JS loads only here; nothing
  * here is indexed or cached. Client components get every app namespace (the [locale]
- * layout gave them only `common`). Each page owns a loading.tsx skeleton.
+ * layout gave them only `common`) except `admin`, which only the /admin layout adds (it is
+ * ~16 KB of owner-only strings nobody else should download). Each page owns a loading.tsx skeleton.
  */
+
+const USER_NAMESPACES = APP_NAMESPACES.filter((n) => n !== "admin");
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +33,7 @@ export default async function AppAreaLayout({ children, params }: { children: Re
   const { locale: raw } = await params;
   const locale = hasLocale(routing.locales, raw) ? raw : routing.defaultLocale;
   setRequestLocale(locale);
-  const messages = await loadMessages(locale, APP_NAMESPACES);
+  const messages = await loadMessages(locale, USER_NAMESPACES);
 
   const signIn = localizePath("/sign-in", locale);
   const appHome = localizePath("/app", locale);

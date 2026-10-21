@@ -1,1 +1,137 @@
-{}
+{
+  "metaTitle": "Settings",
+  "eyebrow": "Settings",
+  "title": "Your settings",
+  "lede": "Your language, what Onward Scout may do without asking, how we reach you, and your data.",
+  "loading": "Loading your settings",
+  "nav": {
+    "label": "Settings sections",
+    "language": "Language",
+    "authorizations": "Permissions",
+    "notifications": "Notifications",
+    "integrations": "Connected accounts",
+    "data": "Your data"
+  },
+  "language": {
+    "title": "Language",
+    "body": "The app, your weekly brief and our emails use this language. Application documents follow the language each opportunity asks for.",
+    "switching": "Switching to {language}…",
+    "saved": "Language saved"
+  },
+  "authorizations": {
+    "title": "What we may do without asking",
+    "calloutTitle": "Everything here is off until you switch it on.",
+    "calloutBody": "By default nothing is submitted without your tap. If you switch a category on, applications in it are submitted as soon as they are fully prepared and need nothing from you. They are still written only from your own facts, each one still costs 1 credit (reserved first, returned if it fails), and anything that needs you — a CAPTCHA, a login, a payment, a signature, a question your profile can't answer — still comes back to you. Switching off stops it immediately.",
+    "autoSubmitTitle": "Submit without my tap",
+    "autoSubmitBody": "Per category of opportunity.",
+    "examples": "For example: {list}",
+    "moreTypes": "{count, plural, one {and # more type} other {and # more types}}",
+    "partial": "Some types in this category are on",
+    "followupTitle": "Send follow-ups automatically",
+    "followupBody": "When nobody has answered by the follow-up date, send the prepared follow-up without asking first. Off: we still prepare it, for free, and ask for your tap.",
+    "followupPro": "Included with Pro. Your choice is saved and takes effect once you are on Pro.",
+    "digestTitle": "Weekly brief",
+    "digestBody": "Every Monday: new picks, what moved, and what is waiting for your tap. It arrives in your notifications.",
+    "proTag": "Pro",
+    "on": "On",
+    "off": "Off",
+    "savedOn": "{name}: on",
+    "savedOff": "{name}: off"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "inAppTitle": "In the app",
+    "inAppBody": "Everything appears in the bell at the top of your board. Always on.",
+    "emailUpdatesTitle": "Important updates by email",
+    "emailUpdatesBody": "When an application needs you, is submitted, or gets a reply.",
+    "emailDigestTitle": "Weekly brief by email",
+    "emailDigestBody": "A copy of your Monday brief in your inbox. Included with Pro.",
+    "mailerOff": "Email delivery is not switched on yet, so for now everything arrives here in the app. Your choices are saved for when it is.",
+    "sentTo": "Emails go to {email}."
+  },
+  "integrations": {
+    "title": "Connected accounts",
+    "gmailName": "Gmail",
+    "gmailConnected": "Connected as {email}. Outreach is sent from your own mailbox.",
+    "gmailConnectedNoEmail": "Connected. Outreach is sent from your own mailbox.",
+    "gmailError": "The connection needs attention.",
+    "gmailRevoked": "Disconnected.",
+    "gmailNone": "Not connected. Without Gmail, outreach is prepared for you to send yourself.",
+    "manage": "Manage connected accounts"
+  },
+  "data": {
+    "title": "Your data",
+    "exportTitle": "Download my data",
+    "exportBody": "One JSON file with everything we store about you: your profile, facts and where each came from, document details, goals, applications, messages, activity, notifications and orders. Uploaded files themselves are in Documents.",
+    "exportButton": "Download my data",
+    "exporting": "Preparing your file…",
+    "exported": "Your data is downloading",
+    "exportFailed": "We couldn't prepare your file",
+    "deleteTitle": "Delete my account",
+    "deleteBody": "Erases your profile, documents and files, goals, applications, messages and activity, disconnects Gmail and removes your sign-in. Payment records stay with Stripe; our copy keeps only the amount, without your name or email. This cannot be undone.",
+    "deleteButton": "Delete my account…",
+    "dialogTitle": "Delete your account?",
+    "dialogBody": "Everything listed above is erased right away and cannot be recovered. Download your data first if you want a copy.",
+    "typeLabel": "Type DELETE to confirm",
+    "typeHint": "In capital letters.",
+    "confirmButton": "Delete everything",
+    "deleting": "Deleting…",
+    "deleted": "Your account has been deleted",
+    "deleteFailed": "Your account was not deleted"
+  },
+  "bell": {
+    "label": "Notifications",
+    "unread": "{count, plural, =0 {No unread notifications} one {# unread} other {# unread}}",
+    "markAll": "Mark all read",
+    "empty": "Nothing yet",
+    "emptyBody": "When an application moves, needs you or gets a reply, you'll see it here.",
+    "loadFailed": "Notifications didn't load",
+    "retry": "Try again",
+    "seeAll": "Notification settings",
+    "new": "New",
+    "kinds": {
+      "needs_you": "Needs you",
+      "submitted": "Submitted",
+      "reply": "Reply",
+      "progress": "Progress",
+      "new_matches": "New picks",
+      "digest": "Weekly brief",
+      "billing": "Billing",
+      "system": "Onward Scout"
+    }
+  },
+  "digest": {
+    "title": "Your week: {parts}",
+    "titleQuiet": "Your week on Onward Scout",
+    "separator": ", ",
+    "parts": {
+      "picks": "{count, plural, one {# new pick} other {# new picks}}",
+      "needsYou": "{count} waiting for you",
+      "submitted": "{count} submitted",
+      "replies": "{count, plural, one {# reply} other {# replies}}"
+    },
+    "matchWithOrg": "{name} ({org})",
+    "picksLine": "New picks: {list}",
+    "andMore": "{count, plural, one {, and # more} other {, and # more}}",
+    "needsYouLine": "Waiting for your tap: {list}",
+    "pipelineLine": "This week: {submitted, plural, one {# application submitted} other {# applications submitted}}, {replies, plural, one {# reply} other {# replies}}, {moved} moving forward.",
+    "milestoneLine": "{title}: {current} of {target}",
+    "quietLine": "A quiet week: no new picks or replies yet. Your scout keeps looking.",
+    "cta": "Open your board to review, approve or adjust."
+  },
+  "email": {
+    "open": "Open it in Onward Scout: {url}",
+    "why": "You get this email because you have an Onward Scout account.",
+    "manage": "Choose what we email you: {url}"
+  },
+  "unsubscribe": {
+    "confirmDigestTitle": "Stop the weekly brief by email?",
+    "confirmUpdatesTitle": "Stop update emails?",
+    "confirmBody": "You will still see everything in the app. You can switch email back on in Settings at any time.",
+    "button": "Stop these emails",
+    "doneTitle": "Done. We won't email you about this anymore.",
+    "doneBody": "Everything still arrives in the app. Change it any time in Settings: {url}",
+    "invalidTitle": "This link has expired or is not valid",
+    "invalidBody": "Open Settings in Onward Scout to choose what we email you."
+  }
+}

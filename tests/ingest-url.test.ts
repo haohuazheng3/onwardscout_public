@@ -121,6 +121,13 @@ describe("SSRF guard: URLs", () => {
     expect(one).toEqual([null, "2606:2800:220:1::1", 6]);
     const all = await new Promise<unknown[]>((resolve) => lookup("example.com", { all: true }, (err, address) => resolve([err, address])));
     expect(Array.isArray(all[1]) && (all[1] as unknown[]).length).toBe(2);
+    // IPv4 is preferred whatever order the resolver answered in.
+    const v6first = guardedLookup(async () => [
+      { address: "2606:2800:220:1::1", family: 6 },
+      { address: "93.184.216.34", family: 4 },
+    ]);
+    const pick = await new Promise<unknown[]>((resolve) => v6first("example.com", {}, (err, address, family) => resolve([err, address, family])));
+    expect(pick).toEqual([null, "93.184.216.34", 4]);
   });
 });
 

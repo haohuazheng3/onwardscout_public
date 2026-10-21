@@ -4,8 +4,11 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
+import { grantTrial } from "./credits";
 import { db } from "./db";
 import { users, type UserRow } from "./db/schema";
+import { env } from "./env";
+import { captureError } from "./errors";
 import { randomString } from "./ids";
 import { inboundAddress, localeOfPath, RETURN_PATH_HEADER, signInPath, withLocale, type Locale } from "./site";
 
@@ -14,6 +17,15 @@ import { inboundAddress, localeOfPath, RETURN_PATH_HEADER, signInPath, withLocal
  * the local `users` row is keyed by the Clerk user id and carries the email, the UI locale,
  * the reply drop-box token and the Stripe customer.
  */
+
+/**
+ * Clerk is configured for this deployment. Without its keys the site runs in degraded mode:
+ * public pages and APIs work, the personal area answers 503 at the proxy, and nobody is
+ * signed in (auth() must not be called then: clerkMiddleware never ran).
+ */
+export function clerkConfigured(): boolean {
+  return Boolean(env("CLERK_SECRET_KEY") && env("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"));
+}
 
 export interface SessionUser {
   userId: string;
@@ -93,6 +105,12 @@ const signInRequired = () =>
 
 /** Route handlers: the signed-in user, or a ready-made 401 JSON response. */
 export async function requireUserApi(): Promise<SessionUser | Response> {
+  if (!clerkConfigured()) {
+    return Response.json(
+      { error: "Sign-in is being set up. Please try again in a few minutes." },
+      { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "300" } },
+    );
+  }
   const a = await auth();
   if (!a.userId) return signInRequired();
   const email = await resolveEmail(a.userId, claimEmailOf(a.sessionClaims));
@@ -102,6 +120,7 @@ export async function requireUserApi(): Promise<SessionUser | Response> {
 
 /** The signed-in user or null, without redirecting (e.g. public pages that adapt when signed in). */
 export async function optionalUser(): Promise<SessionUser | null> {
+  if (!clerkConfigured()) return null;
   const a = await auth();
   if (!a.userId) return null;
   const email = await resolveEmail(a.userId, claimEmailOf(a.sessionClaims));
@@ -153,6 +172,7 @@ const upsertUser = cache(async (userId: string, email: string, locale: Locale | 
         });
       const r = rows[0];
       if (!r) throw new Error("user row was not persisted");
+      if (r.isNew) await firstRun(r.id);
       return r;
     } catch (err) {
       // An 80-bit token colliding is astronomically unlikely; one retry with a fresh token covers it.
@@ -161,6 +181,18 @@ const upsertUser = cache(async (userId: string, email: string, locale: Locale | 
     }
   }
 });
+
+/**
+ * First sign-in: the trial credits (contracts §2; idempotent on `trial:<userId>`, and
+ * `getBalance` self-heals a missed grant, so a failure here is logged, never fatal).
+ */
+async function firstRun(userId: string): Promise<void> {
+  try {
+    await grantTrial(userId);
+  } catch (err) {
+    await captureError(err, { route: "ensureUser (trial grant)", source: "server", severity: "warn" });
+  }
+}
 
 /**
  * Upserts the local row from the session: `{id, email}` on the first authenticated request

@@ -1,0 +1,70 @@
+import {
+  Award,
+  BookOpen,
+  Building2,
+  ChartColumn,
+  ClipboardCheck,
+  FileSignature,
+  FileText,
+  FlaskConical,
+  FolderOpen,
+  Image as ImageIcon,
+  ListChecks,
+  Mail,
+  Mic,
+  Newspaper,
+  PenLine,
+  Presentation,
+  ScrollText,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
+import type { MaterialId } from "@/lib/core/types";
+
+/* Material → icon (server- and client-safe: no hooks, no "use client"). */
+
+const MATERIAL_ICONS: Partial<Record<MaterialId, LucideIcon>> = {
+  resume: FileText,
+  resume_variant: FileText,
+  cv: FileText,
+  cover_letter: Mail,
+  outreach_email: Mail,
+  recommendation_letters: Mail,
+  portfolio: FolderOpen,
+  work_samples: ImageIcon,
+  product_images: ImageIcon,
+  transcript: BookOpen,
+  test_scores: ClipboardCheck,
+  personal_statement: PenLine,
+  research_statement: PenLine,
+  artist_statement: PenLine,
+  promotion_case: PenLine,
+  research_proposal: FlaskConical,
+  publication_list: ScrollText,
+  paper: ScrollText,
+  abstract: ScrollText,
+  pitch_deck: Presentation,
+  one_pager: Presentation,
+  business_plan: ChartColumn,
+  financial_summary: ChartColumn,
+  performance_record: ChartColumn,
+  demo_video: Video,
+  company_profile: Building2,
+  media_kit: Building2,
+  speaker_bio: Mic,
+  talk_proposal: Mic,
+  license: Award,
+  certificate: Award,
+  application_form: FileSignature,
+  grant_application: FileSignature,
+  nomination_packet: FileSignature,
+  evidence_list: ListChecks,
+  document_checklist: ListChecks,
+  article: Newspaper,
+  book_proposal: BookOpen,
+};
+
+export function materialIcon(id: MaterialId): LucideIcon {
+  return MATERIAL_ICONS[id] ?? FileText;
+}
+

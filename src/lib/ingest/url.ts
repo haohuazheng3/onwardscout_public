@@ -209,7 +209,9 @@ export function guardedLookup(resolver: Resolver) {
     resolver(hostname).then(
       (all) => {
         const want = options.family === 4 || options.family === "IPv4" ? 4 : options.family === 6 || options.family === "IPv6" ? 6 : 0;
-        const addrs = want ? all.filter((a) => a.family === want) : all;
+        // IPv4 first (the resolver is verbatim, often IPv6 first): serverless egress is IPv4, and
+        // some sites serve a wrong certificate on IPv6 — a TLS error happy eyeballs won't retry.
+        const addrs = (want ? all.filter((a) => a.family === want) : all).toSorted((a, b) => (a.family === 4 ? 0 : 1) - (b.family === 4 ? 0 : 1));
         if (addrs.length === 0) {
           callback(Object.assign(new Error(`No address for ${hostname}`), { code: "ENOTFOUND" }) as NodeJS.ErrnoException, "", 4);
           return;

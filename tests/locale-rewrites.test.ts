@@ -10,6 +10,7 @@ import {
   inboundAddress,
   inboundTokenFrom,
   isAdminPath,
+  isAnonymousStartPath,
   isPersonalApiPath,
   isPersonalPagePath,
   isSafeReturnPath,
@@ -163,8 +164,10 @@ describe("path rules shared with the proxy", () => {
     expect(isSignInPath("/sign-in")).toBe(true);
     expect(isSignInPath("/zh/sign-in/factor-one")).toBe(true);
     expect(isSignInPath("/sign-inside")).toBe(false);
-    for (const p of ["/api/me", "/api/applications/app_1/submit", "/api/opportunities/mine", "/api/stripe/portal", "/api/settings"]) expect(isPersonalApiPath(p)).toBe(true);
-    for (const p of ["/api/opportunities", "/api/stripe/webhook", "/api/health", "/api/meetings", "/api/cron/jobs", "/api/contact"]) expect(isPersonalApiPath(p)).toBe(false);
+    for (const p of ["/api/me", "/api/applications/app_1/submit", "/api/opportunities", "/api/opportunities/import", "/api/stripe/portal", "/api/settings", "/api/notifications"]) expect(isPersonalApiPath(p)).toBe(true);
+    for (const p of ["/api/opportunity", "/api/stripe/webhook", "/api/health", "/api/meetings", "/api/cron/jobs", "/api/contact", "/api/drafts/status", "/api/drafts/claim", "/api/notifications/unsubscribe"]) expect(isPersonalApiPath(p)).toBe(false);
+    for (const p of ["/app/start", "/zh/app/start", "/app/start/"]) expect(isAnonymousStartPath(p)).toBe(true);
+    for (const p of ["/app", "/app/starts", "/app/start/x", "/zh/app/profile"]) expect(isAnonymousStartPath(p)).toBe(false);
   });
 
   it("builds localized sign-in URLs with safe return paths only", () => {

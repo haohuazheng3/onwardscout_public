@@ -1,0 +1,504 @@
+{
+ "absolute_url": "https://stripe.com/jobs/search?gh_jid=8172487",
+ "id": 8172487,
+ "title": "Abuse Investigator",
+ "company_name": "Stripe",
+ "location": {
+  "name": "Dublin"
+ },
+ "updated_at": "2026-10-20T17:25:53-04:00",
+ "application_deadline": null,
+ "language": "en",
+ "questions": [
+  {
+   "description": null,
+   "label": "First Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "first_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Last Name",
+   "required": true,
+   "fields": [
+    {
+     "name": "last_name",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Email",
+   "required": true,
+   "fields": [
+    {
+     "name": "email",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Phone",
+   "required": true,
+   "fields": [
+    {
+     "name": "phone",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Resume/CV",
+   "required": true,
+   "fields": [
+    {
+     "name": "resume",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "resume_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Cover Letter",
+   "required": false,
+   "fields": [
+    {
+     "name": "cover_letter",
+     "type": "input_file",
+     "values": []
+    },
+    {
+     "name": "cover_letter_text",
+     "type": "textarea",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Who is your current or previous employer?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935294",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "What is your current or previous job title?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935295",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": "<p><em>If you don't see your country in the list, please select 'Other'.</em></p>",
+   "label": "Please select the country where you currently reside.\n",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935296",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Australia",
+       "value": 749879679
+      },
+      {
+       "label": "Belgium",
+       "value": 749879680
+      },
+      {
+       "label": "Brazil",
+       "value": 749879681
+      },
+      {
+       "label": "Canada",
+       "value": 749879682
+      },
+      {
+       "label": "Egypt",
+       "value": 749879683
+      },
+      {
+       "label": "France",
+       "value": 749879684
+      },
+      {
+       "label": "Germany",
+       "value": 749879685
+      },
+      {
+       "label": "India",
+       "value": 749879686
+      },
+      {
+       "label": "Indonesia",
+       "value": 749879687
+      },
+      {
+       "label": "Ireland",
+       "value": 749879688
+      },
+      {
+       "label": "Israel",
+       "value": 749879689
+      },
+      {
+       "label": "Italy",
+       "value": 749879690
+      },
+      {
+       "label": "Japan",
+       "value": 749879691
+      },
+      {
+       "label": "Malaysia",
+       "value": 749879692
+      },
+      {
+       "label": "Mexico",
+       "value": 749879693
+      },
+      {
+       "label": "New Zealand",
+       "value": 749879694
+      },
+      {
+       "label": "Poland",
+       "value": 749879695
+      },
+      {
+       "label": "Portugal",
+       "value": 749879696
+      },
+      {
+       "label": "Romania",
+       "value": 749879697
+      },
+      {
+       "label": "Singapore",
+       "value": 749879698
+      },
+      {
+       "label": "South Korea",
+       "value": 749879699
+      },
+      {
+       "label": "Spain",
+       "value": 749879700
+      },
+      {
+       "label": "Sweden",
+       "value": 749879701
+      },
+      {
+       "label": "Switzerland",
+       "value": 749879702
+      },
+      {
+       "label": "Taiwan",
+       "value": 749879703
+      },
+      {
+       "label": "Thailand",
+       "value": 749879704
+      },
+      {
+       "label": "The Netherlands",
+       "value": 749879705
+      },
+      {
+       "label": "UAE",
+       "value": 749879706
+      },
+      {
+       "label": "UK",
+       "value": 749879707
+      },
+      {
+       "label": "US",
+       "value": 749879708
+      },
+      {
+       "label": "Other",
+       "value": 749879709
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Please select the country or countries you anticipate working in for the role in which you are applying.",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935297[]",
+     "type": "multi_value_multi_select",
+     "values": [
+      {
+       "label": "Australia",
+       "value": 749879710
+      },
+      {
+       "label": "Belgium",
+       "value": 749879711
+      },
+      {
+       "label": "Brazil",
+       "value": 749879712
+      },
+      {
+       "label": "Canada",
+       "value": 749879713
+      },
+      {
+       "label": "France",
+       "value": 749879714
+      },
+      {
+       "label": "Germany",
+       "value": 749879715
+      },
+      {
+       "label": "India",
+       "value": 749879716
+      },
+      {
+       "label": "Indonesia",
+       "value": 749879717
+      },
+      {
+       "label": "Ireland",
+       "value": 749879718
+      },
+      {
+       "label": "Israel",
+       "value": 749879719
+      },
+      {
+       "label": "Italy",
+       "value": 749879720
+      },
+      {
+       "label": "Japan",
+       "value": 749879721
+      },
+      {
+       "label": "Luxembourg",
+       "value": 749879722
+      },
+      {
+       "label": "Malaysia",
+       "value": 749879723
+      },
+      {
+       "label": "Mexico",
+       "value": 749879724
+      },
+      {
+       "label": "New Zealand",
+       "value": 749879725
+      },
+      {
+       "label": "Poland",
+       "value": 749879726
+      },
+      {
+       "label": "Portugal",
+       "value": 749879727
+      },
+      {
+       "label": "Romania",
+       "value": 749879728
+      },
+      {
+       "label": "Singapore",
+       "value": 749879729
+      },
+      {
+       "label": "South Korea",
+       "value": 749879730
+      },
+      {
+       "label": "Spain",
+       "value": 749879731
+      },
+      {
+       "label": "Sweden",
+       "value": 749879732
+      },
+      {
+       "label": "Switzerland",
+       "value": 749879733
+      },
+      {
+       "label": "Taiwan",
+       "value": 749879734
+      },
+      {
+       "label": "Thailand",
+       "value": 749879735
+      },
+      {
+       "label": "The Netherlands",
+       "value": 749879736
+      },
+      {
+       "label": "UAE",
+       "value": 749879737
+      },
+      {
+       "label": "UK",
+       "value": 749879738
+      },
+      {
+       "label": "US",
+       "value": 749879739
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Are you authorized to work in the location(s) you selected in your previous response?",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935298",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": 749879740
+      },
+      {
+       "label": "No",
+       "value": 749879741
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Will you require Stripe to sponsor you for a work permit now or in the future for the location(s) you selected in in your previous response?\n",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_68935299",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": 749879742
+      },
+      {
+       "label": "No",
+       "value": 749879743
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "description": "<p>Use of BrightHire is not a factor that will be considered when assessing your suitability for a role. Any interview notes and analysis by BrightHire are subject to human review by the hiring team.</p>\n<p><strong data-stringify-type=\"bold\">[For EU/UK/Swiss based roles only:&nbsp;</strong>We collec",
+   "label": "To ensure we can focus fully on our conversation, we use BrightHire to record and transcribe interviews. This helps us get to know you better without the distraction of note-taking. We also use BrightHire to help us analyze interview notes and for internal Stripe interview quality training and assurance purposes. After the recruitment process ends, recordings may be shared internally for recruiter and interviewer training to help us improve our interview processes. Please confirm if you consent to BrightHire being enabled for this interview and for your personal data to be collected and processed for the purposes mentioned above, by responding below",
+   "required": true,
+   "fields": [
+    {
+     "name": "question_69457836",
+     "type": "multi_value_single_select",
+     "values": [
+      {
+       "label": "Yes",
+       "value": 1
+      },
+      {
+       "label": "No",
+       "value": 0
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "location_questions": [
+  {
+   "description": null,
+   "label": "Longitude",
+   "required": true,
+   "fields": [
+    {
+     "name": "longitude",
+     "type": "input_hidden",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Latitude",
+   "required": true,
+   "fields": [
+    {
+     "name": "latitude",
+     "type": "input_hidden",
+     "values": []
+    }
+   ]
+  },
+  {
+   "description": null,
+   "label": "Location",
+   "required": true,
+   "fields": [
+    {
+     "name": "location",
+     "type": "input_text",
+     "values": []
+    }
+   ]
+  }
+ ],
+ "compliance": [],
+ "demographic_questions": null,
+ "data_compliance": [
+  {
+   "type": "gdpr",
+   "requires_consent": false,
+   "requires_processing_consent": false,
+   "requires_retention_consent": false,
+   "retention_period": null,
+   "demographic_data_consent_applies": false
+  }
+ ],
+ "content": "(posting description trimmed for the test fixture)"
+}

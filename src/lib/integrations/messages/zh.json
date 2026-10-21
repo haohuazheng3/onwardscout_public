@@ -1,0 +1,60 @@
+{
+  "metaTitle": "账号连接",
+  "eyebrow": "账号连接",
+  "title": "已连接的账号",
+  "lede": "连接 Gmail，外联邮件就从你自己的邮箱发出；把收到的回复转发到这里，每段对话都能继续推进。",
+  "gmail": {
+    "title": "Gmail",
+    "statusConnected": "已连接：{email}",
+    "badgeConnected": "已连接",
+    "statusNotConnected": "未连接",
+    "statusError": "需要重新连接",
+    "statusUnavailable": "暂未开放",
+    "body": "你确认一封外联邮件后，Onward Scout 会从你的 Gmail 发出——每封只写给一个人，从不群发。没有连接 Gmail 时，同一封邮件会在你自己的邮件应用中打开，准备好直接发送。",
+    "errorBody": "Google 已不再允许我们代你发信，通常是因为你在 Google 账号中移除了授权。重新连接即可继续发送。",
+    "unavailableBody": "Onward Scout 的 Gmail 发信功能暂未开启。在此之前，我们准备的每封邮件都会在你自己的邮件应用中打开，准备好直接发送。",
+    "connect": "连接 Gmail",
+    "reconnect": "重新连接",
+    "connecting": "正在打开 Google…",
+    "disconnect": "断开连接",
+    "disconnecting": "正在断开…",
+    "disconnected": "已断开 Gmail，我们无法再从该邮箱发信。",
+    "sendTest": "给我发一封测试邮件",
+    "sending": "正在发送…",
+    "testSent": "测试邮件已发送到 {email}，请查收。",
+    "sentCount": "{count, plural, =0 {还没有通过 Gmail 发出的邮件} other {已通过 Gmail 发出 # 封邮件}}",
+    "connectedSince": "连接于 {date}"
+  },
+  "flash": {
+    "connected": "Gmail 已连接。你确认的邮件将从你的邮箱发出。",
+    "denied": "Google 授权页面被关闭，Gmail 未连接，一切保持不变。",
+    "scope": "Google 没有授予发信权限，所以 Gmail 未连接。再次尝试时请勾选「代表你发送电子邮件」。",
+    "expired": "这次连接已过期，请重试。",
+    "error": "暂时无法连接 Gmail，请一分钟后再试。",
+    "unavailable": "Gmail 连接暂未开放。"
+  },
+  "scope": {
+    "title": "Onward Scout 能做什么、不能做什么",
+    "send": "以你的地址发送你确认过的邮件，每次只发给一位收件人。",
+    "identity": "知道是从哪个邮箱地址发出的。",
+    "noRead": "无法读取、搜索、标记或删除你邮箱里的任何内容，我们从不申请这类权限。",
+    "noBulk": "绝不群发：每天最多开启 {perDay} 段新对话，同一个人 {days} 天内只联系一次，任何要求停止联系的人都不会再收到邮件。",
+    "revoke": "可以随时在这里断开，也可以在 Google 账号的「安全性 → 你与第三方应用的关联」中移除授权。"
+  },
+  "dropbox": {
+    "title": "回复收件箱",
+    "body": "收到回复了？转发到你的专属地址即可。我们会把它归到对应的申请，告诉你对方的意思——感兴趣、约时间、婉拒还是提问——并停止对此人的跟进。",
+    "addressLabel": "你的专属回复地址",
+    "copy": "复制地址",
+    "unavailable": "账号准备好后，这里会显示你的专属回复地址，请稍后刷新页面。",
+    "autoTitle": "自动转发回复（可选）",
+    "auto1": "在 Gmail 中打开「设置 → 转发和 POP/IMAP → 添加转发地址」，粘贴你的专属回复地址。",
+    "auto2": "Google 会向该地址发送确认码，一分钟内会出现在你的 Onward Scout 通知里，把它填回 Gmail 即可。",
+    "auto3": "为你联系过的人创建过滤器，选择「转发到」你的专属回复地址。",
+    "privacy": "只有你转发的邮件会到达我们这里。我们只读取它来归档和判断回复类型，不做其他用途。"
+  },
+  "errors": {
+    "notConnected": "请先连接 Gmail。",
+    "sendFailed": "测试邮件没有发出，请重试。"
+  }
+}

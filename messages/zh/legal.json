@@ -1,1 +1,647 @@
-{}
+{
+  "shell": {
+    "home": "Home",
+    "lastUpdated": "Last updated",
+    "shortVersion": "The short version",
+    "onThisPage": "On this page",
+    "questions": "Questions about this page? Write to [{email}](mailto:{email}). {replyTime}",
+    "otherPolicies": "Other policies",
+    "privacy": "Privacy policy",
+    "terms": "Terms of service",
+    "acceptableUse": "Acceptable use",
+    "cookies": "Cookie policy",
+    "refunds": "Refund policy"
+  },
+  "privacy": {
+    "metaTitle": "Privacy policy",
+    "metaDescription": "What Onward Scout collects and why, how AI processing works, who processes your data (Clerk, Neon, Cloudflare, Vercel, Stripe, FlowGlance, Anthropic, Google), how long it is kept, and how to export or delete it.",
+    "title": "Privacy policy",
+    "summary": [
+      "We collect what we need to find opportunities for you and apply on your behalf: your email, the documents and links you give us, the profile built from them, and the applications and messages you approve.",
+      "Your documents are private. They go to the organisations you approve, and to a service provider only when it’s needed for a task you asked for. We never sell your data, never show ads and never use your data to train AI models.",
+      "Our analytics tool records page activity, including text typed into forms and images uploaded on our site. In the EU, the UK and Switzerland it runs only after you accept; elsewhere you can opt out at any time.",
+      "You can export or delete your data from Settings, and write to {email} about anything else."
+    ],
+    "sections": [
+      {
+        "id": "who-we-are",
+        "title": "Who we are",
+        "body": [
+          "Onward Scout (“we”, “us”) runs {domain} and the Onward Scout app. We decide why and how the personal data described here is used, which makes us its controller under data protection law.",
+          "For anything in this policy, write to [{email}](mailto:{email}). {replyTime}"
+        ]
+      },
+      {
+        "id": "what-we-collect",
+        "title": "What we collect, and why",
+        "body": [
+          { "h3": "Your account" },
+          "Signing in needs one thing: your email address. Our sign-in provider, **Clerk**, sends a one-time code to it and keeps your session. We store your Clerk user id, your email, your language, when the account was created and when you were last active, and a random token for your personal reply drop-box address (see “Replies you forward” below).",
+          { "h3": "Before you sign in" },
+          "You can start without an account. Your browser then gets a random identifier in the `os_anon` cookie, and the files, links and draft profile you add are kept under it. When you sign in, the draft moves into your account. To prevent abuse, uploads and parsing before sign-in are limited per network address; we store only a salted hash of that address.",
+          { "h3": "Your documents and links" },
+          "The résumés, CVs, decks, business plans, portfolios, transcripts, certificates, licences, papers and other files you upload, and the links you paste. Files are kept in private storage (**Cloudflare R2**) and shown to you only through short-lived signed links. We extract their text to build your profile. For links, we fetch the public page (for GitHub and ORCID, their public records). We never log in anywhere as you, and we don’t read LinkedIn or Google Scholar pages.",
+          { "note": "Please don’t upload passports, ID cards or other government identity documents. We don’t need them, and the service isn’t designed to hold them." },
+          { "h3": "Your profile, goals and matches" },
+          "The profile we build from your documents: the identity details you provide (name, contact details, location, languages, links and, if you add them, work authorization and year of birth), roles, education, experience, projects, skills, achievements, publications and certifications. Each fact keeps a reference to the document and the words it came from, and whether you confirmed it. We also keep your goals, success definitions and milestones, the preferences you set (such as locations, remote work, budget or a salary floor), the opportunities matched to you with their scores, and the feedback you give.",
+          { "h3": "Applications" },
+          "For each application: the requirements we read, the answers and documents we prepared, the questions we asked you and your answers, a log of every step with timestamps, **your confirmation** (what you approved and when), and the proof of submission — a confirmation page, a reference number, a sent message, or a screenshot of each step when a browser fills in a form. These records show what was submitted in your name and on whose instruction.",
+          { "h3": "Email you send through us" },
+          "If you connect Gmail, **Google** gives us permission to send email from your account (the `gmail.send` scope) and tells us your Google email address. We store an encrypted refresh token and the emails we send for you: recipient, subject, text and Gmail’s message ids. We don’t request — and can’t use — access to read your inbox. You can disconnect at any time in the app or in your Google account.",
+          { "h3": "People you contact" },
+          "To send outreach for you, we keep details about the recipients — investors, recruiters, professors, editors, brands or clients: name, work email, organisation, role and the public page the details came from, plus when they were last contacted and whether they asked not to be contacted again. We only use professional contact details that are publicly listed or that you give us, and we honour every opt-out.",
+          { "h3": "Replies you forward" },
+          "Each account has a personal drop-box address of the form in+(your token)@{domain}. Mail you forward there passes through **Cloudflare Email Routing**; we store its sender, subject and text, attach it to the right application and sort it (interested, meeting, needs information, rejected, automatic reply).",
+          { "h3": "Payments" },
+          "Payments are handled by **Stripe** on its own pages; we never see or store your card number. Stripe tells us what we need to deliver and support the purchase: the product, the amount, the email used at checkout, and Stripe’s customer, subscription, invoice and payment identifiers. We keep a ledger of your credits: granted, reserved, spent and returned.",
+          { "h3": "Messages to us" },
+          "When you use the contact form: your name (optional), email, topic, message and language, your browser’s user agent, a salted hash of your network address, and your account id if you’re signed in. Email to our own addresses reaches us through Cloudflare Email Routing.",
+          { "h3": "Technical data" },
+          "Error reports (the error, the page or route, the browser and a stack trace), rate-limit counters keyed by salted hashes of network addresses, and the request logs our host keeps for a short time. For each AI processing call we log its purpose, size, cost and duration — not its content.",
+          { "h3": "Practice applications" },
+          "A practice application submits to our own test form. We store what it submits (the same fields and file a real one would), the browser’s user agent and a salted hash of the network address, to show you the result."
+        ]
+      },
+      {
+        "id": "how-we-use",
+        "title": "How we use it, and our legal bases",
+        "body": [
+          "We use your data to provide the service you asked for: building your profile, finding and ranking opportunities, preparing, submitting and following up on the applications you approve, sending the emails you approve, showing your progress and notifying you. Under the GDPR and the UK GDPR, that is **performance of our contract** with you.",
+          "We rely on **your consent** for analytics where the law requires it, for connecting Gmail, and for any standing authorization you switch on. You can withdraw consent at any time; it doesn’t affect what was done before.",
+          "We rely on **legitimate interests** to keep the service secure and working (rate limits, abuse prevention, error monitoring, backups), to improve matching from the feedback you give, and to answer messages. For outreach, you decide who is contacted; we act on your instruction and keep the safeguards in our [acceptable use policy](/acceptable-use).",
+          "We keep billing records because **the law requires it** (tax and accounting).",
+          "We don’t sell personal data, don’t share it for cross-context behavioural advertising, and don’t show ads."
+        ]
+      },
+      {
+        "id": "ai",
+        "title": "AI processing",
+        "body": [
+          "Reading documents, matching, drafting, answering form questions, mapping form fields and sorting replies can run in two ways.",
+          "**On our own servers.** By default these tasks run on our own deterministic engine: rules and templates applied to your sourced facts. Nothing is sent to an AI provider, and drafts made this way are labelled “Drafted from your profile”.",
+          "**With Anthropic.** When AI processing is switched on, the text of the documents involved, the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API (Claude) to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
+          "Every result goes through the same checks either way: facts must trace to your documents or your confirmations, and anything that doesn’t is flagged for you."
+        ]
+      },
+      {
+        "id": "providers",
+        "title": "Service providers we use",
+        "body": [
+          "These companies process personal data for us, only to provide their service, under their data processing terms:",
+          {
+            "table": {
+              "head": ["Provider", "What for", "What they receive", "Where"],
+              "rows": [
+                ["Clerk", "Sign-in and sessions", "Your email, one-time codes, session data, and the device and network address used to sign in", "United States"],
+                ["Neon", "Database", "The application data described above", "United States (AWS us-east-1)"],
+                ["Cloudflare", "File storage (R2), email routing for our domain, our file and mail services", "Uploaded and generated files, screenshots, and mail sent to our addresses and drop-boxes", "Global network"],
+                ["Vercel", "Hosting and server code", "Requests to the site and app, including network address and browser; short-lived logs", "United States and global edge network"],
+                ["Stripe", "Payments", "The card and billing details you enter on Stripe’s pages, the purchase and your checkout email", "United States and other countries"],
+                ["FlowGlance", "Analytics", "Page activity, including text typed into forms and images uploaded on our site (see “Analytics” below)", "See FlowGlance’s policy"],
+                ["Anthropic", "AI processing, when switched on", "The document text, profile facts, opportunity requirements and reply text a task needs", "United States"],
+                ["Google", "Sending email from Gmail, only if you connect it", "The emails you approve, sent from your account", "United States and other countries"],
+                ["Resend", "Product email such as the weekly brief, only when switched on", "Your email address and the content of the notification", "United States"]
+              ]
+            }
+          },
+          "Product emails (the weekly brief and “needs you” alerts) are sent only once our email provider is switched on; until then, notifications appear inside the app. Sign-in codes come from Clerk and receipts from Stripe."
+        ]
+      },
+      {
+        "id": "sharing",
+        "title": "Who else receives your data",
+        "body": [
+          "**The organisations you apply to** receive the application you approved: the answers, documents and contact details in it. **The people you email** receive the message you approved, from your own address. What they do with it is governed by their own policies.",
+          "We may disclose data when the law requires it, to protect someone’s safety or our rights, or to a successor if Onward Scout is transferred — in which case this policy keeps applying to your data.",
+          "Nobody else. No data brokers, no advertisers."
+        ]
+      },
+      {
+        "id": "analytics",
+        "title": "Analytics: what FlowGlance records",
+        "body": [
+          "We use one analytics tool, **FlowGlance**, to understand which pages help people and where they get stuck. It records page views, clicks, scrolling and navigation, device and browser type, and an approximate location derived from your network address.",
+          "Because we have switched on its detailed capture, it also records **text you type into forms** on our website and in the app (for example the contact form, or answers you edit) and **images you upload** through our pages. Keep this in mind before typing anything you wouldn’t want recorded; you can turn analytics off at any time.",
+          "How consent works: visitors in the **EU and EEA, the UK and Switzerland** — and anyone whose location we can’t determine — are asked first, and FlowGlance loads only if they accept. Everywhere else it loads by default, with a notice and a one-tap opt-out. Your choice is kept in the `os_consent` cookie for 180 days and can be changed at any time from “Cookie settings” in the footer; opting out takes effect from the next page you load.",
+          "The [cookie policy](/cookie-policy) lists every cookie we set."
+        ]
+      },
+      {
+        "id": "transfers",
+        "title": "International transfers",
+        "body": [
+          "Our database is in the United States, and most of our providers process data in the United States or globally. If you are in the EU/EEA, the UK or Switzerland, these transfers rely on our providers’ Standard Contractual Clauses, the UK International Data Transfer Addendum or the EU–US Data Privacy Framework, as each provider offers.",
+          "If you are in mainland China: your personal information is stored and processed outside China, mainly in the United States, by Onward Scout and the providers listed above, for the purposes in this policy. You can exercise your rights under the Personal Information Protection Law by writing to {email}."
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "How long we keep it",
+        "body": [
+          {
+            "table": {
+              "head": ["Data", "Kept"],
+              "rows": [
+                ["Account, profile, goals and matches", "Until you delete them or your account"],
+                ["Documents you uploaded", "Until you delete the document or your account"],
+                ["Applications, generated documents, step logs, proof of submission and messages", "Until you delete your account: they are the record of what was sent in your name"],
+                ["Drafts started before signing in", "Until you sign in and save them, at most 30 days"],
+                ["Gmail connection", "Until you disconnect Gmail or delete your account; the token is deleted then"],
+                ["Credit ledger, orders and payment records", "7 years, as accounting records"],
+                ["Messages to us", "2 years after our last reply"],
+                ["Error reports", "Until the error is fixed, and no longer than 12 months"],
+                ["Rate-limit counters", "Only the current window for each hashed address"],
+                ["Database backups", "Taken nightly and kept 30 days, so deleted data leaves the backups within 30 days"],
+                ["Analytics and hosting logs", "As set by FlowGlance and Vercel"]
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "security",
+        "title": "How we protect it",
+        "body": [
+          {
+            "ul": [
+              "HTTPS everywhere, and encryption at rest by our database and storage providers.",
+              "Files in a private bucket, reachable only through signed links that expire.",
+              "Gmail tokens encrypted with AES-256-GCM before they are stored.",
+              "Network addresses stored only as salted hashes.",
+              "Access to production data limited to the people who run the service, for support and operations.",
+              "Every automated action logged, and every submission tied to your confirmation."
+            ]
+          },
+          "No system is perfectly secure. If we learn of a breach that affects you, we will tell you and the relevant authorities as the law requires."
+        ]
+      },
+      {
+        "id": "rights",
+        "title": "Your rights and choices",
+        "body": [
+          "Wherever you live, you can:",
+          {
+            "ul": [
+              "**Get a copy** of your data: Settings → download your data.",
+              "**Delete** your account and data: Settings → delete account.",
+              "**Correct** your profile at any time in the app, or ask us to.",
+              "**Withdraw consent**: disconnect Gmail, switch off standing authorizations, or change your analytics choice in “Cookie settings”.",
+              "**Object** to processing based on legitimate interests, or ask us to restrict it.",
+              "**Ask us anything or complain** at {email}."
+            ]
+          },
+          "**EU/EEA and UK (GDPR, UK GDPR):** you also have the right to data portability and to complain to your local data protection authority (in the UK, the ICO).",
+          "**California (CCPA/CPRA):** you have the right to know, delete and correct personal information and to opt out of its sale or sharing. We don’t sell or share personal information as those laws define it, and we won’t treat you differently for using your rights. An authorised agent may make a request for you with your written permission.",
+          "**Mainland China (PIPL):** you have the rights to know, decide, access, copy, correct, supplement and delete your personal information, to withdraw consent, and to ask us to explain how we process it.",
+          "We answer requests within one month (45 days for California requests) and verify them through the email you sign in with."
+        ]
+      },
+      {
+        "id": "automated-decisions",
+        "title": "Automated decisions",
+        "body": [
+          "Matching and ranking are automated, but they only decide what we suggest to you. You decide what to apply for, and the organisations you apply to make their own decisions. We don’t make decisions with legal or similarly significant effects on you by automated means."
+        ]
+      },
+      {
+        "id": "children",
+        "title": "Children and students under 18",
+        "body": [
+          "Onward Scout is not for children under 13. High-school students under 18 can use it only with a parent or guardian: we ask for a guardian’s email during setup, and outreach email is switched off for them. If you believe a child has given us data without that, write to {email} and we will delete it."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes to this policy",
+        "body": [
+          "When we change this policy, we update the date at the top. If a change materially affects how we use your data, we will tell you in the app or by email before it applies."
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Contact",
+        "body": ["Write to [{email}](mailto:{email}) with any question or request about your data. {replyTime}"]
+      }
+    ]
+  },
+  "terms": {
+    "metaTitle": "Terms of service",
+    "metaDescription": "The agreement for using Onward Scout: your account, the authorization to prepare and submit applications on your behalf after your confirmation, accuracy, no guaranteed outcomes, credits and billing, and how disputes are handled.",
+    "title": "Terms of service",
+    "summary": [
+      "Onward Scout finds opportunities and prepares applications for you. It submits applications and sends emails in your name only after your confirmation, or under a standing authorization you set yourself.",
+      "You’re responsible for checking that what you approve is true. We never invent facts, and we flag anything we can’t source.",
+      "We can’t guarantee outcomes: the organisations you apply to decide.",
+      "Credits are used when something is submitted, and failed submissions never use one. Refunds follow the refund policy.",
+      "If you live somewhere with consumer protection laws, you keep them."
+    ],
+    "sections": [
+      {
+        "id": "these-terms",
+        "title": "These terms",
+        "body": [
+          "These terms are an agreement between you and Onward Scout (“we”, “us”) about your use of {domain}, the Onward Scout app and related services. By creating an account or using the service you accept them, together with our [privacy policy](/privacy), [acceptable use policy](/acceptable-use) and [refund policy](/refund-policy)."
+        ]
+      },
+      {
+        "id": "eligibility",
+        "title": "Who can use Onward Scout",
+        "body": [
+          "You must be at least 13. If you are under 18, or under the age of majority where you live, you may use the service only with a parent or guardian who agrees to these terms for you; we ask for their email, and outreach email is not available to you.",
+          "You use the service for yourself. Using it for someone else requires their own account or their documented consent (see the [acceptable use policy](/acceptable-use))."
+        ]
+      },
+      {
+        "id": "account",
+        "title": "Your account",
+        "body": [
+          "You sign in with your email address and a one-time code. Keep access to that mailbox secure: anyone who can read it can sign in as you. Tell us at {email} if you think someone else has used your account.",
+          "Keep the information in your account accurate. One person per account."
+        ]
+      },
+      {
+        "id": "service",
+        "title": "What the service does — and doesn’t",
+        "body": [
+          "We build a profile from your documents, find and rank opportunities, prepare applications and documents, submit them through the channels described on [How it works](/how-it-works), send the emails you approve and follow up.",
+          "Some steps stay with you: creating accounts and logging in to other sites, CAPTCHAs and two-factor codes, payments, signatures, identity documents, interviews and tests. When a platform forbids automation or needs your login, we prepare a handoff and you submit it yourself.",
+          "We are not an employment agency, recruiter, investment adviser, broker, admissions consultant, immigration adviser or law firm, and nothing in the service is legal, financial or immigration advice.",
+          "Opportunity information comes from public sources and can change or be wrong. Check the official page before relying on a deadline, an amount or an eligibility rule; when we don’t know, we say “check the official page”."
+        ]
+      },
+      {
+        "id": "authorization",
+        "title": "Your authorization to act on your behalf",
+        "body": [
+          "You authorize Onward Scout to act as your agent, on your instructions, to:",
+          {
+            "ul": [
+              "prepare applications, documents and emails from your profile;",
+              "submit an application to an opportunity’s official form or system, including uploading the documents you approved, **after you confirm that application**;",
+              "send an email from your connected Gmail account **after you approve that email**;",
+              "send follow-ups or submit applications in a category **only where you have switched on a standing authorization** for it in Settings."
+            ]
+          },
+          "This authorization does not cover creating accounts for you, logging in as you, solving CAPTCHAs, making payments, signing anything, or accepting a third party’s terms on your behalf. We never do those things.",
+          "You can withdraw a standing authorization or disconnect Gmail at any time in the app. That stops future actions, not ones already completed. For every submission we keep a record of what you approved and when."
+        ]
+      },
+      {
+        "id": "accuracy",
+        "title": "Accuracy of what you approve",
+        "body": [
+          "Every fact we use traces to your documents or your confirmations, and we flag claims we can’t source. But you know your history best: check each application or email before you approve it. You are responsible for the accuracy of what you approve and send, and you must not approve anything false or misleading or ask us to add anything untrue.",
+          "If you notice an error after a submission, tell the organisation directly; we will help you prepare the correction."
+        ]
+      },
+      {
+        "id": "outcomes",
+        "title": "No guarantee of outcomes",
+        "body": [
+          "Decisions belong to the organisations you apply to and the people you contact. We don’t guarantee replies, interviews, offers, admissions, funding, publication, prizes or any other result, or that an opportunity is still open.",
+          "We work hard to submit successfully, but third-party sites change, go down or block automated access. When a submission fails, the credit is returned and the application is shown to you with the next step."
+        ]
+      },
+      {
+        "id": "third-parties",
+        "title": "Third-party platforms and services",
+        "body": [
+          "Applications go to sites and systems we don’t control, each with its own terms. You are responsible for following them with your own accounts. We don’t automate platforms that forbid it, and we may decline to submit somewhere if doing so would break that platform’s rules.",
+          "The service relies on providers such as Clerk, Stripe, Google and Anthropic (see the [privacy policy](/privacy)). Their availability is outside our control."
+        ]
+      },
+      {
+        "id": "content",
+        "title": "Your content",
+        "body": [
+          "You keep ownership of everything you upload and everything we draft for you. You give us a limited licence to store, process, adapt and transmit that content only to provide the service to you — including sending it to the organisations and people you approve. We don’t use your content to train AI models, and we don’t publish it.",
+          "You confirm that you have the right to upload what you upload, including any information about other people in it."
+        ]
+      },
+      {
+        "id": "acceptable-use",
+        "title": "Acceptable use",
+        "body": [
+          "You agree to follow our [acceptable use policy](/acceptable-use). In short: no false information, no impersonation, no spam, no applying for someone else without their consent, and no scraping of or attacks on our service."
+        ]
+      },
+      {
+        "id": "billing",
+        "title": "Credits, plans and billing",
+        "body": [
+          {
+            "ul": [
+              "One credit is one application submitted for you (through any channel, including a handoff you confirm) or one outreach email to a new contact. Profile, matching, previews, drafts, follow-ups and practice applications are free.",
+              "A credit is reserved when you confirm a submission, spent when it is submitted, and returned if the submission fails, you withdraw it or it expires first.",
+              "New accounts receive {trialCredits} free credits, valid for {trialDays} days. Free credits have no cash value.",
+              "Pro costs {proPrice} per month for {proCredits} credits, billed monthly in advance until you cancel. Its credits stay usable for {proRollover} days after each billing month. You can cancel at any time and keep Pro until the end of the paid period.",
+              "Credit packs are one-time purchases ({pack10Credits} credits for {pack10Price}, {pack40Credits} credits for {pack40Price}); their credits are valid for {packDays} days.",
+              "Prices are in US dollars. Taxes are shown at checkout where they apply. We may change prices for future billing periods and will tell you before a change affects your subscription.",
+              "Payments are processed by Stripe. Refunds follow our [refund policy](/refund-policy). If a payment is disputed, the credits from it are paused until the dispute is settled."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "changes-to-service",
+        "title": "Changes to the service",
+        "body": [
+          "Onward Scout is in early access and will change. We may add, change or remove features. If we remove something you paid for, or stop the service altogether, we will give you reasonable notice and refund unused purchased credits."
+        ]
+      },
+      {
+        "id": "termination",
+        "title": "Suspension and termination",
+        "body": [
+          "You can stop using Onward Scout and delete your account at any time in Settings.",
+          "We may pause submissions or outreach, or suspend or close an account, if it breaks these terms or the acceptable use policy, puts other people or the service at risk, or if the law requires it. Where reasonable, we will tell you why and give you a chance to fix it first. If we close your account without a breach on your part, we refund unused purchased credits.",
+          "Sections that by their nature should continue — ownership, liability, disputes — survive termination."
+        ]
+      },
+      {
+        "id": "disclaimers",
+        "title": "Disclaimers",
+        "body": [
+          "We provide the service with care, but “as is” and “as available”, to the extent the law allows. We don’t promise that it will be uninterrupted or error-free, or that opportunity information is complete or current. Nothing here limits rights you have as a consumer that can’t be limited by contract."
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Limitation of liability",
+        "body": [
+          "To the extent the law allows: we are not liable for indirect or consequential losses, lost opportunities, lost profits or the decisions of third parties; and our total liability for all claims relating to the service is limited to the greater of the amount you paid us in the 12 months before the claim or US$50.",
+          "This doesn’t limit liability for fraud, for death or personal injury caused by negligence, or for anything else that can’t be limited by law."
+        ]
+      },
+      {
+        "id": "disputes",
+        "title": "Governing law and disputes",
+        "body": [
+          "These terms don’t take away the protections you have under the laws of the country where you live. If you are a consumer, the mandatory consumer protection laws of your country of residence apply, and you can bring a claim in the courts where you live.",
+          "If something goes wrong, please start by writing to [{email}](mailto:{email}) with a description of the problem. We will try to resolve it within 30 days before either of us takes it further."
+        ]
+      },
+      {
+        "id": "changes-to-terms",
+        "title": "Changes to these terms",
+        "body": [
+          "We update the date at the top whenever these terms change. If a change materially affects your rights, we will tell you in the app or by email at least 14 days before it applies to you. If you don’t agree, you can close your account before then."
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Contact",
+        "body": ["Questions about these terms: [{email}](mailto:{email}). {replyTime}"]
+      }
+    ]
+  },
+  "acceptableUse": {
+    "metaTitle": "Acceptable use policy",
+    "metaDescription": "The rules for using Onward Scout: apply truthfully and as yourself, no spam, respect other platforms’ rules, and no scraping or attacks on our service.",
+    "title": "Acceptable use policy",
+    "summary": [
+      "Use Onward Scout to apply honestly, for yourself, at a human pace.",
+      "Don’t use it to deceive, impersonate, spam or attack anyone — including us."
+    ],
+    "sections": [
+      {
+        "id": "truthful",
+        "title": "Be truthful",
+        "body": [
+          {
+            "ul": [
+              "Don’t approve or submit information you know is false or misleading: degrees, employers, titles, dates, results, metrics, publications, awards, licences or references.",
+              "Don’t upload forged or altered documents, or ask us to add claims your documents don’t support.",
+              "Don’t submit other people’s work as your own: what you submit must be yours or properly credited."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "as-yourself",
+        "title": "Apply as yourself",
+        "body": [
+          {
+            "ul": [
+              "Don’t impersonate anyone or misrepresent your connection to a person or organisation.",
+              "Don’t apply on someone else’s behalf unless they have agreed. A coach, parent or assistant helping someone must have that person’s documented consent, and the person must be able to see what is sent in their name.",
+              "Don’t upload other people’s personal data unless you have the right to — for example, someone else’s identity documents or a referee’s private details."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "no-spam",
+        "title": "No spam",
+        "body": [
+          {
+            "ul": [
+              "Outreach must be personal and relevant to the person receiving it. No bulk email, no bought or scraped mailing lists, and no messages to people who asked not to be contacted.",
+              "Don’t try to get around our limits — for example with several accounts, or by sending the same message again and again.",
+              "Respect replies: a “no” is a no."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "other-platforms",
+        "title": "Respect other platforms",
+        "body": [
+          {
+            "ul": [
+              "Don’t ask us to get around CAPTCHAs, logins, paywalls, rate limits or a platform’s terms. We won’t, and trying may get your account suspended.",
+              "Don’t use Onward Scout to apply where you are banned or ineligible, or to flood an organisation with duplicate applications."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "our-service",
+        "title": "Don’t misuse our service",
+        "body": [
+          {
+            "ul": [
+              "No scraping, crawling or bulk downloading of {domain}, its opportunity library or the app, and no automated access except through features we provide.",
+              "No attempts to access other people’s data, to probe or break our security, to overload our systems or to interfere with how the service works.",
+              "No malware, and nothing illegal, hateful, harassing, sexually exploitative or discriminatory in anything you submit or send."
+            ]
+          },
+          "Found a security issue? Please report it to [{email}](mailto:{email}) and give us a chance to fix it before you share it."
+        ]
+      },
+      {
+        "id": "minors",
+        "title": "Minors",
+        "body": ["If you are under 18, use Onward Scout with a parent or guardian, as described in the [terms](/terms). Outreach email is not available to minors."]
+      },
+      {
+        "id": "enforcement",
+        "title": "If these rules are broken",
+        "body": [
+          "We may pause outreach or submissions, remove content, or suspend or close the account involved, and we may report illegal activity to the authorities. Where it’s reasonable, we will explain why and give you a chance to put things right."
+        ]
+      },
+      {
+        "id": "report",
+        "title": "Report a problem",
+        "body": [
+          "If you received an email you didn’t want from someone using Onward Scout, or you see misuse, write to [{email}](mailto:{email}). We will make sure our users don’t contact you again and look into what happened."
+        ]
+      }
+    ]
+  },
+  "cookies": {
+    "metaTitle": "Cookie policy",
+    "metaDescription": "Every cookie Onward Scout uses: the strictly necessary ones for sign-in, drafts, language and your consent choice, FlowGlance analytics after consent where required, and Stripe at checkout. No advertising cookies.",
+    "title": "Cookie policy",
+    "summary": [
+      "A few cookies the site needs to work, one analytics tool (FlowGlance) that you control, and Stripe’s cookies when you pay. No advertising cookies."
+    ],
+    "sections": [
+      {
+        "id": "what",
+        "title": "What cookies are",
+        "body": [
+          "Cookies are small files a website stores in your browser. Similar technologies, such as your browser’s local storage, work much the same way; this policy covers both."
+        ]
+      },
+      {
+        "id": "necessary",
+        "title": "Strictly necessary",
+        "body": [
+          "These are needed for the site to work, so they can’t be switched off in our settings. They aren’t used for analytics or advertising.",
+          {
+            "table": {
+              "head": ["Name", "Set by", "What it does", "Kept for"],
+              "rows": [
+                ["__session, __client_uat and related Clerk cookies", "Clerk (sign-in)", "Keep you signed in and let the app check your session securely", "__session: about a minute, renewed while you’re signed in; the others until you sign out, at most a year"],
+                ["os_anon", "Onward Scout", "Links the draft you start before signing in to your browser; signed, so it can’t be forged", "Until you sign in and save the draft, at most 30 days"],
+                ["NEXT_LOCALE", "Onward Scout", "Remembers the language you chose", "1 year"],
+                ["os_consent", "Onward Scout", "Remembers your analytics choice", "180 days"],
+                ["os-theme (local storage)", "Onward Scout", "Remembers light or dark mode if you picked one; stays in your browser and is never sent to us", "Until you change it or clear your browser data"]
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "analytics",
+        "title": "Analytics",
+        "body": [
+          "**FlowGlance** is our only analytics tool. It may store identifiers in cookies or local storage to recognise sessions and repeat visits. Its detailed capture records page activity, including text typed into forms and images uploaded on our site, as explained in the [privacy policy](/privacy#analytics).",
+          "In the EU/EEA, the UK and Switzerland — and wherever we can’t tell your location — FlowGlance loads only after you choose “Accept analytics”. Elsewhere it loads by default, and you can opt out with one tap. Change your choice at any time from “Cookie settings” in the footer."
+        ]
+      },
+      {
+        "id": "payments",
+        "title": "Payments",
+        "body": [
+          "When you check out, you are on Stripe’s secure pages. Stripe sets the cookies it needs to process the payment and prevent fraud, as described in Stripe’s own cookie policy."
+        ]
+      },
+      {
+        "id": "not-used",
+        "title": "What we don’t use",
+        "body": ["No advertising cookies, no cross-site tracking pixels and no social media trackers."]
+      },
+      {
+        "id": "choices",
+        "title": "Your choices",
+        "body": [
+          "Use “Cookie settings” in the footer to accept or refuse analytics at any time. You can also block or delete cookies in your browser; if you block the strictly necessary ones, signing in and saving drafts won’t work."
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Questions",
+        "body": ["Write to [{email}](mailto:{email}). {replyTime}"]
+      }
+    ]
+  },
+  "refunds": {
+    "metaTitle": "Refund policy",
+    "metaDescription": "Cancel Pro any time and keep it until the period ends. Charges and credit packs are refundable within 14 days when none of their credits were used. Failed submissions never use a credit.",
+    "title": "Refund policy",
+    "summary": [
+      "Pro: cancel any time and keep it until the end of the paid period. A charge is refundable within 14 days if none of its credits were used.",
+      "Packs: refundable within 14 days if unused.",
+      "Used credits aren’t refundable — but failed submissions never use a credit.",
+      "To ask for a refund, write to {email} from the email you sign in with."
+    ],
+    "sections": [
+      {
+        "id": "pro",
+        "title": "Pro subscription",
+        "body": [
+          {
+            "ul": [
+              "Cancel any time from Billing in your account. Your subscription stops renewing, and you keep Pro and its credits until the end of the period you have paid for. Credits from that period stay usable for {proRollover} days after it ends.",
+              "Within 14 days of a Pro charge, if none of the credits from that charge have been used, we refund the charge in full.",
+              "After 14 days, or once credits from a charge have been used, that charge isn’t refundable; cancelling stops the next one."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "packs",
+        "title": "Credit packs",
+        "body": [
+          {
+            "ul": [
+              "A pack is refundable in full within 14 days of purchase if none of its credits have been used.",
+              "Once credits from a pack have been used, the pack isn’t refundable. Unused pack credits stay valid for {packDays} days from purchase."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "never-charged",
+        "title": "Credits that are never charged",
+        "body": [
+          {
+            "ul": [
+              "A credit is reserved when you confirm a submission and spent only when the application is actually submitted.",
+              "If a submission fails, you withdraw it, or it can’t be completed before its deadline, the reserved credit returns to your balance automatically. A failed submission never needs a refund.",
+              "Building your profile, matching, previews, drafts, follow-ups and practice applications never use credits.",
+              "Free starter credits have no cash value and can’t be refunded or exchanged."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "our-mistake",
+        "title": "When something goes wrong on our side",
+        "body": [
+          "If we submitted something incorrectly, charged you twice, or a problem on our side cost you a credit, write to us. We will restore the credits or refund the charge, whichever is fairer, regardless of the 14-day window."
+        ]
+      },
+      {
+        "id": "how-to-ask",
+        "title": "How to ask for a refund",
+        "body": [
+          {
+            "ul": [
+              "Write to [{email}](mailto:{email}) from the email address you sign in with, and include the date and amount of the charge (your Stripe receipt has both).",
+              "We reply within two business days. Approved refunds go back to the original payment method through Stripe and usually appear within 5–10 business days, depending on your bank.",
+              "When a charge is refunded, the credits from that charge are removed from your balance."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "your-rights",
+        "title": "Your legal rights",
+        "body": [
+          "This policy doesn’t limit any rights you have under the consumer law of the country where you live. Our 14-day refund for unused purchases applies in addition to those rights."
+        ]
+      },
+      {
+        "id": "chargebacks",
+        "title": "Chargebacks",
+        "body": [
+          "Please write to us before disputing a charge with your bank — it’s usually faster for everyone. While a dispute is open, the credits from that charge are paused."
+        ]
+      }
+    ]
+  }
+}

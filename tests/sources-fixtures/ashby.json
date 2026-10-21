@@ -1,0 +1,262 @@
+{
+ "apiVersion": "1",
+ "jobs": [
+  {
+   "id": "ee1e5089-4652-4ea2-b233-8c3ab0fe729d",
+   "title": "VP of Sales, AMER",
+   "department": "Sales",
+   "team": "Sales",
+   "employmentType": "FullTime",
+   "location": "Austin",
+   "shouldDisplayCompensationOnJobPostings": true,
+   "secondaryLocations": [
+    {
+     "location": "San Francisco",
+     "address": {
+      "postalAddress": {
+       "addressRegion": "California",
+       "addressCountry": "United States",
+       "addressLocality": "San Francisco"
+      }
+     }
+    },
+    {
+     "location": "New York",
+     "address": {
+      "postalAddress": {
+       "addressRegion": "New York",
+       "addressCountry": "United States",
+       "addressLocality": "New York"
+      }
+     }
+    }
+   ],
+   "publishedAt": "2026-05-29T12:40:45.889+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Hybrid",
+   "address": {
+    "postalAddress": {
+     "addressRegion": "Texas",
+     "addressCountry": "United States",
+     "addressLocality": "Austin "
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/deepl/ee1e5089-4652-4ea2-b233-8c3ab0fe729d",
+   "applyUrl": "https://jobs.ashbyhq.com/deepl/ee1e5089-4652-4ea2-b233-8c3ab0fe729d/application",
+   "descriptionHtml": "<h1><strong>Meet DeepL</strong></h1><p style=\"min-height:1.5em\">DeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.<br />Founded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.</p><p style=\"min-height:1.5em\">Our goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.</p><p style=\"min-height:1.5em\"></p><h2><strong>What sets us apart</strong></h2><p style=\"min-height:1.5em\">What sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.</p><p style=\"min-height:1.5em\">When we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care that shape our culture.</p><p style=\"min-height:1.5em\">What we know for sure is this: being part of DeepL means joining a team dedicated to innovation, growth, and well-being. Discover more about life at DeepL on<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.linkedin.com/company/deepl/\"><u>LinkedIn</u></a>,<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/deepl_official/\"><u>Instagram</u></a>, and our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.deepl.com/en/blog\"><u>Blog</u></a>.</p><p style=\"min-height:1.5em\"></p><h2><strong>Meet the team behind this journey</strong></h2><p style=\"min-height:1.5em\">We're looking for a VP of Sales to lead our Americas (AMER) region. This is a second line leadership position with 5 Sales Leaders reporting into you, covering Enterprise, Mid-Market, and key verticals across North America, Latin America, and Canada.</p><p style=\"min-height:1.5em\">You will own both Corporate (Mid-Market) and Enterprise segmentations across your teams, with significant opportunity to win some of the biggest logos in the Americas. Our sales team is headquartered in Austin, TX, and this role can be based in either San Francisco or Austin.</p>",
+   "descriptionPlain": "MEET DEEPL\n\nDeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.\nFounded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.\n\nOur goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.\n\n\n\n\nWHAT SETS US APART\n\nWhat sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.\n\nWhen we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care th",
+   "compensation": {
+    "compensationTierSummary": "$212.5K – $275K • Offers Equity • $212.5K – $275K Commission • Multiple Ranges",
+    "scrapeableCompensationSalarySummary": "$212,500 - $275,000",
+    "compensationTiers": [
+     {
+      "id": "bc638196-32ac-4d81-aa72-0a2fba7c2c96",
+      "tierSummary": "$212,500 – $250,000 • Offers Equity • $212,500 – $250,000 Commission",
+      "title": "Texas",
+      "additionalInformation": null,
+      "components": [
+       {
+        "id": "5cbcfdfb-ac6c-4798-ab93-62b99f22e889",
+        "summary": "$212,500 – $250,000",
+        "compensationType": "Salary",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": 212500,
+        "maxValue": 250000
+       },
+       {
+        "id": "ef497528-4ec2-44fc-b024-0c33a98c54ec",
+        "summary": "Offers Equity",
+        "compensationType": "EquityCashValue",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": null,
+        "maxValue": null
+       },
+       {
+        "id": "13888eed-e79a-4600-adb2-dd3d212d6149",
+        "summary": "$212,500 – $250,000 Commission",
+        "compensationType": "Commission",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": 212500,
+        "maxValue": 250000
+       }
+      ]
+     },
+     {
+      "id": "2437556e-f6db-4d52-87d1-1ddf2a07b93b",
+      "tierSummary": "$233,750 – $275,000 • Offers Equity • $233,750 – $275,000 Commission",
+      "title": "California",
+      "additionalInformation": null,
+      "components": [
+       {
+        "id": "b64a615a-dff3-4543-8977-ce0322701d70",
+        "summary": "Offers Equity",
+        "compensationType": "EquityCashValue",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": null,
+        "maxValue": null
+       },
+       {
+        "id": "750fd15a-fb54-45a6-b53a-10c98e5f4f64",
+        "summary": "$233,750 – $275,000 Commission",
+        "compensationType": "Commission",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": 233750,
+        "maxValue": 275000
+       },
+       {
+        "id": "ed487a9e-b9ad-4829-80d2-61b50899b715",
+        "summary": "$233,750 – $275,000",
+        "compensationType": "Salary",
+        "interval": "1 YEAR",
+        "currencyCode": "USD",
+        "minValue": 233750,
+        "maxValue": 275000
+       }
+      ]
+     }
+    ],
+    "summaryComponents": [
+     {
+      "minValue": 212500,
+      "maxValue": 275000,
+      "currencyCode": "USD",
+      "interval": "1 YEAR",
+      "compensationType": "Salary"
+     },
+     {
+      "compensationType": "EquityCashValue",
+      "minValue": null,
+      "maxValue": null,
+      "interval": "1 YEAR"
+     },
+     {
+      "minValue": 212500,
+      "maxValue": 275000,
+      "currencyCode": "USD",
+      "interval": "1 YEAR",
+      "compensationType": "Commission"
+     }
+    ]
+   }
+  },
+  {
+   "id": "22c4e48d-09ed-446d-bf74-4a546db31e8c",
+   "title": "Senior Machine Learning Engineering Manager ",
+   "department": "Research",
+   "team": "Research",
+   "employmentType": "FullTime",
+   "location": "London",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [
+    {
+     "location": "Amsterdam",
+     "address": {
+      "postalAddress": {
+       "addressRegion": "North Holland",
+       "addressCountry": "Netherlands",
+       "addressLocality": "Amsterdam"
+      }
+     }
+    },
+    {
+     "location": "Munich",
+     "address": {
+      "postalAddress": {
+       "addressRegion": "Bavaria",
+       "addressCountry": "Germany",
+       "addressLocality": "Munich"
+      }
+     }
+    }
+   ],
+   "publishedAt": "2026-10-20T06:27:37.168+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Hybrid",
+   "address": {
+    "postalAddress": {
+     "addressRegion": "London",
+     "addressCountry": "United Kingdom",
+     "addressLocality": "London"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/deepl/22c4e48d-09ed-446d-bf74-4a546db31e8c",
+   "applyUrl": "https://jobs.ashbyhq.com/deepl/22c4e48d-09ed-446d-bf74-4a546db31e8c/application",
+   "descriptionHtml": "<h1><strong>Meet DeepL</strong></h1><p style=\"min-height:1.5em\">DeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.<br />Founded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.</p><p style=\"min-height:1.5em\">Our goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.</p><p style=\"min-height:1.5em\"></p><h2><strong>What sets us apart</strong></h2><p style=\"min-height:1.5em\">What sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.</p><p style=\"min-height:1.5em\">When we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care that shape our culture.</p><p style=\"min-height:1.5em\">What we know for sure is this: being part of DeepL means joining a team dedicated to innovation, growth, and well-being. Discover more about life at DeepL on<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.linkedin.com/company/deepl/\"><u>LinkedIn</u></a>,<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/deepl_official/\"><u>Instagram</u></a>, and our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.deepl.com/en/blog\"><u>Blog</u></a>.</p>",
+   "descriptionPlain": "MEET DEEPL\n\nDeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.\nFounded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.\n\nOur goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.\n\n\n\n\nWHAT SETS US APART\n\nWhat sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.\n\nWhen we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care th",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "bd5ea968-a2bc-4951-bf29-02dd324169c6",
+   "title": "Sales Support Specialist | Contract",
+   "department": "Sales",
+   "team": "Sales",
+   "employmentType": "Contract",
+   "location": "London",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2026-09-23T09:14:10.316+00:00",
+   "isListed": true,
+   "isRemote": null,
+   "workplaceType": null,
+   "address": {
+    "postalAddress": {
+     "addressRegion": "London",
+     "addressCountry": "United Kingdom",
+     "addressLocality": "London"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/deepl/bd5ea968-a2bc-4951-bf29-02dd324169c6",
+   "applyUrl": "https://jobs.ashbyhq.com/deepl/bd5ea968-a2bc-4951-bf29-02dd324169c6/application",
+   "descriptionHtml": "<h1><strong>Meet DeepL</strong></h1><p style=\"min-height:1.5em\">DeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.<br />Founded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.</p><p style=\"min-height:1.5em\">Our goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.</p><p style=\"min-height:1.5em\"></p><h2><strong>What sets us apart</strong></h2><p style=\"min-height:1.5em\">What sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.</p><p style=\"min-height:1.5em\">When we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care that shape our culture.</p><p style=\"min-height:1.5em\">What we know for sure is this: being part of DeepL means joining a team dedicated to innovation, growth, and well-being. Discover more about life at DeepL on<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.linkedin.com/company/deepl/\"><u>LinkedIn</u></a>,<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/deepl_official/\"><u>Instagram</u></a>, and our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.deepl.com/en/blog\"><u>Blog</u></a>.</p><h2><strong>Meet the team behind this journey</strong></h2><p style=\"min-height:1.5em\">At DeepL, we're on an exciting adventure to expand our operations to match our ambitious growth plans. At the heart of this journey is our Sales team, a cornerstone of DeepL's market expansion and customer engagement strategy.</p>",
+   "descriptionPlain": "MEET DEEPL\n\nDeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.\nFounded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.\n\nOur goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.\n\n\n\n\nWHAT SETS US APART\n\nWhat sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.\n\nWhen we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care th",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "5d5ed7b1-8a46-4123-8ad2-0b612b13355c",
+   "title": "Enterprise Account Executive | in Österreich",
+   "department": "Sales",
+   "team": "Account Executives",
+   "employmentType": "FullTime",
+   "location": "Vienna",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2026-09-18T16:51:41.546+00:00",
+   "isListed": true,
+   "isRemote": null,
+   "workplaceType": null,
+   "address": {
+    "postalAddress": {
+     "addressCountry": "Austria",
+     "addressLocality": "Vienna"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/deepl/5d5ed7b1-8a46-4123-8ad2-0b612b13355c",
+   "applyUrl": "https://jobs.ashbyhq.com/deepl/5d5ed7b1-8a46-4123-8ad2-0b612b13355c/application",
+   "descriptionHtml": "<h1><strong>Meet DeepL</strong></h1><p style=\"min-height:1.5em\">DeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.<br />Founded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.</p><p style=\"min-height:1.5em\">Our goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.</p><p style=\"min-height:1.5em\"></p><h2><strong>What sets us apart</strong></h2><p style=\"min-height:1.5em\">What sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.</p><p style=\"min-height:1.5em\">When we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care that shape our culture.</p><p style=\"min-height:1.5em\">What we know for sure is this: being part of DeepL means joining a team dedicated to innovation, growth, and well-being. Discover more about life at DeepL on<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.linkedin.com/company/deepl/\"><u>LinkedIn</u></a>,<a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.instagram.com/deepl_official/\"><u>Instagram</u></a>, and our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.deepl.com/en/blog\"><u>Blog</u></a>.</p><div style=\"min-height:1.2em;margin-top:0px;margin-bottom:0px\"> </div><h2><strong>Meet the team behind this journey</strong></h2><p style=\"min-height:1.5em\">At DeepL, we're on an exciting adventure to expand our operations to match our ambitious growth plans. At the heart of this journey is our Sales team, a cornerstone of DeepL's market expansion and customer engagement strategy.</p>",
+   "descriptionPlain": "MEET DEEPL\n\nDeepL is a global AI product and research company focused on building secure, intelligent solutions to complex business problems. Over 200,000 business customers and millions of individuals across 228 global markets today trust DeepL's Language AI platform for human-like translation, improved writing and real-time voice translation.\nFounded in 2017 by CEO Jaroslaw “Jarek” Kutylowski, DeepL now has around 1,000 passionate employees and is supported by world-renowned investors including Benchmark, IVP, and Index Ventures.\n\nOur goal is to become the global leader in trusted, intelligent AI technology, building products that drive better communication, foster connections, and create a meaningful impact. To achieve this, we need talented people like you to join our journey. If you’re ready to shape the future of AI and grow your career in a fast-moving, purpose-driven environment, DeepL is your next destination.\n\n\n\n\nWHAT SETS US APART\n\nWhat sets us apart is our blend of cutting-edge AI technology, meaningful work, and a culture where people truly thrive. We’re a team of innovators, researchers, and creators driven by a shared purpose to unlock human potential by making work simpler, smarter, and more connected.\n\nWhen we share what it’s like to work at DeepL, the reactions are overwhelmingly positive. This might be because of our technology that helps millions of people and businesses communicate and work better every day, or because of the trust, curiosity, and care th",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  }
+ ]
+}

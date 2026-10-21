@@ -1,0 +1,93 @@
+"use client";
+
+import { ArrowRight, Send } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { track } from "@/components/Consent";
+import { Button, ButtonLink, type ButtonSize } from "@/components/ui";
+import { toast } from "@/components/ui-client";
+import { useRouter } from "@/i18n/navigation";
+
+/**
+ * "Apply for me": pressed state at once, POST /api/applications, then straight to the
+ * application page (its skeleton renders while it loads). Failure rolls back with a toast;
+ * when credits run out the toast offers the billing page. An existing application opens instead.
+ */
+export function ApplyButton({
+  opportunityId,
+  type,
+  channel,
+  goalId,
+  applicationId,
+  practice = false,
+  size = "md",
+  block = false,
+  className,
+  onStarted,
+}: {
+  opportunityId: string;
+  type: string;
+  channel: string;
+  goalId?: string | null;
+  applicationId?: string | null;
+  practice?: boolean;
+  size?: ButtonSize;
+  block?: boolean;
+  className?: string;
+  onStarted?: (applicationId: string) => void;
+}) {
+  const t = useTranslations("scout.apply");
+  const tc = useTranslations("common");
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  if (applicationId) {
+    return (
+      <ButtonLink href={`/app/applications/${applicationId}`} variant="ghost" size={size} block={block} className={className} iconRight={<ArrowRight size={16} aria-hidden />}>
+        {t("open")}
+      </ButtonLink>
+    );
+  }
+
+  async function start() {
+    if (pending) return;
+    setPending(true);
+    track("apply_requested", { opportunityId, type, channel, practice });
+    let status = 0;
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ opportunityId, ...(goalId ? { goalId } : {}), ...(practice ? { practice: true } : {}) }),
+      });
+      status = res.status;
+      const data = (await res.json().catch(() => null)) as { applicationId?: string; error?: string } | null;
+      if (!res.ok || !data?.applicationId) throw new Error(data?.error || tc("errors.generic"));
+      onStarted?.(data.applicationId);
+      router.push(`/app/applications/${data.applicationId}`);
+      // Stay pressed: the application page's skeleton takes over.
+    } catch (err) {
+      setPending(false);
+      const message = err instanceof TypeError ? tc("errors.network") : err instanceof Error ? err.message : tc("errors.generic");
+      toast.error(t("failed"), {
+        body: message,
+        action: status === 402 ? { label: t("getCredits"), onClick: () => router.push("/app/billing") } : undefined,
+      });
+    }
+  }
+
+  return (
+    <Button
+      variant="primary"
+      size={size}
+      block={block}
+      className={className}
+      loading={pending}
+      icon={<Send size={16} aria-hidden />}
+      onClick={start}
+      data-pressed={pending || undefined}
+    >
+      {pending ? t("starting") : practice ? t("practice") : t("cta")}
+    </Button>
+  );
+}

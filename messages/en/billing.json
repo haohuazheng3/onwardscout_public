@@ -1,1 +1,184 @@
-{}
+{
+  "checkout": {
+    "labelPlan": "Get {name} · {price}/month",
+    "labelPack": "Buy {name} · {price}",
+    "opening": "Opening checkout…",
+    "redirecting": "Taking you to Stripe…",
+    "signingIn": "Taking you to sign in…",
+    "resume": "Resume checkout",
+    "errorTitle": "Checkout didn’t open",
+    "openBilling": "Open billing",
+    "errors": {
+      "not_configured": "Checkout is being set up. Please try again in a few minutes.",
+      "price_missing": "This option can’t be bought yet. Please try again in a few minutes.",
+      "nonprod": "Checkout only opens on onwardscout.com, not on this test site.",
+      "has_plan": "You already have Pro. Manage or cancel it from Billing.",
+      "stale": "That checkout attempt expired. Press the button again to start a fresh one.",
+      "invalid": "Pick Pro or a credit pack to continue.",
+      "rate_limited": "Too many checkout attempts in a row. Wait a few minutes, then try again.",
+      "failed": "We couldn’t open checkout. Please try again in a moment.",
+      "network": "We couldn’t reach the server. Check your connection and try again."
+    },
+    "resumingTitle": "Picking up where you left off",
+    "resumingBody": "Opening secure checkout for {name}…",
+    "promptTitle": "Continue to checkout?",
+    "promptBody": "You chose {name} before signing in. Nothing is charged until you confirm on Stripe’s page.",
+    "notNow": "Not now",
+    "cancelledTitle": "Checkout closed. Nothing was charged.",
+    "cancelledBody": "Your choice is kept for 20 minutes, so the button picks up the same checkout.",
+    "startOver": "Start over"
+  },
+  "portal": {
+    "manage": "Manage subscription",
+    "opening": "Opening the billing portal…",
+    "errorTitle": "The billing portal didn’t open",
+    "errors": {
+      "not_configured": "Billing is being set up. Please try again in a few minutes.",
+      "no_customer": "There’s no billing history yet. The portal opens after your first purchase.",
+      "rate_limited": "Too many attempts in a row. Wait a few minutes, then try again.",
+      "failed": "We couldn’t open the billing portal. Please try again in a moment.",
+      "network": "We couldn’t reach the server. Check your connection and try again."
+    }
+  },
+  "page": {
+    "metaTitle": "Billing",
+    "loading": "Loading billing",
+    "eyebrow": "Billing",
+    "title": "Credits and plan",
+    "description": "Stripe emails receipts to {email}. Credits show up here the moment a payment completes.",
+    "stats": {
+      "available": "Available",
+      "availableHintIdle": "Reserved when you confirm an application, spent only once it is submitted.",
+      "availableHintHeld": "{count, plural, one {# credit held} other {# credits held}} for applications in progress.",
+      "expiring": "Expiring soon",
+      "expiringHint": "{count, plural, one {# credit expires} other {# credits expire}} on {date, date, long}.",
+      "expiringNone": "Nothing expires in the next {days} days.",
+      "plan": "Plan",
+      "planNone": "Pay as you go",
+      "planHintPro": "{price}/month · {credits} credits each month",
+      "planHintNone": "Trial and pack credits. Pro adds {credits} credits every month."
+    },
+    "trialNote": "You’re using your free trial credits. They stay usable until {date, date, long}; Pro or a pack keeps your scout going after that.",
+    "emptyNote": "You have no credits right now. Profile, matching, previews and drafts stay free; a pack or Pro lets Onward Scout submit for you.",
+    "plan": {
+      "titleActive": "Pro is active",
+      "titleNone": "Go Pro",
+      "perMonth": "per month · {credits} credits each month",
+      "renews": "Renews on {date, date, long}. Unused credits stay usable for {days} days after each month.",
+      "cancelScheduled": "Cancellation scheduled: Pro ends on {date, date, long}. Credits you already have stay usable until they expire.",
+      "pastDue": "Your last Pro payment didn’t go through. Stripe retries the card; update it in the portal to keep monthly credits coming.",
+      "ended": "Your Pro plan ended on {date, date, long}. Credits you still hold stay usable until they expire.",
+      "portalNote": "Change your card, download invoices or cancel in Stripe’s secure portal.",
+      "perksTitle": "What Pro adds"
+    },
+    "packs": {
+      "title": "Top up with a pack",
+      "body": "One payment, no renewal. Pack credits last {days} days and work with every channel.",
+      "perCredit": "{price} per credit"
+    },
+    "lots": {
+      "title": "Your credits",
+      "body": "Each grant or purchase is a lot with its own expiry. Applications draw from the lot that expires first.",
+      "empty": "No credits yet.",
+      "added": "Added {date, date, medium}",
+      "expires": "expires {date, date, medium}",
+      "expired": "expired {date, date, medium}",
+      "noExpiry": "no expiry",
+      "remaining": "{remaining} of {total} left",
+      "kind": {
+        "trial": "Free trial",
+        "subscription": "Pro month",
+        "pack": "Credit pack",
+        "adjust": "Adjustment"
+      },
+      "state": {
+        "active": "Active",
+        "revoked": "Revoked",
+        "expired": "Expired",
+        "usedUp": "Used up"
+      }
+    },
+    "activity": {
+      "title": "Recent credit activity",
+      "empty": "No activity yet. Credits move when you confirm an application.",
+      "forApplication": "for {name}",
+      "anApplication": "an application",
+      "kind": {
+        "grant": "Added",
+        "reserve": "Reserved",
+        "debit": "Spent",
+        "release": "Returned",
+        "revoke": "Removed"
+      }
+    },
+    "orders": {
+      "title": "Order history",
+      "empty": "No orders yet. Your free trial credits are a gift, not an order.",
+      "ref": "Ref {ref}",
+      "code": "code {code}",
+      "monthly": "{name}, monthly",
+      "status": {
+        "paid": "Paid",
+        "refunded": "Refunded",
+        "disputed": "Disputed"
+      },
+      "footer": "Receipts and invoices come from Stripe by email. Refunds follow our <link>refund policy</link>."
+    },
+    "rules": {
+      "title": "How credits work"
+    }
+  },
+  "success": {
+    "metaTitle": "Payment confirmed",
+    "loading": "Confirming your payment with Stripe and adding your credits…",
+    "confirmingTag": "Confirming payment",
+    "confirmingTitle": "Your bank is still confirming the payment.",
+    "confirmingBody": "This page checks again every few seconds. Some payment methods take a moment; your credits appear here the second it clears.",
+    "confirmingLeave": "It’s safe to leave: your credits arrive on their own once the payment clears, and we double-check every day.",
+    "paidTag": "Paid · ref {ref}",
+    "titlePlan": "Pro is live.",
+    "titlePack": "Credits are in.",
+    "bodyPlan": "{credits} credits are ready now, and {credits} more arrive at the start of every billing month. Automatic follow-ups and the weekly brief are on.",
+    "bodyPack": "{name} {credits, plural, one {is} other {are}} in your account, ready for your next application.",
+    "added": "Credits added",
+    "addedHint": "Usable until {date, date, long}",
+    "balance": "Balance now",
+    "balanceHintIdle": "Ready for your next application.",
+    "balanceHintHeld": "{count, plural, one {# credit held} other {# credits held}} for applications in progress.",
+    "ctaScout": "Find opportunities",
+    "ctaHome": "Go to your home",
+    "ctaBilling": "See billing",
+    "paid": "{amount} paid.",
+    "promo": "Promo code applied, nothing charged.",
+    "receipt": "Stripe emails your receipt to the address you used at checkout.",
+    "manage": "Manage or cancel Pro any time from Billing.",
+    "otherTitle": "This checkout belongs to a different account.",
+    "otherBody": "Credits go to the account that started the purchase. Sign in with the email you used at checkout, or write to <mail>{email}</mail> if this looks wrong.",
+    "errorTitle": "We couldn’t confirm that checkout yet.",
+    "errorBody": "If you were charged, your credits still arrive: Stripe tells us about every payment and we check again every day. Nothing after ten minutes? Write to <mail>{email}</mail> and mention reference {ref}.",
+    "mismatchTitle": "Something doesn’t add up with this checkout.",
+    "mismatchBody": "We’ve been alerted and are looking at it now. If you paid, you won’t lose anything: write to <mail>{email}</mail> and mention reference {ref}.",
+    "expiredTitle": "This checkout expired before payment.",
+    "expiredBody": "Nothing was charged. Start again from pricing whenever you like.",
+    "rateTitle": "Too many checks in a row.",
+    "rateBody": "Wait a few minutes and open this page again. If you paid, your credits still arrive on their own.",
+    "contact": "Write to us",
+    "backToPricing": "Back to pricing"
+  },
+  "notifications": {
+    "planStartedTitle": "Pro is live: {count} credits added",
+    "planStartedBody": "Your first Pro month is paid. These credits stay usable until {date, date, long}.",
+    "renewedTitle": "{count} new Pro credits",
+    "renewedBody": "Your Pro month renewed. The new credits stay usable until {date, date, long}.",
+    "packTitle": "{count} credits added",
+    "packBody": "Your credit pack is in. These credits stay usable until {date, date, long}.",
+    "refundedTitle": "Refund processed",
+    "refundedBody": "{count, plural, =0 {The refund went through; that purchase had no unspent credits left.} one {The refund went through and the # unspent credit from that purchase was removed.} other {The refund went through and the # unspent credits from that purchase were removed.}} Applications already submitted are not affected.",
+    "disputedTitle": "Credits paused during a card dispute",
+    "disputedBody": "Your bank opened a dispute on a payment, so {count, plural, =0 {nothing changed in your balance} one {# unspent credit is paused} other {# unspent credits are paused}} until it is resolved. If this is a mistake, write to us from the contact page.",
+    "reinstatedTitle": "Credits restored",
+    "reinstatedBody": "The dispute closed in your favour: {count, plural, =0 {your purchase is settled} one {# credit is back in your balance} other {# credits are back in your balance}}.",
+    "paymentFailedTitle": "Your Pro payment didn’t go through",
+    "paymentFailedBody": "Stripe will retry the card over the next few days. Update it from Billing to keep your monthly credits coming."
+  }
+}

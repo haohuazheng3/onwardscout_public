@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import { z } from "zod";
 import { bearerMatches } from "@/lib/admin";
 import { db } from "@/lib/db";
@@ -5,6 +6,8 @@ import { inboxMessages, type InboxKind } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
+import { attachForwardedReply } from "@/lib/integrations/replies";
+import { htmlToText } from "@/lib/integrations/reply-parse";
 import { inboundTokenFrom } from "@/lib/site";
 import { userIdForInboundToken } from "@/lib/user";
 
@@ -66,16 +69,19 @@ export async function POST(req: Request) {
       rawSize: d.rawSize ?? 0,
     });
 
-    // ─── EXTENSION POINT (P3b · reply drop-boxes) ────────────────────────────────────────────
-    // When `kind === "reply"`, the forwarded reply is stored above with its `userId`. P3b
-    // attaches it to that user's outreach thread here (a `messages` row: direction 'in',
-    // channel 'forward', matched by In-Reply-To / References / subject / counterpart address
-    // from `d.headers`), classifies it (Intelligence.classifyReply) and raises a notification,
-    // ideally in the background so the worker gets its 200 quickly, e.g.
-    //   if (kind === "reply" && userId) waitUntil(attachForwardedReply({ inboxId: id, userId, body: d }));
-    // Keep the contract above: once the row is stored, answer 200 even if attaching fails
-    // (capture the error; the admin inbox page can re-run it), so the worker never re-sends.
-    // ─────────────────────────────────────────────────────────────────────────────────────────
+    // ─── Reply drop-boxes (P3b) ──────────────────────────────────────────────────────────────
+    // The forwarded reply is stored above with its owner. Attaching it to the person's outreach
+    // thread (match → `messages` row 'in'/'forward' → classifyReply → application → notification)
+    // runs after the response, so the worker gets its 200 at once and never re-sends a stored
+    // mail. Failures are captured; `reattachInboxMessage(id)` re-runs it idempotently.
+    if (kind === "reply" && userId) {
+      const mail = { from: d.from, subject: d.subject ?? null, text: d.text ?? (d.html ? htmlToText(d.html) : null), headers: d.headers ?? null };
+      waitUntil(
+        attachForwardedReply({ inboxId: id, userId, mail }).catch((err: unknown) =>
+          captureError(err, { route: "/api/inbox/ingest (reply)", source: "worker", context: { inboxId: id } }),
+        ),
+      );
+    }
 
     return Response.json({ ok: true, id, kind }, { headers: NO_STORE });
   } catch (err) {

@@ -1,1 +1,322 @@
-{}
+{
+  "shared": {
+    "home": "Home",
+    "startFree": "Start free",
+    "seeHowItWorks": "See how it works",
+    "seePricing": "See pricing",
+    "example": "Example",
+    "exampleNote": "An illustration, not a real person or a real posting",
+    "inEnglish": "In English",
+    "readAllFaq": "All questions",
+    "contactUs": "Contact us",
+    "browseOpportunities": "Browse opportunities",
+    "learnMore": "Learn more",
+    "freeLine": "Profile, matching and previews are free. New accounts get {credits} credits to submit their first applications."
+  },
+  "home": {
+    "metaTitle": "Onward Scout — Your scout for every opportunity",
+    "metaDescription": "Drop in your résumé, deck or portfolio. Onward Scout finds real jobs, investors, grants, fellowships, competitions and programs you can win, prepares each application from your own facts and submits it after your tap.",
+    "hero": {
+      "eyebrow": "Now in early access",
+      "title": "Your scout for <em>every opportunity.</em>",
+      "lede": "Drop in what you already have and tap the openings you want. We prepare and submit each application — you only look and tap at the moments that matter.",
+      "primary": "Start free",
+      "secondary": "See how it works"
+    },
+    "demo": {
+      "example": "Example",
+      "exampleNote": "Illustrative data",
+      "summary": "An example of Onward Scout at work: a résumé is dropped in, a profile appears with sourced facts, three matching opportunities arrive with fit scores, one application is prepared and submitted after a tap, and another becomes a 30-second handoff because the site needs a login.",
+      "dropTitle": "You drop in",
+      "dropHint": "A résumé, a deck, a portfolio or links",
+      "fileName": "resume.pdf",
+      "fileMeta": "2 pages",
+      "reading": "Reading your résumé",
+      "found": "Found 4 roles, 2 projects, 1 award",
+      "profileTitle": "Your profile",
+      "profileNote": "Every fact links to its source",
+      "chip1": "Product designer",
+      "chip2": "6 years",
+      "chip3": "Design systems",
+      "chip4": "Figma",
+      "chip5": "Berlin · open to remote",
+      "chip6": "English · German",
+      "picksTitle": "This week’s picks",
+      "card1Type": "Job",
+      "card1Title": "Senior product designer",
+      "card1Meta": "Fintech startup · remote within the EU",
+      "card2Type": "Fellowship",
+      "card2Title": "Design leadership fellowship",
+      "card2Meta": "6 months · funded",
+      "card3Type": "Speaking",
+      "card3Title": "Talk: scaling a design system",
+      "card3Meta": "Industry conference · call for speakers",
+      "fit": "Fit {score}",
+      "prepared": "Prepared",
+      "submit": "Submit",
+      "yourTap": "Your tap",
+      "submitted": "Submitted",
+      "evidence": "Confirmation saved",
+      "handoff": "30-second handoff",
+      "handoffWhy": "Their portal needs your login.",
+      "drafting": "Drafting your proposal from your facts",
+      "pause": "Pause the example",
+      "play": "Play the example"
+    },
+    "early": {
+      "eyebrow": "Early access",
+      "title": "Early access — be one of the first.",
+      "body": "Onward Scout is new. You won’t find user counts, logos or testimonials here, because we don’t have ones we’d stand behind yet. What we can show you is exactly how it works, and what it will and won’t do for you."
+    },
+    "audiences": {
+      "eyebrow": "Who it’s for",
+      "title": "Built for whoever you are right now.",
+      "lede": "One engine, one profile, one board — whether you’re after a first internship, a seed round or a research grant. Plenty of people are two of these at once; that works too."
+    },
+    "finds": {
+      "eyebrow": "What it finds",
+      "title": "Every kind of opening, not just job ads.",
+      "lede": "Jobs and internships, yes — and the investors, accelerators, grants, fellowships, calls for papers, residencies and speaking slots most people never find the time to look for.",
+      "more": "{count} kinds of opportunity in all",
+      "browse": "Browse the opportunity library"
+    },
+    "steps": {
+      "eyebrow": "How it works",
+      "title": "From what you have to what you want, in six steps.",
+      "lede": "You drop in, confirm and tap. Everything between those moments is ours.",
+      "more": "The full walkthrough"
+    },
+    "boundary": {
+      "eyebrow": "The honest boundary",
+      "title": "What we automate, and what stays with you.",
+      "lede": "Some steps should never be automated: your logins, your signature, your payment, your interview. We design them as short, well-prepared handoffs instead of pretending they don’t exist.",
+      "colStep": "Step",
+      "colWho": "Who does it",
+      "colHow": "How"
+    },
+    "principles": {
+      "eyebrow": "Principles",
+      "title": "Three rules we don’t bend."
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "Finding is free. You pay when something is sent.",
+      "lede": "One credit is one application submitted for you, or one outreach email to a new contact.",
+      "freeName": "Free",
+      "freePrice": "$0",
+      "freeNote": "Plus {credits} credits to start, valid {days} days",
+      "proNote": "{credits} credits every month",
+      "packsName": "Credit packs",
+      "packsNote": "{small} credits for {smallPrice} · {large} for {largePrice}",
+      "packsValid": "Credits valid for {days} days",
+      "perMonth": "/ month",
+      "cta": "Compare plans"
+    },
+    "faq": {
+      "eyebrow": "Questions",
+      "title": "Before you start."
+    },
+    "final": {
+      "title": "Your next opening is <em>already out there.</em>",
+      "body": "Drop in what you have. You’ll see what you can go after in minutes — free, and nothing is sent until you tap.",
+      "primary": "Start free",
+      "secondary": "See pricing"
+    }
+  },
+  "howItWorks": {
+    "metaTitle": "How it works",
+    "metaDescription": "How Onward Scout turns your documents into a sourced profile, finds opportunities you can win, prepares and submits each application after your tap, and hands over the steps that must stay with you.",
+    "eyebrow": "How it works",
+    "title": "You bring what you have. <em>We go ahead and find the way.</em>",
+    "lede": "Six steps from the documents on your laptop to applications submitted and followed up. You drop in, confirm and tap; we do everything in between, and we tell you plainly where we stop.",
+    "stepLabel": "Step {n}",
+    "youDo": "What you do",
+    "weDo": "What we do",
+    "channels": {
+      "eyebrow": "Seven channels",
+      "title": "How an application leaves.",
+      "lede": "The channel depends on where the opportunity lives. We use the most direct route that’s allowed, and fall back to a handoff when automation isn’t.",
+      "youDo": "What you do",
+      "live": "Live",
+      "notYet": "Not yet"
+    },
+    "handoff": {
+      "eyebrow": "The handoff",
+      "title": "The 30-second handoff, explained.",
+      "containsTitle": "What a handoff contains",
+      "whereTitle": "Where you’ll meet one"
+    },
+    "safety": {
+      "eyebrow": "Safety and honesty",
+      "title": "The rules the engine runs on."
+    },
+    "drafts": {
+      "eyebrow": "Labels you’ll see",
+      "title": "We tell you how every draft was made."
+    },
+    "cta": {
+      "title": "See it with your own documents.",
+      "body": "Start with a free practice application: the whole flow, end to end, against our own test form."
+    }
+  },
+  "pricing": {
+    "metaTitle": "Pricing",
+    "metaDescription": "Profile, matching, previews, drafts, follow-ups and practice applications are free. Pro is {proPrice} a month for {proCredits} credits; packs of {smallCredits} credits for {smallPrice} and {largeCredits} for {largePrice}. One credit is one application submitted for you.",
+    "eyebrow": "Pricing",
+    "title": "Finding is free. <em>You pay when something is sent.</em>",
+    "lede": "One credit is one application submitted for you, or one outreach email to a new contact. Everything before that — your profile, matching, previews, drafts, follow-ups and practice runs — costs nothing.",
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "forever",
+      "blurb": "For finding out what’s out there and trying the whole flow.",
+      "trial": "{credits} credits to start, valid {days} days",
+      "cta": "Start free"
+    },
+    "perMonth": "/ month",
+    "once": "once",
+    "creditsPerMonth": "{credits} credits a month",
+    "credits": "{credits} credits",
+    "perCredit": "{price} per credit",
+    "recommended": "For an active search",
+    "subscribe": "Subscribe to {name}",
+    "buy": "Buy {credits} credits",
+    "packsTitle": "Credit packs",
+    "packsLede": "No subscription. Buy credits once and use them within 180 days.",
+    "trust1": "Secure checkout by Stripe",
+    "trust2": "Cancel Pro any time",
+    "trust3": "Failed submissions never use a credit",
+    "trust4": "14-day refunds on unused purchases",
+    "rules": {
+      "eyebrow": "The rules",
+      "title": "How credits behave."
+    },
+    "compare": {
+      "eyebrow": "Compare",
+      "title": "Free, packs or Pro.",
+      "feature": "What you get",
+      "free": "Free",
+      "packs": "Packs",
+      "pro": "Pro",
+      "rowCredits": "Credits",
+      "rowCore": "Profile, matching, previews and drafts",
+      "rowPractice": "Practice applications",
+      "rowChannels": "Every channel: forms, Gmail outreach, handoffs",
+      "rowFollowUps": "Follow-ups",
+      "rowDigest": "Weekly brief",
+      "rowPriority": "Priority processing",
+      "rowRenewal": "Renewal",
+      "creditsFree": "{credits} to start ({days} days)",
+      "creditsPacks": "{small} or {large} ({days} days)",
+      "creditsPro": "{credits} a month (+{days} days)",
+      "followUpsTap": "Sent when you tap",
+      "followUpsAuto": "Automatic",
+      "renewalNone": "None",
+      "renewalPacks": "None, pay once",
+      "renewalPro": "Monthly, cancel any time",
+      "included": "Included",
+      "notIncluded": "Not included"
+    },
+    "billing": {
+      "eyebrow": "Paying",
+      "title": "The money details.",
+      "refundsTitle": "Refunds",
+      "refundsBody": "Within 14 days of a charge, if none of its credits were used, we refund it in full. Failed submissions never use a credit, so they need no refund.",
+      "refundsLink": "Refund policy",
+      "checkoutTitle": "Checkout and receipts",
+      "checkoutBody": "Payments run on Stripe’s secure checkout; we never see your card number. Stripe emails your receipt. Prices are in US dollars.",
+      "changeTitle": "Cancelling and changing",
+      "changeBody": "Open Billing in your account to cancel or change your plan through Stripe’s portal. Credits you already have keep their expiry date, and nothing is charged after you cancel."
+    },
+    "faq": {
+      "eyebrow": "Questions",
+      "title": "Before you buy."
+    },
+    "cta": {
+      "title": "Not sure yet? <em>Start with what’s free.</em>",
+      "body": "Build your profile, see your matches and run a practice application. Your {credits} starter credits are there when the first real one is worth it."
+    }
+  },
+  "audience": {
+    "goalsEyebrow": "What you’re after",
+    "goalsTitle": "The goals we work on with you.",
+    "typesEyebrow": "What we chase for you",
+    "typesTitle": "The opportunities we look for.",
+    "exampleEyebrow": "A worked example",
+    "uploadsEyebrow": "What you upload",
+    "uploadsTitle": "Start with what you already have.",
+    "weeklyEyebrow": "Every week",
+    "weeklyTitle": "What happens while you get on with your life.",
+    "yoursEyebrow": "Stays with you",
+    "yoursTitle": "The steps that are yours.",
+    "faqEyebrow": "Questions",
+    "faqTitle": "What people in your position ask.",
+    "otherAudiences": "Also built for",
+    "ctaTitle": "Start with what you have.",
+    "ctaBody": "Drop in your documents, see what you can go after, and decide later. Free, and nothing is sent until you tap.",
+    "crumb": "Who it’s for"
+  },
+  "faq": {
+    "metaTitle": "Frequently asked questions",
+    "metaDescription": "How Onward Scout finds and submits applications for you, what stays with you, how we keep every fact true, what happens to your data, why some platforms are handoffs, and how credits and refunds work.",
+    "eyebrow": "FAQ",
+    "title": "Questions, <em>answered plainly.</em>",
+    "lede": "If something here is unclear or missing, write to us — every message reaches a person.",
+    "jump": "Jump to",
+    "moreTitle": "Still wondering about something?",
+    "moreBody": "Write to {email}. {replyTime}"
+  },
+  "about": {
+    "metaTitle": "About",
+    "metaDescription": "Why Onward Scout exists, the story behind the name, what we believe about opportunity and honesty, and how the product works on your behalf.",
+    "eyebrow": "About",
+    "title": "We go ahead, <em>so you can go onward.</em>",
+    "nameEyebrow": "The name",
+    "nameTitle": "A scout, and a direction.",
+    "beliefsEyebrow": "What we believe",
+    "beliefsTitle": "Four things we hold to.",
+    "howEyebrow": "How we work",
+    "howTitle": "What that means in the product.",
+    "companyEyebrow": "The company",
+    "companyTitle": "Small, new and plain about it.",
+    "contactTitle": "Talk to us",
+    "contactBody": "Questions, corrections, partnerships: {email}. {replyTime}"
+  },
+  "contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "Write to Onward Scout about an application, your account, billing, privacy or a partnership. We reply to every message within two business days.",
+    "eyebrow": "Contact",
+    "title": "Talk to <em>a person.</em>",
+    "lede": "About an application, your data, billing or a partnership: write to us and it reaches someone who can help.",
+    "emailLabel": "Email us directly",
+    "tipsTitle": "To get the fastest answer",
+    "tip1": "Account or billing question? Write from the email you sign in with, so we can find your account and receipts straight away.",
+    "tip2": "Privacy request? Export and deletion are in Settings; for anything else, choose “Privacy or my data”.",
+    "tip3": "Organisation? To list a program or connect directly, choose “Organisations and partnerships”.",
+    "form": {
+      "name": "Name",
+      "optional": "optional",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "topic": "Topic",
+      "message": "Message",
+      "messagePlaceholder": "What happened, or what you need. For an application, the opportunity’s name helps.",
+      "send": "Send message",
+      "sending": "Sending…",
+      "privacyNote": "We use your message only to reply. It’s stored as described in the <privacy>privacy policy</privacy>.",
+      "sentTag": "Message received",
+      "sentTitle": "Thanks — it’s in our inbox.",
+      "sentBody": "We’ll reply to {email} within two business days.",
+      "sendAnother": "Send another message",
+      "failedTitle": "Your message wasn’t sent",
+      "errorInvalidEmail": "Please enter a valid email address so we can reply.",
+      "errorMessageShort": "Please write at least a sentence.",
+      "errorMessageLong": "That message is longer than 5,000 characters. Please shorten it.",
+      "errorInvalid": "Please check the form and try again.",
+      "errorRateLimited": "That’s a lot of messages in a short time. Please wait a few minutes and try again.",
+      "errorServer": "We couldn’t send your message. Please email {email} instead.",
+      "errorNetwork": "We couldn’t reach the server. Check your connection, or email {email} directly."
+    }
+  }
+}

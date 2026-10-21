@@ -17,13 +17,14 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LocaleList, LocaleSwitcher } from "./LocaleSwitcher";
 import { LogoLink, LogoMark } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 import { cx } from "./ui";
+import { signInPath, type Locale } from "@/lib/site";
 import { APP_STATUS_EVENT, parseAppStatus, sanitizePatch, type AppStatus, type AppStatusPatch } from "./app-status";
 import { Dialog } from "./ui-client";
 import { useHydrated } from "./use-hydrated";
@@ -469,8 +470,76 @@ export function AppTabBar() {
 
 /* ======================================================================= shell */
 
-/** The whole signed-in chrome around `children`. Used by app/layout.tsx. */
-export function AppShell({ children, credits, notifications }: { children: ReactNode; credits?: ReactNode; notifications?: ReactNode }) {
+/* ======================================================================= guest (signed-out /app/start) */
+
+/**
+ * The signed-out start (/app/start before sign-in): no rail, no tab bar, no credits or bell —
+ * nothing there would work without an account. Just the brand (back to the site), language,
+ * theme and a "Sign in" that returns to the exact step the visitor is on.
+ */
+function GuestTopBar() {
+  const t = useTranslations("common");
+  const locale = useLocale() as Locale;
+  const href = signInPath(locale, locale === "zh" ? "/zh/app/start" : "/app/start");
+  // Come back to the exact step (?step=2…), read at press time.
+  const go = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    window.location.assign(signInPath(locale, `${window.location.pathname}${window.location.search}`));
+  };
+  return (
+    <div className="sticky top-0 z-20 px-3 sm:px-6 lg:px-8" style={{ paddingTop: "calc(env(safe-area-inset-top) + 12px)" }}>
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-2">
+        <div className="pane-glass flex h-[52px] min-w-0 items-center rounded-full pl-2 pr-2 sm:pl-3 sm:pr-4">
+          <span className="sm:hidden">
+            <LogoLink href="/" label={t("a11y.home")} wordmark={false} className="pl-1" />
+          </span>
+          <span className="hidden sm:inline-flex">
+            <LogoLink href="/" label={t("a11y.home")} />
+          </span>
+        </div>
+        <div className="pane-glass flex h-[52px] shrink-0 items-center gap-1 rounded-full pl-2 pr-1.5">
+          <LocaleSwitcher size="sm" />
+          <span className="hidden sm:inline-flex">
+            <ThemeToggle compact />
+          </span>
+          {/* A plain <a>: the sign-in path is already localized (Link would prefix it again). */}
+          <a href={href} onClick={go} className="btn btn-primary btn-sm ml-1">
+            {t("nav.signIn")}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================= shell */
+
+/**
+ * The whole signed-in chrome around `children`. Used by app/layout.tsx. `signedIn={false}`
+ * (only the anonymous start reaches the shell signed out) renders the slim guest bar instead.
+ */
+export function AppShell({
+  children,
+  credits,
+  notifications,
+  signedIn = true,
+}: {
+  children: ReactNode;
+  credits?: ReactNode;
+  notifications?: ReactNode;
+  signedIn?: boolean;
+}) {
+  if (!signedIn) {
+    return (
+      <div className="min-h-screen-d">
+        <GuestTopBar />
+        <main id="main" className="app-main mx-auto w-full max-w-[1180px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+          {children}
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen-d">
       <AppStatusLoader />

@@ -1,0 +1,62 @@
+---
+title: "Article template: how an Onward Scout article is written"
+description: "The frontmatter, the components and the house rules for an article on the Onward Scout blog, in one file that never goes public."
+publishedAt: 2026-10-21
+updatedAt: 2026-10-21
+category: applications-that-win
+keywords: ["onward scout article template", "how to write a blog article"]
+featured: false
+draft: true
+---
+
+This file is the article template. It has `draft: true`, so it never renders publicly and never appears in a hub, the sitemap or llms.txt. Every new article starts as a copy of it. To see an article rendered before it goes live, push it on a branch with `draft: false`: preview deployments are never indexed.
+
+## What does each frontmatter field do?
+
+<Answer>
+Title is the H1 and the page title, description the meta description and the standfirst. Both dates are printed on the page; updatedAt also becomes dateModified and the sitemap lastmod. Category must match the folder.
+</Answer>
+
+`title` is 10 to 110 characters; keep it under 70 so search results show it whole. `description` is 50 to 200 characters. `publishedAt` and `updatedAt` are `YYYY-MM-DD`; bump `updatedAt` only for real edits, never to look fresh. A `publishedAt` in the future schedules the article: it stays private until that date. `keywords` lists one to eight phrases; the first three of eight characters or more become automatic links from other articles, so they must read naturally inside a sentence. `featured: true` puts the article in the blog's "Start here" row. Any other field fails the build, so a typo never ships silently.
+
+## Who is speaking?
+
+<Callout title="The author is the organization">
+Every article is written by Onward Scout. No personal bylines, no invented credentials, no testimonials, no user counts and no outcomes we did not measure. If a claim needs support, cite the source in the sentence.
+</Callout>
+
+Write to the person applying, in plain words. Say what to do, then why. When the honest answer is "it depends", say what it depends on.
+
+## How are headings and the table of contents built?
+
+Only H2 headings (`##`) build the table of contents, which appears once an article has three of them: inline on phones, sticky beside the text on desktop. Phrase each H2 as the question a reader would type, and answer it at once with an `Answer` block. Use H3 for steps inside a section. Never use an H1 in the body: the title is the only one.
+
+## How do I cite a number?
+
+Every figure needs a source a reader can open. `DataPoint` keeps the sentence in the paragraph and adds the citation as a small link; the build fails if `source` is missing or is not an https address. Write it like this:
+
+```mdx
+<DataPoint value="3 credits" source="https://onwardscout.com/pricing" label="Onward Scout pricing">come with every new account</DataPoint>
+```
+
+Rendered: <DataPoint value="3 credits" source="https://onwardscout.com/pricing" label="Onward Scout pricing">come with every new account</DataPoint>. Never round a quoted number differently from its source, and never use a number from memory.
+
+## Which callouts can I use?
+
+`Callout` takes `tone="note"` (the default, for context), `tone="tip"` (a shortcut) or `tone="warn"` (a mistake that costs an application), and an optional `title`.
+
+<Callout tone="tip" title="Write the answer first">
+Draft the one-sentence answer to the heading before the explanation. If you can't, the section is not ready.
+</Callout>
+
+<Callout tone="warn" title="No guesses about programs">
+Deadlines, amounts and eligibility rules come from the program's official page, linked in the sentence. If the page does not say, the article says "check the official page".
+</Callout>
+
+## How do internal links work?
+
+Link to other pages with plain markdown, such as [the application guides](/guides) or [open opportunities](/opportunities). On top of that, the first mention of an opportunity type with enough live listings (for example "fellowships"), a career with its own indexed page, another article's main keyword or a blog topic becomes a link automatically: at most five per article, never inside headings, existing links or `DataPoint`, never to the article itself.
+
+## How does an article end?
+
+End with what the reader should do next and one link that helps them do it. The call to action, related articles and structured data (Article, breadcrumbs) are added by the template, so never write them by hand.

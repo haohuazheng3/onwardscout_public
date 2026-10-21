@@ -1,0 +1,60 @@
+{
+  "metaTitle": "Integrations",
+  "eyebrow": "Integrations",
+  "title": "Connected accounts",
+  "lede": "Connect Gmail so outreach goes out from your own address, and forward replies here so every conversation keeps moving.",
+  "gmail": {
+    "title": "Gmail",
+    "statusConnected": "Connected as {email}",
+    "badgeConnected": "Connected",
+    "statusNotConnected": "Not connected",
+    "statusError": "Needs reconnecting",
+    "statusUnavailable": "Not available yet",
+    "body": "When you approve an outreach email, Onward Scout sends it from your Gmail — written for that one person, never in bulk. Without Gmail, you get the same email ready to send from your own mail app.",
+    "errorBody": "Google stopped letting us send for you, usually because access was removed in your Google Account. Connect again to keep sending.",
+    "unavailableBody": "Sending through Gmail isn't switched on for Onward Scout yet. Until it is, every email we prepare opens in your own mail app, ready to send.",
+    "connect": "Connect Gmail",
+    "reconnect": "Connect again",
+    "connecting": "Opening Google…",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting…",
+    "disconnected": "Gmail disconnected. We can no longer send from it.",
+    "sendTest": "Send me a test email",
+    "sending": "Sending…",
+    "testSent": "Test email sent to {email}. Check your inbox.",
+    "sentCount": "{count, plural, =0 {No emails sent through Gmail yet} one {# email sent through Gmail} other {# emails sent through Gmail}}",
+    "connectedSince": "Connected on {date}"
+  },
+  "flash": {
+    "connected": "Gmail connected. Emails you approve now go out from your address.",
+    "denied": "Gmail wasn't connected because Google's permission screen was closed. Nothing changed.",
+    "scope": "Google didn't grant permission to send email, so Gmail isn't connected. Tick “Send email on your behalf” when you try again.",
+    "expired": "That connection attempt expired. Please try again.",
+    "error": "We couldn't connect Gmail just now. Please try again in a minute.",
+    "unavailable": "Gmail connection isn't available yet."
+  },
+  "scope": {
+    "title": "What Onward Scout can and can't do",
+    "send": "Send the emails you approve, from your address, one recipient at a time.",
+    "identity": "See which email address it sends from.",
+    "noRead": "It can't read, search, label or delete anything in your mailbox. We never ask for that permission.",
+    "noBulk": "No bulk mail: at most {perDay} new conversations a day, never the same person twice within {days} days, and anyone who asks us to stop is never emailed again.",
+    "revoke": "Disconnect here at any time, or remove access in your Google Account under Security → Your connections to third-party apps."
+  },
+  "dropbox": {
+    "title": "Reply drop-box",
+    "body": "Got a reply? Forward it to your personal address. We attach it to the right application, tell you what it means — interested, a meeting, a no, a question — and stop follow-ups to that person.",
+    "addressLabel": "Your drop-box address",
+    "copy": "Copy address",
+    "unavailable": "Your drop-box address appears here once your account is set up. Reload the page in a moment.",
+    "autoTitle": "Forward replies automatically (optional)",
+    "auto1": "In Gmail, open Settings → Forwarding and POP/IMAP → Add a forwarding address, and paste your drop-box address.",
+    "auto2": "Google sends a confirmation code to that address. It appears in your Onward Scout notifications within a minute; enter it in Gmail.",
+    "auto3": "Create a filter for the people you've written to and choose “Forward it to” your drop-box address.",
+    "privacy": "Only what you forward reaches us. We read it to file and classify the reply, nothing else."
+  },
+  "errors": {
+    "notConnected": "Connect Gmail first.",
+    "sendFailed": "The test email didn't go out. Please try again."
+  }
+}

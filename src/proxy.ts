@@ -2,6 +2,7 @@ import { clerkClient, clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import {
   isAdminPath,
+  isAnonymousStartPath,
   isPersonalApiPath,
   isPersonalPagePath,
   isSignInPath,
@@ -20,6 +21,9 @@ import {
  *    return URL, and `Cache-Control: private, no-store`;
  *  - /admin (both locales) and /api/admin require a verified email from ADMIN_EMAILS and are a
  *    real 404 for everyone else;
+ *  - /app/start (both locales) is the exception: the onboarding wizard works signed out (an
+ *    anonymous draft, contracts §8), so it passes with Clerk attached but no session required;
+ *    its APIs live under /api/drafts/**, which is not a personal prefix;
  *  - the personal APIs (PERSONAL_API_PREFIXES in src/lib/site.ts) answer 401 JSON without a session;
  *  - every other API (health, errors, geo, contact, webhooks, cron, inbox…) passes through, with
  *    Clerk attached so handlers may still call auth();
@@ -60,6 +64,7 @@ function isApi(req: NextRequest): boolean {
 }
 
 function needsSession(pathname: string): boolean {
+  if (isAnonymousStartPath(pathname)) return false;
   return isPersonalPagePath(pathname) || isAdminPath(pathname) || isPersonalApiPath(pathname);
 }
 
@@ -122,6 +127,8 @@ const withClerk = clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl;
   try {
     if (!needsSession(pathname)) {
+      // The signed-out start: a personal page all the same (never cached, return path known).
+      if (isAnonymousStartPath(pathname)) return passPage(req);
       // Sign-in pages and public APIs: Clerk is attached; sign-in pages are never cached.
       if (isSignInPath(pathname)) {
         const res = NextResponse.next();
@@ -157,7 +164,8 @@ export default function proxy(req: NextRequest, ev: NextFetchEvent) {
   if (redirect) return redirect;
   if (!process.env.CLERK_SECRET_KEY || !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     const { pathname } = req.nextUrl;
-    if (needsSession(pathname) || isSignInPath(pathname)) {
+    // The whole (app) area renders inside ClerkProvider, the signed-out start included.
+    if (needsSession(pathname) || isSignInPath(pathname) || isAnonymousStartPath(pathname)) {
       return unavailable(req, 300, "Sign-in is being set up. Please try again in a few minutes.");
     }
     return NextResponse.next();

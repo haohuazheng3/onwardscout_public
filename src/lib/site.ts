@@ -85,6 +85,15 @@ export function isPersonalPagePath(pathname: string): boolean {
   return /^\/(?:app|checkout)(?:\/|$)/.test(stripLocale(pathname));
 }
 
+/**
+ * Pages of the signed-in area that also work signed out: the onboarding wizard `/app/start`
+ * (contracts §8 — a visitor's uploads live in an anonymous draft named by the `os_anon` cookie
+ * until they sign in and claim it). The proxy lets them through without a session.
+ */
+export function isAnonymousStartPath(pathname: string): boolean {
+  return /^\/app\/start\/?$/.test(stripLocale(pathname));
+}
+
 /** The admin area: pages in either locale and `/api/admin/**`. */
 export function isAdminPath(pathname: string): boolean {
   return /^\/admin(?:\/|$)/.test(stripLocale(pathname)) || /^\/api\/admin(?:\/|$)/.test(pathname);
@@ -105,7 +114,7 @@ export const PERSONAL_API_PREFIXES = [
   "/api/uploads",
   "/api/goals",
   "/api/documents",
-  "/api/opportunities/mine",
+  "/api/opportunities",
   "/api/matches",
   "/api/applications",
   "/api/integrations",
@@ -115,8 +124,18 @@ export const PERSONAL_API_PREFIXES = [
   "/api/notifications",
 ] as const;
 
+/**
+ * Paths under a personal prefix that authenticate themselves and must work signed out: the
+ * one-click unsubscribe link in product email (RFC 8058; HMAC token in the URL).
+ * `/api/drafts/**` (the anonymous start) is deliberately not a personal prefix at all.
+ */
+export const PUBLIC_API_EXCEPTIONS = ["/api/notifications/unsubscribe"] as const;
+
+const underPrefix = (pathname: string, p: string) => pathname === p || pathname.startsWith(`${p}/`);
+
 export function isPersonalApiPath(pathname: string): boolean {
-  return PERSONAL_API_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (PUBLIC_API_EXCEPTIONS.some((p) => underPrefix(pathname, p))) return false;
+  return PERSONAL_API_PREFIXES.some((p) => underPrefix(pathname, p));
 }
 
 /** Request header the proxy sets on personal pages: the original path + query, for return URLs. */

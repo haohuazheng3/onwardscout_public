@@ -161,3 +161,18 @@ export const CREDIT_RULES: { lines: Record<Locale, readonly string[]> } = {
     ],
   },
 };
+
+/* ------------------------------------------------------------------ helpers (P4) */
+
+/** Perks of an account without a plan (trial and pack credits only). */
+export const NO_PLAN_PERKS: Offer["perks"] = { autoFollowUps: false, weeklyDigest: false, priority: false };
+
+/** The offer's display name in a locale ("Pro", "10 credits" / "Pro 会员", "10 个额度"). */
+export function offerName(sku: Sku, locale: Locale): string {
+  return OFFERS[sku].name[locale] ?? OFFERS[sku].name.en;
+}
+
+/** Days a sku's credits stay usable: after each billing period (plans) or after purchase (packs). */
+export function validityDays(sku: Sku): number {
+  return OFFERS[sku].rolloverDays;
+}

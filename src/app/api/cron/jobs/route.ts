@@ -5,7 +5,7 @@ import { appState } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { queueStats } from "@/lib/jobs/queue";
-import { runDue } from "@/lib/jobs/runner";
+import { DRAIN_DEPTH_HEADER, kickDrain, runDue } from "@/lib/jobs/runner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +15,9 @@ export const maxDuration = 300;
 const CRON_JOBS_STATE_KEY = "cron:jobs:last";
 
 /*
- * Drains the job queue. Called every minute by the mail worker's cron and by GitHub Actions
- * (and Vercel Cron if configured), always with `Authorization: Bearer CRON_SECRET`.
+ * Drains the job queue. Called hourly by Vercel Cron (GET) and on demand by kickDrain() (POST),
+ * always with `Authorization: Bearer CRON_SECRET`. When the time budget runs out with work left,
+ * it chains the next drain itself (bounded), so the hourly cadence never delays user work.
  * Runs due jobs for up to ~280 s of the 300 s budget and answers with counts; the summary
  * is kept in app_state for the admin pages. GET for schedulers, POST for operators.
  */
@@ -29,7 +30,10 @@ async function drain(req: Request): Promise<Response> {
   const kinds = url.searchParams.get("kinds")?.split(",").map((k) => k.trim()).filter(Boolean);
   const startedAt = new Date();
   try {
+    const depth = Math.max(0, Math.min(10, Number(req.headers.get(DRAIN_DEPTH_HEADER) ?? 0) || 0));
     const report = await runDue({ maxMs: 280_000, maxJobs, kinds });
+    // Budget or cap exhausted with jobs still claimable → keep going in a fresh invocation.
+    if (!kinds && (report.claimed >= maxJobs || report.continued > 0)) kickDrain(depth);
     const stats = await queueStats().catch((err) => {
       console.error("[cron/jobs] queue stats unavailable", err);
       return {};

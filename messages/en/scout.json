@@ -1,1 +1,344 @@
-{}
+{
+  "meta": {
+    "title": "Scout",
+    "detailTitle": "Opportunity"
+  },
+  "header": {
+    "eyebrow": "Scout",
+    "title": "Opportunities picked for you",
+    "lede": "Ranked by how well each one fits your profile and goals. Tap Apply for me and we prepare the rest.",
+    "label": "Your scout",
+    "looking": "Your scout is out looking…",
+    "lookingShort": "Looking…",
+    "lookAgain": "Look again",
+    "newThisWeek": "{count, plural, =0 {No new picks this week yet} one {# new pick this week} other {# new picks this week}}",
+    "lastLooked": "Last looked {when}",
+    "neverLooked": "Hasn’t looked yet",
+    "scoringLocal": "matched by rules from your profile",
+    "scoringAi": "ranked with AI from your profile",
+    "goalsLabel": "Show picks for",
+    "allGoals": "All goals",
+    "noGoals": "Set a goal so your scout knows what to look for.",
+    "setGoal": "Set a goal"
+  },
+  "profileHint": {
+    "emptyTitle": "Your scout is working from very little",
+    "emptyBody": "Drop in your résumé, deck or portfolio and these picks get much sharper. It takes a minute and no typing.",
+    "emptyCta": "Add your materials",
+    "draftTitle": "Confirm your profile for sharper picks",
+    "draftBody": "Your scout is using a draft. A quick check of your profile tells it exactly who you are.",
+    "draftCta": "Review your profile"
+  },
+  "views": {
+    "label": "Show",
+    "picks": "Picks",
+    "later": "Later",
+    "all": "Everything open"
+  },
+  "search": {
+    "label": "Search opportunities",
+    "placeholder": "Search by name, organisation or topic",
+    "clear": "Clear search",
+    "everything": "Searching everything open, not only your picks."
+  },
+  "filters": {
+    "button": "Filters",
+    "title": "Filters",
+    "description": "Each choice applies straight away.",
+    "clear": "Clear filters",
+    "done": "Done",
+    "remote": {
+      "title": "Where",
+      "any": "Anywhere",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "onsite": "On-site"
+    },
+    "region": {
+      "title": "Country",
+      "hint": "Countries on your picks. Ones open worldwide always show.",
+      "empty": "Countries appear here once your scout has picks.",
+      "any": "Any country"
+    },
+    "deadline": {
+      "title": "Deadline",
+      "any": "Any time",
+      "week": "This week",
+      "month": "Next 30 days",
+      "quarter": "Next 3 months",
+      "open": "Rolling or not listed"
+    },
+    "effort": {
+      "title": "Your time",
+      "hint": "Minutes you spend. We prepare everything else.",
+      "any": "Any",
+      "quick": "Up to 5 min",
+      "medium": "6–15 min",
+      "long": "Over 15 min"
+    }
+  },
+  "groups": {
+    "label": "Type",
+    "all": "All",
+    "jobs": "Jobs",
+    "funding": "Funding & programs",
+    "stages": "Events & stages",
+    "academic": "Academic",
+    "creative": "Creative",
+    "learning": "Learning & community"
+  },
+  "list": {
+    "showMore": "Show more",
+    "retryMore": "Couldn’t load more. Try again",
+    "end": "That’s everything for now."
+  },
+  "empty": {
+    "lookingTitle": "Your scout is out looking",
+    "lookingBody": "It’s reading open opportunities against your profile and goals. This usually takes under a minute.",
+    "idleBody": "Tap Look again and your scout compares every open opportunity with your profile and goals.",
+    "looking": "Looking…",
+    "lookAgain": "Look again",
+    "browseAll": "Browse everything open",
+    "filteredTitle": "Nothing here with these filters",
+    "filteredBody": "Loosen a filter or clear them all. Your other picks are still waiting.",
+    "searchTitle": "Nothing open matches “{q}”",
+    "searchBody": "Try fewer or different words, or clear the search.",
+    "clear": "Clear filters",
+    "laterTitle": "Nothing saved for later",
+    "laterBody": "Tap Later on any pick and it waits here until you’re ready.",
+    "allTitle": "No open opportunities here yet",
+    "allBody": "New ones arrive every day, and your scout brings the good ones to your picks.",
+    "seenAllTitle": "You’ve been through every pick",
+    "seenAllBody": "Your scout looks again as new opportunities arrive. You can also send it out now."
+  },
+  "refresh": {
+    "failed": "Your scout couldn’t finish looking. Try again in a minute."
+  },
+  "feedback": {
+    "later": "Later",
+    "savedLater": "Saved for later",
+    "savedLaterShort": "Saved",
+    "movedBack": "Back on your picks",
+    "dismissed": "Removed from your picks",
+    "learns": "Your scout will show you fewer like it.",
+    "undo": "Undo",
+    "notInterested": "Not interested",
+    "whyTitle": "What’s off about it?",
+    "whyHint": "One tap. It teaches your scout.",
+    "keep": "Keep it",
+    "backToPicks": "Back to picks",
+    "reasons": {
+      "wrong_location": "Wrong location",
+      "not_my_field": "Not my field",
+      "bad_timing": "Too early or too late",
+      "not_this_type": "Not this kind of opportunity",
+      "other": "Something else"
+    }
+  },
+  "card": {
+    "fit": "{fit}% fit",
+    "new": "New",
+    "addedByYou": "Added by you",
+    "practiceFree": "Practice · free",
+    "applied": "Applied",
+    "whyLabel": "Why it fits",
+    "materials": "Asks for: {list}"
+  },
+  "deadline": {
+    "closed": "Closed",
+    "today": "Closes today",
+    "days": "{days, plural, one {Closes tomorrow} other {Closes in # days}}",
+    "on": "Closes {date}",
+    "rolling": "Rolling: apply any time",
+    "unknown": "Deadline not listed: check the official page"
+  },
+  "do": {
+    "confirm": "Just confirm",
+    "confirmHandoff": "Just confirm, plus a quick sign-in on their site",
+    "email": "Approve the email",
+    "handoff": "Quick handoff: you submit on their site",
+    "documents": "We draft it, you use it"
+  },
+  "location": {
+    "anywhere": "Anywhere",
+    "remote": "Remote",
+    "remoteFrom": "Remote · {place}",
+    "hybrid": "Hybrid",
+    "hybridIn": "Hybrid · {place}"
+  },
+  "benefits": {
+    "per": {
+      "year": "/yr",
+      "month": "/mo",
+      "week": "/wk",
+      "day": "/day",
+      "hour": "/hr"
+    },
+    "money": {
+      "salary": "Pays {amount}",
+      "stipend": "{amount} stipend",
+      "grant": "{amount} grant",
+      "prize": "{amount} in prizes",
+      "investment": "{amount} investment",
+      "scholarship": "{amount} scholarship",
+      "fee": "{amount}",
+      "other": "{amount}"
+    },
+    "visa": "Visa sponsorship",
+    "fee": "Application fee {amount}",
+    "free": "Free to apply",
+    "equity": "Takes {percent}% equity"
+  },
+  "apply": {
+    "cta": "Apply for me",
+    "practice": "Try it now",
+    "starting": "Starting…",
+    "open": "Open your application",
+    "failed": "We couldn’t start that application",
+    "getCredits": "Get credits"
+  },
+  "import": {
+    "open": "Add one you found",
+    "title": "Add an opportunity you found",
+    "description": "Paste the link to a job, call, program or competition. We read the page and put it at the top of your board.",
+    "label": "Link",
+    "hint": "The organiser’s own page works best.",
+    "invalid": "That doesn’t look like a link. Paste the full address, starting with https://.",
+    "privacy": "Only you see links you add. We read the page once and keep a copy to spot changes later.",
+    "cancel": "Cancel",
+    "submit": "Add it",
+    "reading": "Reading {host}…",
+    "added": "Added to the top of your board",
+    "alreadyThere": "Already on Onward Scout, now pinned to your board",
+    "typeGuessed": "The page didn’t say what kind of opportunity it is, so we filed it under your goal. Check the details on the official page.",
+    "missing": "Some details weren’t on the page. They show as “check the official page”.",
+    "failed": "We couldn’t add that link",
+    "tryAgain": "Try again"
+  },
+  "detail": {
+    "back": "Scout",
+    "unverified": "Not reviewed yet",
+    "verified": "Checked",
+    "minutes": "{minutes, plural, one {About # minute of your time} other {About # minutes of your time}}",
+    "official": "Official page · {host}",
+    "noOfficial": "The organiser’s link isn’t known yet.",
+    "unknownNote": "Anything we couldn’t confirm says “check the official page”. We never fill gaps with guesses.",
+    "practice": {
+      "title": "What this practice run shows you",
+      "one": "See exactly what Onward Scout prepares and submits, start to finish",
+      "two": "Goes to our own sandbox form — nothing reaches a real organisation",
+      "three": "Free: practice runs never use credits"
+    },
+    "why": {
+      "title": "Why it fits you",
+      "gaps": "Before you apply",
+      "local": "Matched by comparing your profile with this opportunity’s details. Rules, not guesses.",
+      "ai": "Ranked with AI from your profile and the organiser’s page. Every reason traces back to one of them."
+    },
+    "eligibility": {
+      "title": "Can you apply?"
+    },
+    "about": {
+      "title": "About this opportunity",
+      "none": "The organiser’s page has the full details."
+    },
+    "required": {
+      "title": "What it asks for",
+      "none": "The organiser doesn’t list materials. We read their form when you apply.",
+      "by": {
+        "platform": "We draft it from your profile",
+        "either": "We use yours, or draft it from your profile",
+        "user": "You provide this one"
+      }
+    },
+    "how": {
+      "title": "How Onward Scout applies",
+      "mine": "You added this link. We read it automatically and haven’t reviewed it, so check the details on the official page.",
+      "email": "Sent from your own Gmail, written for this recipient, and only after you approve it.",
+      "documents": "We draft the documents from your sourced facts; you use them where they’re needed.",
+      "login": "Their site asks you to sign in, so the last step is a short handoff: you log in, and everything else is ready.",
+      "captcha": "If their form shows a CAPTCHA, you solve it. We never get around them.",
+      "fee": "There’s an application fee. You pay it yourself on their site.",
+      "practice": "This goes to Onward Scout’s own sandbox form. Nothing reaches a real organisation and no credits are used.",
+      "tap": "Nothing is submitted until you tap.",
+      "connectGmail": "Connect Gmail",
+      "instructions": "The organiser says"
+    },
+    "similar": {
+      "title": "Similar opportunities"
+    }
+  },
+  "eligibility": {
+    "none": "The organiser lists no eligibility rules here. Check the official page before you apply.",
+    "status": {
+      "yes": "Meets it",
+      "no": "Doesn’t meet it",
+      "unknown": "Check this"
+    },
+    "who": {
+      "yes": "Open to {who}, and that’s you.",
+      "no": "For {who}, which your profile doesn’t match. If that’s wrong, update your profile.",
+      "unknown": "For {who}. Confirm who you are in your profile so we can check."
+    },
+    "stage": {
+      "yes": "Right stage: {stages}.",
+      "no": "Only for {stages}. Your profile shows a different stage.",
+      "unknown": "Only for {stages}. Add your stage to your profile so we can check."
+    },
+    "degree": {
+      "yes": "Asks for {degree}, and you have it.",
+      "no": "Asks for {degree}. Your profile doesn’t show one.",
+      "unknown": "Asks for {degree}. Add your education, or check whether current students qualify."
+    },
+    "experienceMin": {
+      "yes": "Asks for {years}+ years of experience. You have about {have}.",
+      "no": "Asks for {years}+ years of experience; your profile shows about {have}.",
+      "unknown": "Asks for {years}+ years of experience. Check how yours counts."
+    },
+    "experienceMax": {
+      "yes": "Meant for people with up to {years} years of experience, which fits.",
+      "no": "Meant for people with up to {years} years of experience; you have about {have}.",
+      "unknown": "Meant for people with up to {years} years of experience. Check how yours counts."
+    },
+    "nationality": {
+      "yes": "Open to citizens of {countries}, and that’s you.",
+      "no": "Only for citizens of {countries}. Your profile lists a different citizenship.",
+      "unknown": "Only for citizens of {countries}. Confirm yours in your profile."
+    },
+    "residency": {
+      "yes": "For residents of {countries}, which is where you are.",
+      "no": "For residents of {countries}.",
+      "unknown": "For residents of {countries}. Confirm where you live."
+    },
+    "age": {
+      "yes": "Age limit {range}, and you’re within it.",
+      "no": "Age limit {range}. Your birth year puts you outside it.",
+      "unknown": "Age limit {range}. Check that you qualify."
+    },
+    "students": {
+      "yes": "Only for current students, and that’s you.",
+      "no": "Only for current students. Your profile doesn’t show current study.",
+      "unknown": "Only for current students. Confirm you’re enrolled."
+    },
+    "companyAge": {
+      "yes": "For companies founded in the last {years} years. Yours qualifies.",
+      "no": "For companies founded in the last {years} years. Yours looks older.",
+      "unknown": "For companies founded in the last {years} years. Add your company’s founding date."
+    },
+    "location": {
+      "yes": "Location: {place}, which works for you.",
+      "no": "Location: {place}.",
+      "unknown": "Based in {place}. Check you can work or travel there."
+    },
+    "language": {
+      "yes": "In {languages}, which you speak.",
+      "no": "In {languages}, which your profile doesn’t list.",
+      "unknown": "In {languages}. Add the languages you speak to your profile."
+    },
+    "notes": {
+      "yes": "The organiser adds: “{note}”",
+      "no": "The organiser adds: “{note}”",
+      "unknown": "The organiser adds: “{note}” Read the details on the official page."
+    }
+  }
+}

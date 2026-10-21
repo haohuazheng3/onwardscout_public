@@ -25,6 +25,13 @@ export const LOCALE_REWRITES = [
   { source: LOCALE_REWRITE_SOURCE, destination: "/en/:path" },
 ];
 
+/*
+ * The sitemap index lives at /sitemap-index.xml (src/app/sitemap.ts shards with generateSitemaps,
+ * which reserves /sitemap.xml for the metadata route — a second route there is a build error).
+ * Crawlers and scripts/indexnow.mjs that ask for /sitemap.xml get the index too.
+ */
+export const SITEMAP_REWRITES = [{ source: "/sitemap.xml", destination: "/sitemap-index.xml" }];
+
 export const LOCALE_REDIRECTS = [
   // /en is never a public URL: English lives at the root.
   { source: "/en", destination: "/", permanent: true },
@@ -126,6 +133,12 @@ const nextConfig: NextConfig = {
     "/\\[locale\\]/**": ["./content/**/*"],
     "/api/**": ["./content/**/*"],
     "/sitemap.xml": ["./content/**/*"],
+    // generateSitemaps shards are served by /sitemap/[__metadata_id__]; the blog shard reads content/blog.
+    "/sitemap/**": ["./content/**/*"],
+    // The browser agent (CH3) needs Chromium's brotli-packed binary next to the functions that run
+    // it: the queue drain and the routes that start a submission inline.
+    "/api/cron/jobs": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/applications/**": ["./node_modules/@sparticuz/chromium/bin/**"],
     "/llms.txt": ["./content/**/*"],
     "/og/**": ["./content/**/*"],
   },
@@ -137,13 +150,14 @@ const nextConfig: NextConfig = {
       { source: "/careers/:path*", headers: ISR_CACHE },
       { source: "/organizations/:path*", headers: ISR_CACHE },
       { source: "/guides/:path*", headers: ISR_CACHE },
+      { source: "/blog/:path*", headers: ISR_CACHE },
     ];
   },
   async redirects() {
     return LOCALE_REDIRECTS;
   },
   async rewrites() {
-    return { beforeFiles: LOCALE_REWRITES, afterFiles: [], fallback: [] };
+    return { beforeFiles: [...SITEMAP_REWRITES, ...LOCALE_REWRITES], afterFiles: [], fallback: [] };
   },
 };
 
