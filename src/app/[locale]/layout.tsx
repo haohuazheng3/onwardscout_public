@@ -5,6 +5,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ConsentManager } from "@/components/Consent";
+import { NavFeedback } from "@/components/NavFeedback";
 import { THEME_SCRIPT } from "@/components/ThemeToggle";
 import { IntlProvider } from "@/i18n/IntlProvider";
 import { loadMessages } from "@/i18n/messages";
@@ -102,6 +103,7 @@ export default async function LocaleLayout({ children, params }: { children: Rea
       </head>
       <body>
         <div className="void-bg" aria-hidden="true" />
+        <NavFeedback />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-[0.95rem] focus:font-semibold focus:text-void"

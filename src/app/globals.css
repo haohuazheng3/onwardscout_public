@@ -1506,3 +1506,35 @@
     border: 1px solid #ddd;
   }
 }
+
+/* Navigation feedback bar (src/components/NavFeedback.tsx): appears on press, completes on route change. */
+.nav-feedback {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 90;
+  height: 3px;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  opacity: 0;
+  background: linear-gradient(90deg, var(--accent), var(--pine));
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 0 12px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.nav-feedback[data-state="running"] {
+  opacity: 1;
+  animation: nav-creep 9s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+}
+.nav-feedback[data-state="done"] {
+  opacity: 0;
+  transform: scaleX(1);
+  transition: transform 0.18s ease-out, opacity 0.3s ease 0.1s;
+}
+@keyframes nav-creep {
+  0% { transform: scaleX(0.08); }
+  20% { transform: scaleX(0.45); }
+  100% { transform: scaleX(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-feedback[data-state="running"] { animation: none; transform: scaleX(0.6); }
+}
