@@ -137,8 +137,15 @@ export function fitStatementSuffix(suffix: string, prefix?: string | null): stri
     .toUpperCase();
   const prefixLength = prefix && prefix.trim() ? prefix.trim().length : STATEMENT_PREFIX_MAX;
   const room = Math.max(0, STATEMENT_DESCRIPTOR_MAX - prefixLength - 2);
+  if (clean.length <= room) return clean;
+  // A cut-off brand ("ONWARDSCOU") reads like a typo on a bank statement: fall back to the
+  // brand's readable short form when it fits, and only truncate as a last resort.
+  if (STATEMENT_SHORT_FORM.length <= room && clean.startsWith(STATEMENT_SHORT_FORM)) return STATEMENT_SHORT_FORM;
   return clean.slice(0, room).trim();
 }
+
+/** Readable short form of the brand for statements where the full name does not fit. */
+export const STATEMENT_SHORT_FORM = "ONWARD";
 
 /**
  * The suffix sent with one-time payments. STRIPE_STATEMENT_PREFIX (written by

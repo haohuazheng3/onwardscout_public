@@ -65,13 +65,16 @@ describe("card statement descriptor", () => {
       expect(prefix.length + 2 + suffix.length).toBeLessThanOrEqual(STATEMENT_DESCRIPTOR_MAX);
       expect(CHECKOUT_BRAND.statementSuffix.startsWith(suffix)).toBe(true);
     }
-    expect(fitStatementSuffix("ONWARDSCOUT", "LONGPREFIX")).toBe("ONWARDSCOU");
+    expect(fitStatementSuffix("ONWARDSCOUT", "LONGPREFIX")).toBe("ONWARD");
+    expect(fitStatementSuffix("ONWARDSCOUT")).toBe("ONWARD");
+    expect(fitStatementSuffix("ONWARDSCOUT", "FTL")).toBe("ONWARDSCOUT");
   });
 
   it("assumes the longest prefix Stripe allows when the account's prefix is unknown", () => {
     expect(STATEMENT_PREFIX_MAX).toBe(10);
-    expect(fitStatementSuffix("ONWARDSCOUT")).toHaveLength(STATEMENT_DESCRIPTOR_MAX - STATEMENT_PREFIX_MAX - 2);
-    expect(fitStatementSuffix("ONWARDSCOUT", "  ")).toBe("ONWARDSCOU");
+    // 10 characters of room: the full name does not fit, so the readable short form is used.
+    expect(fitStatementSuffix("ONWARDSCOUT").length).toBeLessThanOrEqual(STATEMENT_DESCRIPTOR_MAX - STATEMENT_PREFIX_MAX - 2);
+    expect(fitStatementSuffix("ONWARDSCOUT", "  ")).toBe("ONWARD");
   });
 
   it("strips characters Stripe refuses and upper-cases the rest", () => {
@@ -81,7 +84,7 @@ describe("card statement descriptor", () => {
 
   it("reads the account prefix from STRIPE_STATEMENT_PREFIX", () => {
     vi.stubEnv("STRIPE_STATEMENT_PREFIX", "");
-    expect(statementSuffix()).toBe("ONWARDSCOU");
+    expect(statementSuffix()).toBe("ONWARD");
     vi.stubEnv("STRIPE_STATEMENT_PREFIX", "ONWARD");
     expect(statementSuffix()).toBe("ONWARDSCOUT");
   });
