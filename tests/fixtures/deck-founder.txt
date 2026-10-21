@@ -1,0 +1,46 @@
+[Slide 1]
+Tallyfern
+Bookkeeping on autopilot for independent restaurants
+Seed round · 2026
+
+[Slide 2]
+Problem
+Independent restaurants spend 6+ hours a week reconciling invoices and delivery-app payouts
+62% of owners we surveyed do their books after closing time
+
+[Slide 3]
+Solution
+Tallyfern connects the POS, bank and delivery apps and closes the books every night
+Owners approve exceptions from their phone in under 5 minutes
+
+[Slide 4]
+Market
+33,000 independent restaurants in Texas alone; $4.1B US small-business bookkeeping spend
+
+[Slide 5]
+Business Model
+SaaS: $149 per location per month
+
+[Slide 6]
+Traction
+41 paying restaurants across Austin and Houston
+$73K ARR, growing 14% month over month
+Net revenue retention 118%
+Pilot with a 12-location regional chain signed in August 2026
+
+[Slide 7]
+Team
+Maya Okafor — CEO & Co-founder, former controller at a 30-unit restaurant group
+Dev Raman — CTO & Co-founder, ex-staff engineer at a payments company
+Team of 6 full-time
+
+[Slide 8]
+The Ask
+Raising $1.5M seed to reach $500K ARR
+Use of funds: 50% engineering, 30% sales, 20% operations
+
+[Slide 9]
+Contact
+maya@tallyfern.example.com
+tallyfern.example.com
+Notes: Fictional company and founders, created for automated tests.

@@ -1,0 +1,23 @@
+{
+  "name": "onwardscout-workers",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Workers for onwardscout.com: mail (inbound inbox and reply drop-boxes, owner alerts, health probe) and files (signed R2 delivery and browser uploads).",
+  "scripts": {
+    "deploy:mail": "wrangler deploy --config mail/wrangler.toml",
+    "deploy:files": "wrangler deploy --config files/wrangler.toml",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "postal-mime": "^2.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261003.1",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.147.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20261001.1": true
+  }
+}

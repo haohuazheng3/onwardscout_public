@@ -1,0 +1,45 @@
+AVERY QUINN
+Senior Product Designer
+Austin, TX | avery.quinn@example.com | (512) 555-0142 | averyquinn.example.com | linkedin.com/in/avery-quinn-example
+
+SUMMARY
+Product designer with 7 years of experience shipping health and fintech products. I lead discovery, design systems and usability research, and work closely with engineering to ship.
+
+EXPERIENCE
+Senior Product Designer — Quillfeather Health, Austin, TX        Mar 2021 – Present
+• Led the redesign of the patient intake flow, cutting average completion time from 14 to 6 minutes
+• Built and maintain the Quillfeather design system (120+ components) used by 5 product teams
+• Ran 40+ usability sessions with patients and clinicians; findings shaped the 2023 roadmap
+
+Product Designer, Northwind Lending        Jun 2018 – Feb 2021
+New York, NY
+• Designed the mobile onboarding that raised account activation by 18%
+• Partnered with compliance to ship accessible disclosures (WCAG 2.1 AA)
+
+UX Design Intern at Fieldnote Studio        May 2017 – Aug 2017
+- Prototyped a field-research app in Figma and tested it with 12 park rangers
+
+EDUCATION
+University of Texas at Austin
+B.S. in Human Factors and Ergonomics, 2014 – 2018
+GPA: 3.8/4.0
+
+SKILLS
+Design: Figma, Sketch, Prototyping, Design Systems, Interaction Design
+Research: Usability Testing, Journey Mapping, Survey Design
+Tools: HTML/CSS, Jira, Amplitude
+
+PROJECTS
+Pocket Pantry | pocketpantry.example.org
+A meal-planning app for community food banks with 2,300 monthly active users.
+
+CERTIFICATIONS
+Certified Usability Analyst (CUA) — Human Factors International, 2019
+
+AWARDS
+Interaction Design Notable, Core77 Design Awards — 2022
+
+LANGUAGES
+English (Native), Spanish (Professional)
+
+Fictional sample résumé for automated tests. Every person and company named here is invented.

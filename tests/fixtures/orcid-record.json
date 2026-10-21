@@ -1,0 +1,24 @@
+{
+  "orcid-identifier": { "path": "0000-0002-1825-0097" },
+  "person": {
+    "name": { "given-names": { "value": "Josiah" }, "family-name": { "value": "Carberry" }, "credit-name": null },
+    "biography": { "content": "Fictional researcher used by ORCID for examples." },
+    "keywords": { "keyword": [ { "content": "psychoceramics" }, { "content": "ionian philology" } ] },
+    "researcher-urls": { "researcher-url": [ { "url-name": "Lab site", "url": { "value": "https://example.org/carberry" } } ] }
+  },
+  "activities-summary": {
+    "employments": { "affiliation-group": [ { "summaries": [ { "employment-summary": {
+      "organization": { "name": "Wesleyan University" }, "role-title": "Professor", "department-name": "Psychoceramics",
+      "start-date": { "year": { "value": "1999" }, "month": { "value": "09" } }, "end-date": null } } ] } ] },
+    "educations": { "affiliation-group": [ { "summaries": [ { "education-summary": {
+      "organization": { "name": "Brown University" }, "role-title": "PhD", "department-name": null,
+      "start-date": { "year": { "value": "1992" } }, "end-date": { "year": { "value": "1997" } } } } ] } ] },
+    "works": { "group": [
+      { "work-summary": [ { "title": { "title": { "value": "The effect of brittle ceramics on morale" } }, "journal-title": { "value": "Journal of Psychoceramics" },
+        "publication-date": { "year": { "value": "2011" } }, "type": "journal-article",
+        "external-ids": { "external-id": [ { "external-id-type": "doi", "external-id-value": "10.5555/12345678" } ] }, "url": null } ] },
+      { "work-summary": [ { "title": { "title": { "value": "Cracked pots: a field guide" } }, "journal-title": null,
+        "publication-date": { "year": { "value": "2018" } }, "type": "book", "external-ids": { "external-id": [] }, "url": { "value": "https://example.org/pots" } } ] }
+    ] }
+  }
+}

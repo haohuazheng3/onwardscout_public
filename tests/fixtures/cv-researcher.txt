@@ -1,0 +1,34 @@
+INES CALLOWAY, PhD
+Postdoctoral Research Fellow · Coastal Ecology Lab
+ines.calloway@example.edu | +1 617 555 0199 | ORCID 0000-0002-1825-0097
+Boston, MA
+
+RESEARCH INTERESTS
+Salt-marsh resilience, blue carbon, remote sensing of coastal wetlands
+
+ACADEMIC POSITIONS
+Postdoctoral Research Fellow, Coastal Ecology Lab, Northbridge University        2023 – Present
+- Lead a three-state field campaign measuring marsh accretion at 24 sites
+- Mentor four undergraduate researchers
+
+EDUCATION
+Ph.D. in Ecology and Evolutionary Biology, Northbridge University, 2023
+Dissertation: Sediment supply and the persistence of New England salt marshes
+B.S. in Environmental Science, Lakeshore College, 2017
+
+PUBLICATIONS
+1. Calloway, I., Mensah, K., & Ortiz, R. (2025). Sediment pulses buffer salt marshes against sea-level rise. Journal of Coastal Ecology, 41(2), 113–129. doi:10.5555/jce.2025.0113
+2. Calloway, I. & Hart, L. (2024). "Mapping marsh edge erosion with drone photogrammetry." Proceedings of the Remote Sensing in Ecology Workshop, pp. 22–30.
+3. Mensah, K., & Calloway, I. (2022). Blue carbon stocks in restored tidal wetlands. Wetland Science Letters, 9, 45–58.
+
+GRANTS AND FELLOWSHIPS
+Coastal Futures Postdoctoral Fellowship, Harbor Foundation, 2023 ($120,000)
+Graduate Research Fellowship, Northbridge University, 2018 – 2021
+
+TEACHING
+Teaching Assistant, Field Methods in Ecology, Northbridge University        2019 – 2021
+
+SKILLS
+R, Python, QGIS, Google Earth Engine, drone photogrammetry, mixed-effects models
+
+Fictional CV for automated tests: the people, institutions and papers are invented (DOI prefix 10.5555 is reserved for examples).

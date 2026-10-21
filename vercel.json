@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": false
+  },
+  "crons": [
+    { "path": "/api/cron/jobs", "schedule": "* * * * *" },
+    { "path": "/api/cron/sources", "schedule": "20 6 * * *" },
+    { "path": "/api/cron/reconcile", "schedule": "17 3 * * *" },
+    { "path": "/api/cron/followups", "schedule": "5 * * * *" },
+    { "path": "/api/cron/expire", "schedule": "40 4 * * *" },
+    { "path": "/api/cron/digest", "schedule": "0 14 * * 1" }
+  ]
+}
