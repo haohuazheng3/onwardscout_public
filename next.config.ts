@@ -60,6 +60,8 @@ const FLOWGLANCE = ["https://flowglance.com", "https://*.flowglance.com"];
 const TURNSTILE = ["https://challenges.cloudflare.com"];
 // Private files worker: document previews (img/frame), downloads, browser uploads (connect).
 const FILES = ["https://files.onwardscout.com"];
+// Article photos are served straight from the Pexels CDN (credited on the page).
+const PEXELS = ["https://images.pexels.com"];
 // Gmail connect (CH4): the OAuth consent page is reached by a form post + redirect.
 const GOOGLE_OAUTH = ["https://accounts.google.com"];
 
@@ -68,7 +70,7 @@ export const CSP = [
   ["default-src", "'self'"],
   ["script-src", "'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...CLERK, ...STRIPE, ...FLOWGLANCE, ...TURNSTILE],
   ["style-src", "'self'", "'unsafe-inline'"],
-  ["img-src", "'self'", "data:", "blob:", ...CLERK.slice(3), ...FILES, ...STRIPE, ...FLOWGLANCE],
+  ["img-src", "'self'", "data:", "blob:", ...CLERK.slice(3), ...FILES, ...STRIPE, ...FLOWGLANCE, ...PEXELS],
   ["font-src", "'self'", "data:"],
   ["connect-src", "'self'", ...CLERK, ...CLERK_WS, ...CLERK_TELEMETRY, ...STRIPE, ...FLOWGLANCE, ...TURNSTILE, ...FILES, ...(isDev ? ["ws:", "http://localhost:*"] : [])],
   ["frame-src", "'self'", ...STRIPE.slice(0, 2), ...TURNSTILE, ...CLERK.slice(0, 3), ...FILES],

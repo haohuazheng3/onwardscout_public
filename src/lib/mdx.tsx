@@ -21,10 +21,13 @@ export const MDX_COMPONENTS = {
   a: MdxLink,
 };
 
-export async function renderMdx(source: string, opts: { autolink?: AutolinkTerm[]; self?: string } = {}): Promise<ReactNode> {
+export async function renderMdx(
+  source: string,
+  opts: { autolink?: AutolinkTerm[]; self?: string; components?: Record<string, (props: Record<string, string>) => ReactNode> } = {},
+): Promise<ReactNode> {
   const { content } = await compileMDX({
     source,
-    components: MDX_COMPONENTS,
+    components: { ...MDX_COMPONENTS, ...(opts.components ?? {}) },
     options: {
       parseFrontmatter: false,
       mdxOptions: {

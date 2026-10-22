@@ -6,15 +6,32 @@ import { ScoutCta } from "@/components/seo/ScoutCta";
 import { Container, EmptyState, Section } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import type { Category } from "@/content/categories";
-import { PAGE_SIZE, categoriesWithCounts, categoryPageUrl, postUrl, type PageSlice, type Post } from "@/lib/blog";
-import { absoluteUrl } from "@/lib/seo";
+import { PAGE_SIZE, categoriesWithCounts, categoryPageUrl, postUrl, publishedPosts, type PageSlice, type Post } from "@/lib/blog";
+import { SITE_TERMS, blogTerms, opportunityTypeTerms } from "@/lib/autolink";
+import { getHub } from "@/lib/hubs";
+import { renderMdx } from "@/lib/mdx";
+import { getIndexableTargets, typePath } from "@/lib/programmatic";
+import { OPPORTUNITY_TYPES } from "@/lib/core/opportunity-types";
+import { absoluteUrl, faqLd } from "@/lib/seo";
 
-/** One category hub page: page 1 at /blog/<category>, later pages at /blog/<category>/page/<n>. */
-export function CategoryView({ cat, slice }: { cat: Category; slice: PageSlice<Post> }) {
+/**
+ * One category hub page: page 1 at /blog/<category>, later pages at /blog/<category>/page/<n>.
+ * Page 1 is built as a pillar: the article list, live opportunity types for the audience, the
+ * framework copy from content/hubs/<category>.mdx and its FAQ (with FAQPage JSON-LD).
+ */
+export async function CategoryView({ cat, slice }: { cat: Category; slice: PageSlice<Post> }) {
   const { page, totalPages, items } = slice;
   const selfPath = categoryPageUrl(cat.slug, page);
   // Only hubs with articles are linked: empty hubs are noindex and stay out of the link graph.
   const others = categoriesWithCounts().filter((c) => c.slug !== cat.slug && c.count > 0);
+  const hub = page === 1 && items.length ? getHub(cat.slug) : null;
+  const targets = page === 1 ? await getIndexableTargets() : { types: [], regions: [], careers: [] };
+  const live = new Map(targets.types.map((t) => [t.slug, t]));
+  const types = cat.opportunityTypes.filter((slug) => live.has(slug)).map((slug) => ({ slug, def: OPPORTUNITY_TYPES.find((t) => t.slug === slug) }));
+  const posts = hub ? publishedPosts() : [];
+  const hubBody = hub
+    ? await renderMdx(hub.body, { autolink: [...blogTerms(posts, categoriesWithCounts(posts)), ...opportunityTypeTerms(targets.types.map((t) => t.slug)), ...SITE_TERMS], self: selfPath })
+    : null;
 
   return (
     <>
@@ -39,6 +56,7 @@ export function CategoryView({ cat, slice }: { cat: Category; slice: PageSlice<P
           }}
         />
       ) : null}
+      {hub ? <JsonLd data={faqLd(hub.faq)} /> : null}
       <Container className="pt-8 sm:pt-12">
         <Breadcrumbs
           items={[
@@ -81,6 +99,42 @@ export function CategoryView({ cat, slice }: { cat: Category; slice: PageSlice<P
           />
         )}
       </Section>
+
+      {types.length ? (
+        <Section className="!pt-12">
+          <h2 className="eyebrow">Open now on Onward Scout</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {types.map((t) => (
+              <li key={t.slug}>
+                <Link href={typePath(t.slug)} locale="en" className="chip">
+                  {t.def?.plural.en ?? t.slug}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      {hub && hubBody ? (
+        <Section className="!pt-12">
+          <div className="pane px-5 py-8 sm:px-10 sm:py-12">
+            <div className="prose-scout">{hubBody}</div>
+          </div>
+          <section aria-labelledby="hub-faq" className="pane mt-6 px-5 py-8 sm:px-10 sm:py-10">
+            <h2 id="hub-faq" className="headline text-[1.6rem] text-ink sm:text-[1.9rem]">
+              Frequently asked questions
+            </h2>
+            <div className="mt-5 divide-y divide-line">
+              {hub.faq.map((f) => (
+                <div key={f.q} className="py-4 first:pt-0 last:pb-0">
+                  <h3 className="text-[1.06rem] font-semibold leading-snug text-ink">{f.q}</h3>
+                  <p className="mt-1.5 text-[1rem] leading-relaxed text-ink-2">{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </Section>
+      ) : null}
 
       {others.length ? (
         <Section className="!pt-14">

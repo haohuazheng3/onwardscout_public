@@ -199,6 +199,22 @@ export function faqLd(faqs: { q: string; a: string }[]) {
   };
 }
 
+/** A free in-browser tool embedded in an article (tool-first pages). */
+export function webApplicationLd(input: { name: string; description: string; path: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: input.name,
+    description: input.description,
+    url: absoluteUrl(input.path),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Any (runs in the browser)",
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    publisher: { "@id": ORG_ID },
+  };
+}
+
 /** Breadcrumbs; `path` is the already-localized path of each crumb. */
 export function breadcrumbLd(items: { name: string; path: string }[]) {
   return {

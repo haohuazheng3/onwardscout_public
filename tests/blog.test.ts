@@ -18,6 +18,8 @@ import {
   relatedPosts,
   sortPosts,
   validateBody,
+  publishGates,
+  frontmatterSchema,
   type Post,
 } from "@/lib/blog";
 
@@ -48,6 +50,12 @@ function post(over: Partial<Post> = {}): Post {
     keywords: [],
     featured: false,
     draft: false,
+    level: "B",
+    tool: null,
+    verdict: null,
+    images: [],
+    faq: [],
+    cta: null,
     body: "",
     wordCount: 0,
     readingMinutes: 1,
@@ -74,20 +82,21 @@ describe("categories", () => {
 
 describe("frontmatter validation", () => {
   it("accepts a valid article and derives reading time and headings", () => {
-    const r = parsePost("applications-that-win", "short-answers", fm());
+    const r = parsePost("applications-that-win", "short-answers", fm({ draft: "true" }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.post.title).toBe("How to write a short answer that reviewers remember");
     expect(r.post.publishedAt).toBe("2026-10-01");
     expect(r.post.updatedAt).toBe("2026-10-05");
-    expect(r.post.draft).toBe(false);
+    expect(r.post.draft).toBe(true);
+    expect(r.post.level).toBe("B");
     expect(r.post.featured).toBe(false);
     expect(r.post.readingMinutes).toBe(1);
     expect(r.post.headings).toEqual([{ id: "first-section", text: "First section" }]);
   });
 
   it("accepts unquoted YAML dates (parsed as Date objects)", () => {
-    const r = parsePost("applications-that-win", "dates", fm({ publishedAt: "2026-09-30", updatedAt: "2026-09-30" }));
+    const r = parsePost("applications-that-win", "dates", fm({ publishedAt: "2026-09-30", updatedAt: "2026-09-30", draft: "true" }));
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.post.publishedAt).toBe("2026-09-30");
   });
@@ -197,15 +206,15 @@ describe("drafts and scheduled posts", () => {
 });
 
 describe("pagination", () => {
-  const items = Array.from({ length: 25 }, (_, i) => i);
+  const items = Array.from({ length: 40 }, (_, i) => i);
 
-  it("splits into pages of PAGE_SIZE", () => {
-    expect(PAGE_SIZE).toBe(10);
-    expect(pageCount(25)).toBe(3);
-    expect(pageCount(20)).toBe(2);
+  it("splits into pages of PAGE_SIZE (15–20 per hub page)", () => {
+    expect(PAGE_SIZE).toBe(18);
+    expect(pageCount(40)).toBe(3);
+    expect(pageCount(36)).toBe(2);
     expect(pageCount(0)).toBe(1);
-    expect(paginate(items, 1)?.items).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(paginate(items, 3)?.items).toEqual([20, 21, 22, 23, 24]);
+    expect(paginate(items, 1)?.items).toEqual(Array.from({ length: 18 }, (_, i) => i));
+    expect(paginate(items, 3)?.items).toEqual([36, 37, 38, 39]);
     expect(paginate(items, 3)?.totalPages).toBe(3);
   });
 
@@ -309,5 +318,46 @@ describe("autolink", () => {
       { phrase: "referral emails", href: "/blog/careers-and-jobs/x" },
       { phrase: "Academic life", href: "/blog/academic-life" },
     ]);
+  });
+});
+
+describe("SEO publishing gates", () => {
+  const img = (n: number) => ({ src: `https://images.pexels.com/photos/${n}/pexels-photo-${n}.jpeg`, alt: "A person writing at a desk", width: 4000, height: 2667, photographer: "Jane Doe", photographerUrl: "https://www.pexels.com/@jane", pexelsUrl: `https://www.pexels.com/photo/${n}/` });
+  const faq = [1, 2, 3].map((i) => ({ q: `Question number ${i}?`, a: "A complete answer that is long enough to pass." }));
+  const base = (over: Record<string, unknown> = {}) =>
+    frontmatterSchema.parse({ title: "A title long enough to pass", description: "A description that is long enough to pass the fifty character minimum.", publishedAt: "2026-10-22", updatedAt: "2026-10-22", category: "careers-and-jobs", keywords: ["x y"], level: "A", tool: "t", images: [img(1), img(2)], faq, ...over });
+  const words = (n: number) => Array.from({ length: n }, () => "word").join(" ");
+  const dp = (k: number) => Array.from({ length: k }, () => '<DataPoint value="1" source="https://example.org/a">x</DataPoint>').join(" ");
+  const body = (n: number, k: number) => `${words(n)} ${dp(k)}\n\n<Photo n="1" />\n\n<Photo n="2" />`;
+
+  it("passes a complete A page", () => {
+    const b = body(400, 2);
+    expect(publishGates(base(), b, countWords(b), [], () => true)).toEqual([]);
+  });
+  it("enforces word ranges, the tool, photos, FAQ and data density", () => {
+    const b = `${words(100)}`;
+    const p = publishGates(base({ images: [img(1)], faq: faq.slice(0, 2) }), b, countWords(b), [], () => false);
+    expect(p.join(" | ")).toMatch(/300–800 words/);
+    expect(p.join(" | ")).toMatch(/has no content\/tools\/t\.json/);
+    expect(p.join(" | ")).toMatch(/2–3 photos/);
+    expect(p.join(" | ")).toMatch(/3–5 FAQ/);
+    const b2 = body(600, 1);
+    expect(publishGates(base(), b2, countWords(b2), [], () => true).join(" | ")).toMatch(/at least 3 sourced <DataPoint>s/);
+  });
+  it("needs a verdict and three sections on B pages", () => {
+    const b = body(1300, 7);
+    const p = publishGates(base({ level: "B", tool: undefined }), b, countWords(b), [], () => true);
+    expect(p.join(" | ")).toMatch(/needs a verdict/);
+    expect(p.join(" | ")).toMatch(/three H2/);
+  });
+  it("blocks leaked notes, placeholders and CJK text", () => {
+    for (const leak of ["TODO: add a source", "see the spec", "lorem ipsum", "备注", "[insert link]"]) {
+      const b = `${body(400, 2)} ${leak}`;
+      expect(publishGates(base(), b, countWords(b), [], () => true).some((x) => x.startsWith("contains"))).toBe(true);
+    }
+  });
+  it("requires every photo to be placed exactly once", () => {
+    const b = `${words(400)} ${dp(2)}\n\n<Photo n="1" />`;
+    expect(publishGates(base(), b, countWords(b), [], () => true).join(" | ")).toMatch(/photo 2 must be placed/);
   });
 });

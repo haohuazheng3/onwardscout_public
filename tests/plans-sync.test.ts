@@ -1,21 +1,21 @@
+import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { OFFERS, PACKS, PLANS, SKUS } from "@/content/plans";
 import { CHECKOUT_BRAND, STATEMENT_DESCRIPTOR_MAX as APP_MAX } from "@/lib/stripe";
-import {
-  descriptorFits,
-  STATEMENT_DESCRIPTOR_MAX,
-  STATEMENT_SUFFIX,
-  STRIPE_OFFERS,
-  stripeProductCopy,
-  WEBHOOK_EVENTS,
-} from "../scripts/ops/stripe-offers.mjs";
+
+// scripts/ops/ stays in the private repository; the public mirror skips this lock test.
+const MIRROR = new URL("../scripts/ops/stripe-offers.mjs", import.meta.url);
+const hasMirror = fs.existsSync(MIRROR);
+const { descriptorFits, STATEMENT_DESCRIPTOR_MAX, STATEMENT_SUFFIX, STRIPE_OFFERS, stripeProductCopy, WEBHOOK_EVENTS } = hasMirror
+  ? await import("../scripts/ops/stripe-offers.mjs")
+  : ({} as typeof import("../scripts/ops/stripe-offers.mjs"));
 
 /*
  * scripts/ops/stripe-bootstrap.mjs runs as plain Node and cannot import plans.ts, so it carries a
  * mirror of the catalog in stripe-offers.mjs. This test is the lock between the two: a price,
  * credit count, name, validity or interval changed in one place and not the other fails the suite.
  */
-describe("Stripe catalog mirror", () => {
+describe.skipIf(!hasMirror)("Stripe catalog mirror", () => {
   it("lists exactly the skus in plans.ts, in the same order", () => {
     expect(STRIPE_OFFERS.map((o) => o.sku)).toEqual([...SKUS]);
   });

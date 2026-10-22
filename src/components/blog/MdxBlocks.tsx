@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { PostImage } from "@/lib/blog";
 import { Callout as UiCallout, type CalloutTone } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 
@@ -89,5 +90,46 @@ export function MdxLink({ href, children, ...rest }: ComponentPropsWithoutRef<"a
     <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
       {children}
     </a>
+  );
+}
+
+/** Pexels CDN URL at a given width (compressed, modern format when the browser accepts it). */
+export function pexelsAt(src: string, w: number): string {
+  return `${src}?auto=compress&cs=tinysrgb&fm=webp&w=${w}`;
+}
+
+/**
+ * A photo from the article's frontmatter, placed in the body with <Photo n="1" />. Served from
+ * the Pexels CDN at the width the layout needs (no image optimisation on our side), with
+ * intrinsic size for zero layout shift and the photographer credited as Pexels asks.
+ */
+export function Photo({ image, priority = false }: { image: PostImage; priority?: boolean }) {
+  const widths = [480, 720, 960, 1280];
+  return (
+    <figure className="my-8">
+      {/* eslint-disable-next-line @next/next/no-img-element -- served by the Pexels CDN at fixed widths; next/image would proxy and bill it */}
+      <img
+        src={pexelsAt(image.src, 960)}
+        srcSet={widths.map((w) => `${pexelsAt(image.src, w)} ${w}w`).join(", ")}
+        sizes="(min-width: 1024px) 760px, calc(100vw - 72px)"
+        width={image.width}
+        height={image.height}
+        alt={image.alt}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+        className="h-auto w-full rounded-[20px] bg-pane-3 object-cover"
+        style={{ aspectRatio: `${image.width} / ${image.height}`, maxHeight: "460px" }}
+      />
+      <figcaption className="mt-2 text-[0.8rem] text-ink-4">
+        Photo by{" "}
+        <a href={image.photographerUrl} target="_blank" rel="noopener noreferrer" className="underline decoration-line-2 underline-offset-2 hover:text-ink-3">
+          {image.photographer}
+        </a>{" "}
+        on{" "}
+        <a href={image.pexelsUrl} target="_blank" rel="noopener noreferrer" className="underline decoration-line-2 underline-offset-2 hover:text-ink-3">
+          Pexels
+        </a>
+      </figcaption>
+    </figure>
   );
 }

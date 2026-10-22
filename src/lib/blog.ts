@@ -11,7 +11,15 @@ import { CATEGORIES, categoryBySlug, type Category } from "@/content/categories"
  * frontmatter:
  *
  *   title, description, publishedAt, updatedAt (YYYY-MM-DD), category (= the folder),
- *   keywords[] (1–8 phrases), featured? (boolean), draft? (boolean)
+ *   keywords[] (1–8 phrases), featured? (boolean), draft? (boolean),
+ *   level (A = tool-first page, B = decision article), tool? (content/tools/<id>.json, A only),
+ *   verdict? (B only: the conclusion card), images[] (2–3 Pexels photos placed with <Photo n="1"/>),
+ *   faq[] (3–5 questions, rendered after the body with FAQPage JSON-LD), cta? (end-of-page copy)
+ *
+ * Published articles (not drafts) must also pass the SEO gates: A pages 300–800 words, B pages
+ * 1200–1500 words with at least three H2 sections; one sourced <DataPoint> per 200 words; every
+ * photo placed exactly once; no writing notes or placeholders (TODO, TBD, FIXME, XXX, lorem,
+ * "spec") and no CJK characters anywhere in an English page.
  *
  * Commit + push → the build renders the article, its category hub, the sitemap and llms.txt;
  * scripts/indexnow.mjs pings search engines. Drafts (`draft: true`) and posts dated in the
@@ -22,14 +30,29 @@ import { CATEGORIES, categoryBySlug, type Category } from "@/content/categories"
  * https source fails the build with every problem listed, instead of shipping a broken page.
  */
 
-/** Articles per hub page (page 1 at /blog/<category>, later pages at /blog/<category>/page/<n>). */
-export const PAGE_SIZE = 10;
+/** Articles per hub page (page 1 at /blog/<category>, later pages at /blog/<category>/page/<n>); the SEO base allows 15–20. */
+export const PAGE_SIZE = 18;
 
 /** Average adult reading speed used for "n min read". */
 export const WORDS_PER_MINUTE = 230;
 
 /** <Answer> blocks are the snippet-ready reply under an H2: at most this many words. */
 export const ANSWER_MAX_WORDS = 60;
+
+/** Word ranges per page level (SEO base: A = tool-first 300–800, B = decision article 1200–1500). */
+export const LEVEL_WORDS = { A: [300, 800], B: [1200, 1500] } as const;
+
+/** At least one sourced <DataPoint> per this many words. */
+export const WORDS_PER_DATAPOINT = 200;
+
+/** Markers that must never reach a published page (writing notes, placeholders). */
+export const LEAK_PATTERNS: { re: RegExp; label: string }[] = [
+  { re: /\b(TODO|TBD|FIXME|XXX)\b/, label: "a TODO/TBD/FIXME/XXX marker" },
+  { re: /\blorem\b/i, label: "lorem ipsum" },
+  { re: /\bspec\b/i, label: 'the word "spec" (reserved as a leak marker; say "job description")' },
+  { re: /[\u3000-\u303f\u3400-\u9fff\uff00-\uffef]/, label: "CJK characters (English pages only)" },
+  { re: /\[(待|placeholder|insert)/i, label: "a bracketed placeholder" },
+];
 
 /** Slugs that would collide with the hub's own routes (/blog/<category>/page/<n>). */
 export const RESERVED_POST_SLUGS = ["page"] as const;
@@ -40,6 +63,38 @@ const ISO_DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 export interface PostHeading {
   id: string;
   text: string;
+}
+
+export interface PostImage {
+  /** images.pexels.com URL without query (sizes are added at render). */
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  photographer: string;
+  photographerUrl: string;
+  /** The photo's page on pexels.com. */
+  pexelsUrl: string;
+}
+
+export interface PostFaq {
+  q: string;
+  a: string;
+}
+
+export interface PostVerdict {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+export interface PostCta {
+  title?: string;
+  body?: string;
+  /** Tool strip under an A page's tool. */
+  toolHeadline?: string;
+  toolNote?: string;
 }
 
 export interface Post {
@@ -54,6 +109,12 @@ export interface Post {
   keywords: string[];
   featured: boolean;
   draft: boolean;
+  level: "A" | "B";
+  tool: string | null;
+  verdict: PostVerdict | null;
+  images: PostImage[];
+  faq: PostFaq[];
+  cta: PostCta | null;
   body: string;
   wordCount: number;
   readingMinutes: number;
@@ -79,6 +140,30 @@ export const frontmatterSchema = z
     keywords: z.array(z.string().trim().min(2)).min(1, "list at least one keyword").max(8, "at most 8 keywords"),
     featured: z.boolean().default(false),
     draft: z.boolean().default(false),
+    level: z.enum(["A", "B"]).default("B"),
+    tool: z.string().regex(SLUG_RE, "tool: a content/tools/<id>.json id").optional(),
+    verdict: z
+      .object({ title: z.string().trim().min(10).max(120), body: z.string().trim().min(40).max(600), ctaLabel: z.string().trim().min(2).max(60).optional(), ctaHref: z.string().regex(/^\/[^\s]*$/, "a site path").optional() })
+      .strict()
+      .optional(),
+    images: z
+      .array(
+        z
+          .object({
+            src: z.string().regex(/^https:\/\/images\.pexels\.com\/photos\/\d+\/[^?\s]+$/, "an images.pexels.com photo URL without a query"),
+            alt: z.string().trim().min(8).max(160),
+            width: z.number().int().positive(),
+            height: z.number().int().positive(),
+            photographer: z.string().trim().min(1),
+            photographerUrl: z.string().regex(/^https:\/\//),
+            pexelsUrl: z.string().regex(/^https:\/\/www\.pexels\.com\/photo\//),
+          })
+          .strict(),
+      )
+      .max(3)
+      .default([]),
+    faq: z.array(z.object({ q: z.string().trim().min(8).max(160), a: z.string().trim().min(20).max(700) }).strict()).max(5).default([]),
+    cta: z.object({ title: z.string().trim().min(8).max(90).optional(), body: z.string().trim().min(20).max(300).optional(), toolHeadline: z.string().trim().min(8).max(120).optional(), toolNote: z.string().trim().min(8).max(200).optional() }).strict().optional(),
   })
   .strict();
 
@@ -159,6 +244,36 @@ export function validateBody(body: string): string[] {
   return problems;
 }
 
+/** The SEO publishing gates for a non-draft article (pure; exported for tests). */
+export function publishGates(fm: Frontmatter, body: string, words: number, headings: PostHeading[], toolExists: (id: string) => boolean): string[] {
+  const problems: string[] = [];
+  const [lo, hi] = LEVEL_WORDS[fm.level];
+  if (words < lo || words > hi) problems.push(`level ${fm.level} needs ${lo}–${hi} words; the body has ${words}`);
+  if (fm.level === "A") {
+    if (!fm.tool) problems.push("level A needs a tool (content/tools/<id>.json)");
+    else if (!toolExists(fm.tool)) problems.push(`tool "${fm.tool}" has no content/tools/${fm.tool}.json`);
+  }
+  if (fm.level === "B") {
+    if (!fm.verdict) problems.push("level B needs a verdict (the conclusion card)");
+    if (headings.length < 3) problems.push("level B needs at least three H2 sections (table of contents)");
+    if (fm.tool) problems.push("a tool belongs on level A pages");
+  }
+  if (fm.images.length < 2) problems.push(`needs 2–3 photos; has ${fm.images.length}`);
+  if (fm.faq.length < 3) problems.push(`needs 3–5 FAQ entries; has ${fm.faq.length}`);
+  const prose = withoutCode(body);
+  const dataPoints = [...prose.matchAll(/<DataPoint\b/g)].length;
+  const need = Math.floor(words / WORDS_PER_DATAPOINT);
+  if (dataPoints < need) problems.push(`needs at least ${need} sourced <DataPoint>s (one per ${WORDS_PER_DATAPOINT} words); has ${dataPoints}`);
+  fm.images.forEach((_, i) => {
+    const n = [...prose.matchAll(new RegExp(`<Photo\\s+n="${i + 1}"\\s*/>`, "g"))].length;
+    if (n !== 1) problems.push(`photo ${i + 1} must be placed exactly once with <Photo n="${i + 1}" /> (found ${n})`);
+  });
+  if (/<Photo\s+n="([4-9]|\d{2,})"/.test(prose)) problems.push("a <Photo> refers to a photo that is not in the frontmatter");
+  const text = [fm.title, fm.description, ...fm.keywords, fm.verdict?.title ?? "", fm.verdict?.body ?? "", ...fm.images.map((i) => i.alt), ...fm.faq.flatMap((f) => [f.q, f.a]), fm.cta?.title ?? "", fm.cta?.body ?? "", fm.cta?.toolHeadline ?? "", fm.cta?.toolNote ?? "", body].join("\n");
+  for (const { re, label } of LEAK_PATTERNS) if (re.test(text)) problems.push(`contains ${label}`);
+  return problems;
+}
+
 /* ------------------------------------------------------------------ parsing */
 
 function zodProblems(error: z.ZodError): string[] {
@@ -170,7 +285,7 @@ function zodProblems(error: z.ZodError): string[] {
 }
 
 /** One article file → Post, or the list of problems with it (exported for tests). */
-export function parsePost(category: string, slug: string, raw: string): ParseResult {
+export function parsePost(category: string, slug: string, raw: string, toolExists: (id: string) => boolean = () => true): ParseResult {
   const errors: string[] = [];
   if (!SLUG_RE.test(slug)) errors.push(`file name "${slug}" must be lower-case letters, digits and hyphens`);
   if ((RESERVED_POST_SLUGS as readonly string[]).includes(slug)) errors.push(`"${slug}" is reserved by the hub's pagination; pick another slug`);
@@ -196,6 +311,9 @@ export function parsePost(category: string, slug: string, raw: string): ParseRes
   if (errors.length || !fm.success) return { ok: false, errors };
 
   const words = countWords(parsed.content);
+  const headings = extractHeadings(parsed.content);
+  if (!fm.data.draft) errors.push(...publishGates(fm.data, parsed.content, words, headings, toolExists));
+  if (errors.length) return { ok: false, errors };
   return {
     ok: true,
     post: {
@@ -208,10 +326,16 @@ export function parsePost(category: string, slug: string, raw: string): ParseRes
       keywords: fm.data.keywords,
       featured: fm.data.featured,
       draft: fm.data.draft,
+      level: fm.data.level,
+      tool: fm.data.tool ?? null,
+      verdict: fm.data.verdict ?? null,
+      images: fm.data.images,
+      faq: fm.data.faq,
+      cta: fm.data.cta ?? null,
       body: parsed.content,
       wordCount: words,
       readingMinutes: readingMinutes(words),
-      headings: extractHeadings(parsed.content),
+      headings,
     },
   };
 }
@@ -224,11 +348,14 @@ export function sortPosts<T extends Pick<Post, "publishedAt" | "slug">>(posts: T
 /* ------------------------------------------------------------------ loading */
 
 const ROOT = path.join(process.cwd(), "content", "blog");
+const TOOLS = path.join(process.cwd(), "content", "tools");
+const toolFileExists = (id: string) => fs.existsSync(path.join(TOOLS, `${id}.json`));
 let cache: Post[] | null = null;
 
 /** Reads every article once per process (at build for static pages, per cold start otherwise). */
 function load(): Post[] {
-  if (cache) return cache;
+  // Cached for the life of a production process; re-read in development so new or edited files show up on refresh.
+  if (cache && process.env.NODE_ENV === "production") return cache;
   const posts: Post[] = [];
   const problems: string[] = [];
   if (fs.existsSync(ROOT)) {
@@ -239,7 +366,7 @@ function load(): Post[] {
         if (!file.endsWith(".mdx") || file.startsWith("_") || file.startsWith(".")) continue;
         const slug = file.slice(0, -4);
         const raw = fs.readFileSync(path.join(ROOT, dir.name, file), "utf8");
-        const result = parsePost(dir.name, slug, raw);
+        const result = parsePost(dir.name, slug, raw, toolFileExists);
         if (result.ok) posts.push(result.post);
         else problems.push(...result.errors.map((e) => `content/blog/${dir.name}/${file}: ${e}`));
       }
