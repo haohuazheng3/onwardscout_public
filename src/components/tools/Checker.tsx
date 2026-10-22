@@ -87,19 +87,28 @@ function Highlighted({ text, findings }: { text: string; findings: CheckerFindin
 }
 
 /**
- * Paragraphs = blocks of six or more words, so a greeting or sign-off on its own is not counted. Blocks are
- * separated by blank lines; text pasted with single line breaks only (Word, Google Docs) counts each line.
+ * Paragraphs = blocks of six or more words with at least four lower-case prose words, so a greeting, sign-off,
+ * letterhead, address or signature block is not counted. Blocks are split at blank lines, and at single line
+ * breaks (Word, Google Docs, PDF) only after sentence-final punctuation; list items are never split apart.
  */
 export function paragraphCount(text: string): number {
-  const blocks = /\n\s*\n/.test(text) ? text.split(/\n\s*\n/) : text.split(/\n/);
-  return blocks.filter((p) => countWords(p) >= 6).length;
+  const prose = (p: string) => p.split(/\s+/).filter((w) => /^[("“‘]?[a-z][a-z'’-]*[)"”’,.;:!?…]*$/.test(w)).length >= 4;
+  // Hard-wrapped text (email, plain-text editor, some PDFs): most prose lines stop mid-sentence, so with blank lines only those split.
+  const lines = text.split("\n").filter(prose);
+  const wrapped = lines.length >= 4 && lines.filter((l) => !/[.!?…]["”’)]*\s*$/.test(l)).length * 2 >= lines.length;
+  const blocks =
+    wrapped && /\n[^\S\n]*\n/.test(text)
+      ? text.split(/\n[^\S\n]*\n\s*/)
+      : text.split(/\n[^\S\n]*\n\s*|(?<=[.!?…]["”’)]{0,3})[^\S\n]*\n(?![^\S\n]*(?:[-–—•*●▪◦○]|\d{1,2}[.)])\s)/);
+  return blocks.filter((p) => countWords(p) >= 6 && prose(p)).length;
 }
 
 export type LimitVerdict = { limit: CheckerLimit; value: number; state: "empty" | "short" | "ok" | "over"; text: string };
 
 export function limitVerdicts(limits: readonly CheckerLimit[], text: string): LimitVerdict[] {
   const words = countWords(text);
-  const chars = text.replace(/\n/g, "").length;
+  // Line breaks count: a portal's text box (maxlength, value.length) counts each one as a character.
+  const chars = text.length;
   const paras = paragraphCount(text);
   return limits.map((limit) => {
     const value = limit.measure === "words" ? words : limit.measure === "characters" ? chars : paras;
@@ -138,7 +147,7 @@ export function CheckerView({ tool }: { tool: CheckerTool }) {
       const g = readingGrade(text);
       return { label: "Reading level", value: Number.isFinite(g) ? `Grade ${g}` : "—" };
     }
-    if (s === "characters") return { label: "Characters", value: text.replace(/\n/g, "").length.toLocaleString("en-US") };
+    if (s === "characters") return { label: "Characters", value: text.length.toLocaleString("en-US") };
     if (s.startsWith("read@")) {
       const wpm = Number(s.slice("read@".length));
       return { label: `Read at ${wpm} words/min`, value: duration((words / wpm) * 60) };

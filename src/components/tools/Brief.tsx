@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { BriefTool } from "@/content/tools/types";
-import { hashString, midSentenceIds, renderTemplate } from "./templating";
+import type { BriefTool, InputDef } from "@/content/tools/types";
+import { hashString, midSentenceIds, placeholderIds, renderTemplate } from "./templating";
 import { CopyButton, InputGrid, initialValues, missingRequired, templateValues, useToolEvents, whenMatches, type Values } from "./shared";
 
 export interface BriefDoc {
@@ -56,6 +56,15 @@ export function buildBrief(tool: BriefTool, values: Values): BriefDoc {
   return { title, sections };
 }
 
+/** Required text fields left empty, plus number and date fields the shown sections use that are cleared ("Request:." otherwise). */
+export function briefMissing(tool: BriefTool, values: Values): InputDef[] {
+  const used = new Set(
+    [tool.docTitle ?? tool.title, ...tool.sections.filter((s) => whenMatches(s.when, values)).flatMap((s) => [s.heading, s.template])].flatMap((t) => placeholderIds(t)),
+  );
+  const empty = tool.inputs.filter((i) => (i.type === "number" || i.type === "date") && used.has(i.id) && !(typeof values[i.id] === "number" && Number.isFinite(values[i.id] as number)));
+  return [...missingRequired(tool.inputs, values), ...empty];
+}
+
 export function briefMarkdown(doc: BriefDoc): string {
   const out: string[] = [`# ${doc.title}`, ""];
   for (const s of doc.sections) {
@@ -72,7 +81,7 @@ export function BriefView({ tool }: { tool: BriefTool }) {
   const [values, setValues] = useState<Values>(() => initialValues(tool.inputs));
   const events = useToolEvents(tool);
   const midSentence = useMemo(() => midSentenceIds(tool.sections.map((s) => s.template)), [tool]);
-  const missing = missingRequired(tool.inputs, values);
+  const missing = briefMissing(tool, values);
   const doc = useMemo(() => buildBrief(tool, values), [tool, values]);
   const ready = missing.length === 0;
 

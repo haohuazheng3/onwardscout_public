@@ -12,7 +12,7 @@
  * Values: strings are trimmed; numbers print as typed; toggles print "yes" / "no";
  * multiselects and textarea lines print as "a, b, c". List filters (first, second, third,
  * last, count, list) read a multiselect as its items and a textarea as its non-empty lines,
- * with leading bullets ("- ", "* ", "1. ") removed.
+ * with leading bullets ("- ", "• ", "– ", "1. ") removed; a year such as "2019." stays.
  */
 
 export type TemplateValue = string | number | boolean | readonly string[] | null | undefined;
@@ -64,7 +64,7 @@ export function splitLines(value: TemplateValue): string[] {
   if (typeof value !== "string") return [toText(value)].filter(Boolean);
   return value
     .split(/\r?\n/)
-    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim())
+    .map((l) => l.replace(/^\s*(?:[•◦▪‣·]\s*|[-*–—]\s+|\d{1,2}[.)]\s+)/, "").trim())
     .filter(Boolean);
 }
 
@@ -99,15 +99,19 @@ const SENTENCE_STARTERS = new Set(
     "saved generated achieved boosted closed doubled tripled exceeded resolved processed oversaw partnered established converted " +
     "surveyed measured monitored interviewed compared evaluated examined assessed modeled sampled collected recorded estimated tracked mapped " +
     "work return join pursue become study apply use continue explore focus turning owning forecasting faster lower higher better more less day " +
-    "how what why who whether which"
+    "how what why who whether which " +
+    "joined cofounded spearheaded hired coached advised pioneered optimized engineered architected facilitated conducted initiated overhauled migrated authored curated " +
+    "graduated received contributed recruited deployed integrated supported prepared maintained drafted hosted sold held took gave became kept sent got"
   ).split(/\s+/),
 );
 
 function withArticle(s: string): string {
   if (!s) return s;
   const first = s.split(/\s+/)[0];
-  // Acronyms are read letter by letter ("an LED", "a USB"); numbers by their sound ("an 8", "an 11").
-  const an = /^[A-Z0-9]{2,}$/.test(first) || /^\d/.test(first)
+  // Acronyms are read letter by letter ("an LED", "a USB", "an R&D", "a UI/UX"); numbers by their sound ("an 8", "an 11").
+  // Some are read as words ("a HIPAA-compliant clinic", "a NASA-funded lab"), and capitals can be a shouted word ("a SENIOR-LEVEL role").
+  const spoken = /^(?:NASA|STEM|HIPAA|FAANG|NATO|UNICEF|UNESCO|OPEC|SWAT|LEGO)(?![A-Z])/.test(first) || /^[A-Z]{5,}-/.test(first);
+  const an = !spoken && (/^(?:[A-Z0-9]{2,}(?:$|[-/&])|[A-Z][-/&])/.test(first) || /^\d/.test(first))
     ? /^(?:[AEFHILMNORSX8]|11|18)/.test(first)
     : (/^[aeiou]/i.test(s) && !/^(?:uni|use|usu|eu|one|once|ure)/i.test(s)) || /^(?:hour|honest|heir|honou?r)/i.test(s);
   return `${an ? "an" : "a"} ${s}`;
@@ -144,11 +148,15 @@ export const FILTERS: Record<string, (value: TemplateValue) => string> = {
   lower: (v) => toText(v).toLowerCase(),
   /** "bottle" → "BOTTLE" */
   upper: (v) => toText(v).toUpperCase(),
-  /** First letter lower-case so a sentence can continue another one ("I…", "I'm…" and acronyms stay as typed): "At my last job" → "at my last job". */
+  /** First letter lower-case so a sentence can continue another one ("I…", "I'm…" and acronyms such as "IT", "A/B", "AT&T" stay as typed): "At my last job" → "at my last job". */
   uncap: (v) => {
     const t = toText(v);
     const first = /^[A-Za-z]+/.exec(t)?.[0] ?? "";
-    return SENTENCE_STARTERS.has(first.toLowerCase()) && first !== "I" ? t.charAt(0).toLowerCase() + t.slice(1) : t;
+    const acronym = first.length > 1 ? first === first.toUpperCase() : /^[A-Z][-/&+]/.test(t);
+    // A name written as its domain stays as typed ("Hired.com", "Monday.com").
+    if (first === "I" || acronym || /^[A-Za-z]+\.[a-z]/.test(t)) return t;
+    const starter = SENTENCE_STARTERS.has(first.toLowerCase()) || /^Co-[a-z]+ed\b/.test(t);
+    return starter ? t.charAt(0).toLowerCase() + t.slice(1) : t;
   },
   /** A full sentence typed without its final mark gets a period: "I cut costs by 9%" → "I cut costs by 9%." Empty stays empty. */
   sentence: (v) => {
@@ -285,8 +293,12 @@ export function tidy(text: string): string {
       line
         .replace(/\(\s*\)/g, "")
         .replace(/[ \t]+/g, " ")
-        .replace(/\s+([,.;:!?])/g, "$1")
-        .replace(/([,.;:!?])\1+/g, "$1")
+        // A period glued to the next letter starts a word (".NET", ".5"), so its space stays.
+        .replace(/\s+([,;:!?]|\.(?![\p{L}\p{N}]))/gu, "$1")
+        // Doubled marks collapse, but an ellipsis stays one: ".." → ".", "..." kept, "...." → "...".
+        .replace(/([,;:!?])\1+/g, "$1")
+        .replace(/(?<!\.)\.\.(?!\.)/g, ".")
+        .replace(/\.{4,}/g, "...")
         .replace(/,([.!?])/g, "$1")
         .replace(/([!?])\.(?=\s|$)/g, "$1")
         .trim(),
@@ -304,7 +316,7 @@ export function tidy(text: string): string {
 export function joinNext(value: string, after: string): string {
   if (!value) return value;
   const endsWithPeriod = /[^.]\.$/.test(value) && !/\b(?:e\.g|i\.e|etc|Inc|Ltd|Co|Jr|Sr|Dr|St|vs)\.$/.test(value) && !/(?:\b[A-Z]\.){2,}$/.test(value);
-  if (endsWithPeriod && /^(?:[,;:)]| +[a-z|·–])/.test(after)) return value.slice(0, -1);
+  if (endsWithPeriod && /^(?:[,;:)]| +(?![a-z]+[A-Z])[a-z|·–])/.test(after)) return value.slice(0, -1);
   const looksLikeSentence = /^["“]?[A-Z]/.test(value) && value.trim().split(/\s+/).length >= 3;
   if (looksLikeSentence && !/[.!?…"'”’)\]]$/.test(value) && /^ +["“A-Z]/.test(after)) return `${value}.`;
   return value;

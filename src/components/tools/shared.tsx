@@ -179,7 +179,7 @@ export function whenMatches(when: When | When[] | undefined, values: Values): bo
 
 /** Inputs marked `required` (text/textarea) that are still empty. */
 export function missingRequired(inputs: readonly InputDef[], values: Values): InputDef[] {
-  return inputs.filter((inp) => (inp.type === "text" || inp.type === "textarea") && inp.required && !String(values[inp.id] ?? "").trim());
+  return inputs.filter((inp) => (inp.type === "text" || inp.type === "textarea") && inp.required && whenMatches(inp.when, values) && !String(values[inp.id] ?? "").trim());
 }
 
 /* ---------- input renderer ---------- */
@@ -342,7 +342,7 @@ export function InputField({ input, value, onChange, midSentence }: { input: Inp
 export function InputGrid({ inputs, values, onChange, midSentence }: { inputs: readonly InputDef[]; values: Values; onChange: (id: string, v: InputValue) => void; midSentence?: ReadonlySet<string> }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {inputs.map((inp) => (
+      {inputs.filter((inp) => whenMatches(inp.when, values)).map((inp) => (
         <InputField key={inp.id} input={inp} value={values[inp.id] ?? null} onChange={(v) => onChange(inp.id, v)} midSentence={midSentence?.has(inp.id)} />
       ))}
     </div>

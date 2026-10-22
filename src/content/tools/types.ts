@@ -68,6 +68,8 @@ interface InputBase {
   label: string;
   /** One line under the label. */
   help?: string;
+  /** Show the field only while this holds (a closing date only once "it closes on a set day" is picked). */
+  when?: When | When[];
 }
 
 export interface TextInput extends InputBase {
@@ -480,6 +482,7 @@ const base = {
   id: inputId,
   label: z.string().min(1),
   help: z.string().optional(),
+  when: when.optional(),
 };
 const textInput = z.strictObject({ ...base, type: z.literal("text"), placeholder: z.string().optional(), default: z.string().optional(), maxLength: z.number().int().positive().optional(), required: z.boolean().optional() });
 const textareaInput = z.strictObject({
@@ -701,6 +704,10 @@ function checkInputs(inputs: InputDef[], ctx: Ctx, path: string): Set<string> {
       if (inp.type === "multiselect") for (const d of inp.default ?? []) if (!values.includes(d)) issue(ctx, `default "${d}" is not an option value`, [path, i, "default"]);
     }
     if (inp.type === "number" && inp.min !== undefined && inp.max !== undefined && inp.min > inp.max) issue(ctx, "min is greater than max", [path, i, "min"]);
+  });
+  inputs.forEach((inp, i) => {
+    checkWhen(inp.when, ids, ctx, [path, i, "when"]);
+    if ([inp.when ?? []].flat().some((w) => w.input === inp.id)) issue(ctx, "an input cannot be shown on a condition about itself", [path, i, "when"]);
   });
   return ids;
 }
