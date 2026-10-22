@@ -13,8 +13,10 @@ vi.mock("next/link", () => ({ default: () => null }));
 /* Regressions for the job application tracker (CSV import/export, links, saved rows) and the
  * finder tools (picks hidden by filters, grant type tags). */
 
+// The tool definitions live in the private repository only; the public mirror uses the same statuses and skips the finder data.
+const hasTools = fs.existsSync(path.join(process.cwd(), "content/tools", "job-application-tracker.json"));
 const tool = (id: string) => JSON.parse(fs.readFileSync(path.join(process.cwd(), "content/tools", `${id}.json`), "utf8"));
-const STATUSES: string[] = tool("job-application-tracker").statuses;
+const STATUSES: string[] = hasTools ? tool("job-application-tracker").statuses : ["Applied", "Screen", "Interview", "Final round", "Offer", "Rejected", "No response", "Withdrawn"];
 const brief = (rows: TrackerRow[]) => rows.map((r) => ({ company: r.company, role: r.role, applied: r.applied, status: r.status }));
 
 describe("tracker CSV headers", () => {
@@ -154,7 +156,7 @@ describe("tracker saved rows", () => {
   });
 });
 
-describe("finder picks and tags", () => {
+describe.skipIf(!hasTools)("finder picks and tags", () => {
   it("lists picks the current filters hide, so they can still be unticked", () => {
     const iq = tool("interview-questions-picker");
     const items = iq.items as FinderItem[];

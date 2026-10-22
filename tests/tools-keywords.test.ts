@@ -1,6 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { extractKeywords, matchKeywords } from "@/components/tools/Keywords";
-import tool from "../content/tools/resume-keyword-matcher.json";
 
 // Keywords.tsx imports the shared tool helpers (consent banner, next/link); only the pure functions are tested here.
 vi.mock("@/components/Consent", () => ({ track: () => {} }));
@@ -9,7 +10,10 @@ vi.mock("next/link", () => ({ default: () => null }));
 /* Regression tests for the résumé keyword matcher: plurals, slash lists, "&" names, repeated names
  * inside one-off phrases, hyphen spellings, stop words, .NET / R / C and accented letters. */
 
-const stop = tool.extraStopwords;
+// The tool definitions live in the private repository only; the public mirror skips these.
+const file = path.join(process.cwd(), "content", "tools", "resume-keyword-matcher.json");
+const hasTool = fs.existsSync(file);
+const stop: string[] = hasTool ? JSON.parse(fs.readFileSync(file, "utf8")).extraStopwords : [];
 const pad = "\nAbout us: we are a growing company with offices in several cities and a friendly culture where everyone is welcome and heard by all of us every single day.";
 
 /** phrase → present, as the tool would show it for this posting (padded past the 25-word minimum) and résumé. */
@@ -18,7 +22,7 @@ function check(jd: string, cv: string): Record<string, boolean> {
 }
 const phrases = (jd: string) => extractKeywords(jd + pad, 30, stop).map((k) => k.phrase);
 
-describe("plurals", () => {
+describe.skipIf(!hasTool)("plurals", () => {
   it("matches irregular and acronym plurals against the singular in the résumé", () => {
     expect(check("Requirements: experience with APIs. You will design APIs and document APIs.", "Designed a public API used by 200 partners.").apis).toBe(true);
     expect(check("Requirements: experience designing an API. The API is core. Own the API.", "Shipped 14 public APIs.").api).toBe(true);
@@ -43,7 +47,7 @@ describe("plurals", () => {
   });
 });
 
-describe("slash lists", () => {
+describe.skipIf(!hasTool)("slash lists", () => {
   it("splits a list of skills on both sides", () => {
     expect(check("Requirements: Python/SQL. You will write Python/SQL daily. Python/SQL pipelines.", "Skills: Python, SQL, Tableau.")).toMatchObject({ python: true, sql: true });
     expect(check("Requirements: strong Python. Write Python daily. Python services.", "Skills: Python/SQL/Tableau.").python).toBe(true);
@@ -61,7 +65,7 @@ describe("slash lists", () => {
   });
 });
 
-describe("names with & and .NET", () => {
+describe.skipIf(!hasTool)("names with & and .NET", () => {
   it("keeps M&A, P&L, FP&A and R&D whole", () => {
     expect(check("Requirements: M&A experience. Support M&A deals. Model M&A transactions.", "Supported 6 M&A transactions.")["m&a"]).toBe(true);
     expect(check("Requirements: own the P&L. Report on P&L. Manage P&L for region.", "Owned a $40M P&L.")["p&l"]).toBe(true);
@@ -85,7 +89,7 @@ describe("names with & and .NET", () => {
   });
 });
 
-describe("repeated names inside one-off phrases", () => {
+describe.skipIf(!hasTool)("repeated names inside one-off phrases", () => {
   it("keeps SQL ×3 when every mention sits in a longer phrase used once", () => {
     const jd = `Database Developer
 Responsibilities
@@ -123,7 +127,7 @@ Requirements
   });
 });
 
-describe("spelling variants", () => {
+describe.skipIf(!hasTool)("spelling variants", () => {
   it("treats hyphen, space and joined spellings as one term", () => {
     expect(check("Requirements: cross-functional leadership. Lead cross-functional teams. Drive cross-functional alignment.", "Led cross functional squads of 12.")["cross-functional"]).toBe(true);
     expect(check("Requirements: e-commerce experience. Grow e-commerce revenue. Own e-commerce roadmap.", "Grew ecommerce revenue 40%.")["e-commerce"]).toBe(true);
@@ -138,7 +142,7 @@ describe("spelling variants", () => {
   });
 });
 
-describe("stop words", () => {
+describe.skipIf(!hasTool)("stop words", () => {
   it("drops contractions, requirement cues and third-person verbs", () => {
     const jd = `Registered Nurse
 Summary: The Registered Nurse provides direct patient care and ensures patient safety. The nurse manages patient flow and supports physicians.
@@ -156,7 +160,7 @@ What you'll do: You'll assess patients, you'll administer medications and you'll
   });
 });
 
-describe("accented letters", () => {
+describe.skipIf(!hasTool)("accented letters", () => {
   it("folds accents so words stay whole and match either spelling", () => {
     const jd = `Machine Learning Engineer – Montréal (hybrid)
 Our Montréal team builds recommendation models for clients across Québec.

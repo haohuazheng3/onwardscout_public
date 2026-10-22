@@ -166,8 +166,9 @@ describe("briefMissing", () => {
 });
 
 describe.skipIf(!fs.existsSync(dir))("elevator pitch proof and more", () => {
-  const tool = load("elevator-pitch-generator") as GeneratorTool;
-  const templates = tool.variants.flatMap((g) => g.templates);
+  // A skipped describe still runs its body, so the definition is read only when it exists.
+  const tool = fs.existsSync(dir) ? (load("elevator-pitch-generator") as GeneratorTool) : (null as never);
+  const templates = tool ? tool.variants.flatMap((g) => g.templates) : [];
   const render = (values: Record<string, unknown>) =>
     templates.map((t) => renderTemplate(t, templateValues(tool.inputs, { ...initialValues(tool.inputs), name: "Maya", identity: "a data analyst", ask: "analytics roles", more: "", ...values } as never), { seed: 7 }).text);
 
