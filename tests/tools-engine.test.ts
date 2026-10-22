@@ -37,6 +37,9 @@ describe("template filters", () => {
     expect(FILTERS.a("operations manager")).toBe("an operations manager");
     expect(FILTERS.a("product designer")).toBe("a product designer");
   });
+  it("drops a period added after a question or exclamation the user typed", () => {
+    expect(renderTemplate("Start with the question: {{q}}.", { q: "Why does coral bleach?" }).text).toBe("Start with the question: Why does coral bleach?");
+  });
   it("renders placeholders and reports empty ones", () => {
     const r = renderTemplate("Dear {{name}}, thank you for the {{role|lower}} interview.", { name: "Ms. Lee", role: "Data Analyst" });
     expect(r.text).toBe("Dear Ms. Lee, thank you for the data analyst interview.");
@@ -91,6 +94,10 @@ You will present findings and run analysis on customer segmentation. SQL is used
     expect(phrases).not.toContain("analysi");
     expect(phrases.every((p) => /[a-z]/.test(p))).toBe(true);
   });
+  it("keeps a skill whose occurrences are only partly inside nested phrases", () => {
+    const text = "Write SQL queries daily. Tune complex SQL queries for reporting. Requirements: 3+ years of experience with SQL and Python.";
+    expect(extractKeywords(text, 12).map((k) => k.phrase)).toContain("sql");
+  });
   it("marks what the résumé already uses", () => {
     const hits = matchKeywords(jd, "Built Tableau dashboards for the sales team.", 12);
     expect(hits.find((h) => h.phrase === "tableau")?.present).toBe(true);
@@ -116,7 +123,8 @@ describe("tracker CSV", () => {
     { id: "1", company: "Acme, Inc.", role: 'Analyst "II"', applied: isoToDay("2026-10-12"), status: "Interview", next: "Send thank-you", link: "https://example.com/job", notes: "Met Ana\nfollow up Friday" },
   ];
   it("round-trips commas, quotes and line breaks", () => {
-    const back = rowsFromCsv(toCsv(rows), ["Applied", "Interview", "Offer"]);
+    const { rows: back, unreadableDates } = rowsFromCsv(toCsv(rows), ["Applied", "Interview", "Offer"]);
+    expect(unreadableDates).toBe(0);
     expect(back).toHaveLength(1);
     expect(back[0]).toMatchObject({ company: "Acme, Inc.", role: 'Analyst "II"', applied: isoToDay("2026-10-12"), status: "Interview", notes: "Met Ana\nfollow up Friday" });
   });
@@ -124,7 +132,12 @@ describe("tracker CSV", () => {
     expect(parseCsv('a,b\r\n\r\n"c,d",e\r\n')).toEqual([["a", "b"], ["c,d", "e"]]);
   });
   it("falls back to the first status when a status is unknown", () => {
-    expect(rowsFromCsv("Company,Role,Status\nX,Y,Ghosted", ["Applied", "Offer"])[0].status).toBe("Applied");
+    expect(rowsFromCsv("Company,Role,Status\nX,Y,Ghosted", ["Applied", "Offer"]).rows[0].status).toBe("Applied");
+  });
+  it("counts dates it could not read instead of hiding them", () => {
+    const r = rowsFromCsv("Company,Role,Applied\nX,Y,10/14/2026\nZ,W,2026-10-14", ["Applied"]);
+    expect(r.unreadableDates).toBe(1);
+    expect(r.rows[1].applied).toBe(isoToDay("2026-10-14"));
   });
 });
 

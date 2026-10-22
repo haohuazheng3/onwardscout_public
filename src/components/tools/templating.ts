@@ -235,6 +235,7 @@ export function tidy(text: string): string {
         .replace(/\s+([,.;:!?])/g, "$1")
         .replace(/([,.;:!?])\1+/g, "$1")
         .replace(/,([.!?])/g, "$1")
+        .replace(/([!?])\.(?=\s|$)/g, "$1")
         .trim(),
     )
     .join("\n")

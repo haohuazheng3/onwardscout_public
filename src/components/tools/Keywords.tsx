@@ -84,8 +84,25 @@ export function extractKeywords(jd: string, max: number, extraStop: readonly str
     for (let i = kept.length - 1; i >= 0; i--) if (contains(x.phrase, kept[i].phrase) && x.count >= kept[i].count) kept.splice(i, 1);
     kept.push({ phrase: x.phrase, count: x.count, score: Math.round(x.score * 10) / 10 });
   }
-  // Drop a phrase whose every occurrence sits inside longer kept phrases ("customer" inside "customer insights" and "customer segmentation").
-  const out = kept.filter((p) => kept.filter((q) => contains(q.phrase, p.phrase)).reduce((n, q) => n + q.count, 0) < p.count).slice(0, max);
+  // Drop a phrase only when every one of its occurrences sits inside an occurrence of a longer kept
+  // phrase ("customer" inside "customer insights" and "customer segmentation"). Checked occurrence by
+  // occurrence: "SQL" inside "complex SQL queries" and alone in "experience with SQL" stays.
+  const segToks = segments.map(({ seg }) => tokens(seg).map(singular));
+  const spans = (phrase: string) => {
+    const words = phrase.split(" ");
+    const out: [number, number, number][] = [];
+    segToks.forEach((toks, s) => {
+      for (let i = 0; i + words.length <= toks.length; i++) if (words.every((w, k) => toks[i + k] === w)) out.push([s, i, i + words.length]);
+    });
+    return out;
+  };
+  const longer = (p: string) => kept.filter((q) => contains(q.phrase, p)).map((q) => spans(q.phrase)).flat();
+  const out = kept
+    .filter((p) => {
+      const covers = longer(p.phrase);
+      return spans(p.phrase).some(([s, a, b]) => !covers.some(([t, c, d]) => t === s && c <= a && b <= d));
+    })
+    .slice(0, max);
   return out;
 }
 

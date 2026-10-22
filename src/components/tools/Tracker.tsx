@@ -70,9 +70,16 @@ export function parseCsv(text: string): string[][] {
   return out.filter((r) => r.some((x) => x.trim()));
 }
 
-export function rowsFromCsv(text: string, statuses: readonly string[]): TrackerRow[] {
+/** Statuses that are not a reply from the employer ("% heard back" leaves them out). */
+export const NO_REPLY_STATUSES = ["No response"] as const;
+
+/**
+ * CSV rows → tracker rows. Dates must be YYYY-MM-DD; a date that cannot be read becomes today
+ * and is counted in `unreadableDates`, so the import can say so instead of hiding it.
+ */
+export function rowsFromCsv(text: string, statuses: readonly string[]): { rows: TrackerRow[]; unreadableDates: number } {
   const table = parseCsv(text);
-  if (!table.length) return [];
+  if (!table.length) return { rows: [], unreadableDates: 0 };
   const head = table[0].map((h) => h.trim().toLowerCase());
   const idx = (names: string[]) => head.findIndex((h) => names.includes(h));
   const at = {
@@ -85,12 +92,15 @@ export function rowsFromCsv(text: string, statuses: readonly string[]): TrackerR
     notes: idx(["notes", "note"]),
   };
   const body = at.company >= 0 ? table.slice(1) : table;
-  return body.map((r) => {
+  let unreadableDates = 0;
+  const rows = body.map((r) => {
     const get = (k: keyof typeof at) => (at[k] >= 0 ? (r[at[k]] ?? "").trim() : "");
     const day = isoToDay(get("applied"));
+    if (!Number.isFinite(day)) unreadableDates++;
     const status = statuses.find((s) => s.toLowerCase() === get("status").toLowerCase()) ?? statuses[0];
     return { id: newId(), company: get("company") || (r[0] ?? ""), role: get("role") || (r[1] ?? ""), applied: Number.isFinite(day) ? day : todayDays(), status, next: get("next"), link: get("link"), notes: get("notes") };
   });
+  return { rows, unreadableDates };
 }
 
 function download(name: string, text: string) {
@@ -141,7 +151,9 @@ export function TrackerView({ tool }: { tool: TrackerTool }) {
   const first = tool.statuses[0];
   const flagged = (r: TrackerRow) => r.status === first && today - r.applied >= tool.followUpDays;
   const counts = tool.statuses.map((s) => ({ s, n: showing.filter((r) => r.status === s).length }));
-  const responded = showing.filter((r) => r.status !== first).length;
+  // Withdrawn rows are left out of the rate; "No response" rows count as applications that never heard back.
+  const counted = showing.filter((r) => r.status !== "Withdrawn");
+  const responded = counted.filter((r) => r.status !== first && !(NO_REPLY_STATUSES as readonly string[]).includes(r.status)).length;
 
   const add = () => {
     if (!draft.company.trim() || !draft.role.trim()) {
@@ -197,7 +209,7 @@ export function TrackerView({ tool }: { tool: TrackerTool }) {
           {showing.length} {showing.length === 1 ? "application" : "applications"}
         </span>
         <span className="tag tag-pine">
-          {showing.length ? Math.round((responded / showing.length) * 100) : 0}% heard back
+          {counted.length ? Math.round((responded / counted.length) * 100) : 0}% heard back
         </span>
         {counts
           .filter((c) => c.n)
@@ -262,9 +274,13 @@ export function TrackerView({ tool }: { tool: TrackerTool }) {
           onChange={async (e) => {
             const f = e.target.files?.[0];
             if (!f) return;
-            const imported = rowsFromCsv(await f.text(), tool.statuses);
+            const { rows: imported, unreadableDates } = rowsFromCsv(await f.text(), tool.statuses);
             save([...imported, ...(rows ?? [])]);
-            setMsg(`Imported ${imported.length} rows.`);
+            setMsg(
+              unreadableDates
+                ? `Imported ${imported.length} rows; ${unreadableDates} ${unreadableDates === 1 ? "date" : "dates"} could not be read (use YYYY-MM-DD) and ${unreadableDates === 1 ? "was" : "were"} set to today.`
+                : `Imported ${imported.length} rows.`,
+            );
             e.target.value = "";
           }}
         />

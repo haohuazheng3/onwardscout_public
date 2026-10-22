@@ -86,9 +86,9 @@ function Highlighted({ text, findings }: { text: string; findings: CheckerFindin
   return <p className="whitespace-pre-wrap text-[0.98rem] leading-relaxed text-ink-2 [overflow-wrap:anywhere]">{nodes}</p>;
 }
 
-/** Paragraphs = blocks separated by a blank line (a single line break stays in the paragraph). */
+/** Paragraphs = blank-line-separated blocks of six or more words, so a greeting or sign-off on its own is not counted. */
 export function paragraphCount(text: string): number {
-  return text.split(/\n\s*\n/).filter((p) => p.trim()).length;
+  return text.split(/\n\s*\n/).filter((p) => countWords(p) >= 6).length;
 }
 
 export type LimitVerdict = { limit: CheckerLimit; value: number; state: "empty" | "short" | "ok" | "over"; text: string };
