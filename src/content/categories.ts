@@ -79,7 +79,7 @@ export const CATEGORIES: readonly Category[] = [
     description:
       "Open calls for artists, grants and residencies, plus free builders for the materials juries ask for: artist statement, artist bio, artist CV and a creator media kit.",
     intro:
-      "Creative opportunities are scattered across thousands of small calls, each with its own format. The live list of open calls is one click away; the pages here help with what every call asks for: a statement, a bio, a CV and, for creators, a media kit.",
+      "Creative opportunities are scattered across thousands of small calls, each with its own format. Residencies, grants and film and music open calls are one click away; the pages here help with what every call asks for: a statement, a bio, a CV and, for creators, a media kit.",
     opportunityTypes: ["open-calls", "residencies", "grants", "awards", "competitions", "brand-partnerships"],
   },
 ];

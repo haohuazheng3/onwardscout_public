@@ -33,9 +33,36 @@ describe("template filters", () => {
     expect(FILTERS.usd("")).toBe("");
     expect(FILTERS.usd("about 5k")).toBe("about 5k");
   });
+  it("sentence adds a missing final period and phrase removes one", () => {
+    expect(FILTERS.sentence("I led it")).toBe("I led it.");
+    expect(FILTERS.sentence("I led it.")).toBe("I led it.");
+    expect(FILTERS.sentence("")).toBe("");
+    expect(FILTERS.phrase("cut churn to 4%.")).toBe("cut churn to 4%");
+    expect(FILTERS.phrase("help your team grow.")).toBe("help your team grow");
+    expect(FILTERS.phrase("work in the U.S.")).toBe("work in the U.S.");
+    expect(FILTERS.phrase("Acme Co.")).toBe("Acme Co.");
+    expect(FILTERS.phrase("what remains?")).toBe("what remains");
+    expect(renderTemplate("{{q|cap|phrase}}? {{p|sentence}} Next.", { q: "what remains?", p: "I paint" }).text).toBe("What remains? I paint. Next.");
+  });
   it("a picks the article by sound", () => {
     expect(FILTERS.a("operations manager")).toBe("an operations manager");
     expect(FILTERS.a("product designer")).toBe("a product designer");
+  });
+  it("fits typed punctuation to the sentence around it", () => {
+    expect(renderTemplate("Recently {{a}}, and {{b}}.", { a: "cut costs by 14%.", b: "led two launches." }).text).toBe("Recently cut costs by 14%, and led two launches.");
+    expect(renderTemplate("{{p}} I'd like to do more.", { p: "I ran a 40-person event" }).text).toBe("I ran a 40-person event. I'd like to do more.");
+    expect(renderTemplate("{{why}} is the reason I'm applying.", { why: "Your work on U.S." }).text).toBe("Your work on U.S. is the reason I'm applying.");
+    expect(renderTemplate("Fit: {{f}}.", { f: "early literacy." }).text).toBe("Fit: early literacy.");
+    expect(renderTemplate("{{a}} {{b}} Both matter.", { a: "I built a model", b: "I presented it" }).text).toBe("I built a model. I presented it. Both matter.");
+  });
+  it("uncap lowercases ordinary first words only, cap keeps brand casing", () => {
+    expect(FILTERS.uncap("Python projects for my lab")).toBe("Python projects for my lab");
+    expect(FILTERS.uncap("Berlin was where I started")).toBe("Berlin was where I started");
+    expect(FILTERS.uncap("Built a tracker in Excel")).toBe("built a tracker in Excel");
+    expect(FILTERS.cap("iPhone apps for clinics")).toBe("iPhone apps for clinics");
+    expect(FILTERS.cap("checkout flows")).toBe("Checkout flows");
+    expect(FILTERS.cap("eBay sellers")).toBe("eBay sellers");
+    expect(FILTERS.cap("keeps ice 24 h")).toBe("Keeps ice 24 h");
   });
   it("drops a period added after a question or exclamation the user typed", () => {
     expect(renderTemplate("Start with the question: {{q}}.", { q: "Why does coral bleach?" }).text).toBe("Start with the question: Why does coral bleach?");
@@ -63,6 +90,11 @@ describe("formula date functions", () => {
     expect(evaluateFormula("addWorkdays(x, 1)", { x: d("2026-10-23") })).toBe(d("2026-10-26"));
     expect(evaluateFormula("addWorkdays(x, 7)", { x: d("2026-10-19") })).toBe(d("2026-10-28"));
     expect(evaluateFormula("addWorkdays(x, -1)", { x: d("2026-10-26") })).toBe(d("2026-10-23"));
+  });
+  it("ceil and floor ignore floating-point noise", () => {
+    expect(evaluateFormula("ceil(2 / 0.2)")).toBe(10);
+    expect(evaluateFormula("ceil(10 / (5 / 100))")).toBe(200);
+    expect(evaluateFormula("floor(0.7 * 10)")).toBe(7);
   });
   it("log1mc gives the at-least-one-success count", () => {
     expect(evaluateFormula("ceil(log1mc(0.9) / log1mc(0.25))")).toBe(9);

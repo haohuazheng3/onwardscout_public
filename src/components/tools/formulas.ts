@@ -48,8 +48,9 @@ export const FUNCTIONS: Record<string, { arity: [number, number]; fn: (...a: num
       return Math.round((x + Number.EPSILON) * m) / m;
     },
   },
-  ceil: { arity: [1, 1], fn: (x) => Math.ceil(x) },
-  floor: { arity: [1, 1], fn: (x) => Math.floor(x) },
+  // Rounded to 9 decimals first, so floating-point noise never adds or drops one: ceil(2 / 0.2) = 10, not 11.
+  ceil: { arity: [1, 1], fn: (x) => Math.ceil(Math.round(x * 1e9) / 1e9) },
+  floor: { arity: [1, 1], fn: (x) => Math.floor(Math.round(x * 1e9) / 1e9) },
   abs: { arity: [1, 1], fn: (x) => Math.abs(x) },
   sqrt: { arity: [1, 1], fn: (x) => Math.sqrt(x) },
   clamp: { arity: [3, 3], fn: (x, lo, hi) => Math.min(Math.max(x, lo), hi) },

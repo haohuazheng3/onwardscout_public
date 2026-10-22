@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { DEFAULT_VARIANT_COUNT, type GeneratorTool } from "@/content/tools/types";
-import { countWords, hashString, renderTemplate, seededShuffle } from "./templating";
+import { countWords, hashString, placeholderIds, renderTemplate, seededShuffle } from "./templating";
 import { CopyButton, InputGrid, initialValues, missingRequired, templateValues, useToolEvents, whenMatches, type Values } from "./shared";
 
 interface Variant {
@@ -47,8 +47,8 @@ export function GeneratorView({ tool }: { tool: GeneratorTool }) {
     const tv = templateValues(tool.inputs, values);
     return pickVariants(tool, values, seed).map((p) => {
       const r = renderTemplate(p.template, tv, { seed: hashString(`${seed}:${p.key}:${p.template}`) });
-      // Only required fields are worth flagging; optional ones are empty on purpose.
-      const required = new Set(tool.inputs.filter((i) => (i.type === "text" || i.type === "textarea") && i.required).map((i) => i.id));
+      // Required fields, and optional ones that ship with a default (clearing those leaves a gap), are worth flagging.
+      const required = new Set(tool.inputs.filter((i) => (i.type === "text" || i.type === "textarea") && (i.required || !!i.default?.trim())).map((i) => i.id));
       return { key: p.key, group: p.group, text: r.text, missing: r.missing.filter((id) => required.has(id)), words: countWords(r.text) };
     });
   }, [tool, values, seed, started]);
@@ -66,7 +66,10 @@ export function GeneratorView({ tool }: { tool: GeneratorTool }) {
 
   const generate = () => {
     events.used();
-    const missing = missingRequired(tool.inputs, values);
+    // A cleared date field that the chosen templates use counts as missing too ("my start date is." otherwise).
+    const used = new Set(tool.variants.filter((g) => whenMatches(g.when, values)).flatMap((g) => g.templates.flatMap((t) => placeholderIds(t))));
+    const emptyDates = tool.inputs.filter((i) => i.type === "date" && used.has(i.id) && !(typeof values[i.id] === "number" && Number.isFinite(values[i.id] as number)));
+    const missing = [...missingRequired(tool.inputs, values), ...emptyDates];
     if (missing.length) {
       setHint(`Fill in ${missing.map((m) => m.label).join(", ")} first.`);
       return;

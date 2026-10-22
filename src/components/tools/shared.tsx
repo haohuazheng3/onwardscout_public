@@ -162,7 +162,7 @@ function conditionValue(v: InputValue): string[] {
   if (Array.isArray(v)) return v;
   if (typeof v === "boolean") return [v ? "true" : "false"];
   if (v === null || v === undefined) return [""];
-  return [String(v)];
+  return [String(v).trim()];
 }
 
 export function whenMatches(when: When | When[] | undefined, values: Values): boolean {

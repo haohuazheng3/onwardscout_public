@@ -77,8 +77,28 @@ function toText(value: TemplateValue): string {
 }
 
 function capitalize(s: string): string {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  // Brand-style words keep their case: "iPhone app", "eBay seller".
+  if (!s || /^[a-z]+[A-Z]/.test(s)) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/**
+ * Words that only start with a capital because they start the phrase. uncap lowercases these
+ * and nothing else, so names typed at the start of a phrase survive ("Python", "Berlin", "Figma").
+ */
+const SENTENCE_STARTERS = new Set(
+  (
+    "a an the this that these those my our your their his her its we you they he she it one two three four five every each all most some many several few " +
+    "at in on for with by from to of as into onto over under after before during since while when where until once through across within without about around between " +
+    "and but so or if because although though yet then now today recently lately last first next also still just only even both either neither " +
+    "built led ran managed created designed developed grew cut reduced increased launched delivered helped wrote taught trained organized coordinated analyzed improved raised won " +
+    "published presented shipped spent worked moved started founded mentored supervised implemented automated negotiated secured completed earned studied volunteered served owned " +
+    "rebuilt redesigned set turned made drove scaled expanded opened brought handled introduced restructured streamlined tested researched planned produced directed edited " +
+    "help support build lead grow open bring turn make drive reduce improve expand launch scale create deliver develop design run manage own ship write teach strengthen " +
+    "working leading building helping running managing teaching writing designing developing making getting moving finding solving keeping creating supporting " +
+    "how what why who whether which"
+  ).split(/\s+/),
+);
 
 function withArticle(s: string): string {
   if (!s) return s;
@@ -124,7 +144,22 @@ export const FILTERS: Record<string, (value: TemplateValue) => string> = {
   /** First letter lower-case so a sentence can continue another one ("I…", "I'm…" and acronyms stay as typed): "At my last job" → "at my last job". */
   uncap: (v) => {
     const t = toText(v);
-    return /^(?:I\b|I'|[A-Z]{2,}|[A-Z][a-z]*[A-Z])/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
+    const first = /^[A-Za-z]+/.exec(t)?.[0] ?? "";
+    return SENTENCE_STARTERS.has(first.toLowerCase()) && first !== "I" ? t.charAt(0).toLowerCase() + t.slice(1) : t;
+  },
+  /** A full sentence typed without its final mark gets a period: "I cut costs by 9%" → "I cut costs by 9%." Empty stays empty. */
+  sentence: (v) => {
+    const t = toText(v);
+    return !t || /[.!?…]["'”’)\]]*$/.test(t) ? t : `${t}.`;
+  },
+  /**
+   * A phrase pasted with a final period, "!" or "?" loses it so it can sit mid-sentence: "cut churn to 4%." → "cut churn to 4%".
+   * A period that ends an abbreviation stays: "work in the U.S.", "Acme Co.".
+   */
+  phrase: (v) => {
+    const t = toText(v).replace(/[\s,;:!?…]+$/u, "");
+    if (/(?:^|[\s.(])(?:[A-Za-z]|Inc|Co|Corp|Ltd|Jr|Sr|St|etc)\.$/.test(t)) return t;
+    return t.replace(/[\s.,;:!?…]+$/u, "");
   },
   /** A number as US dollars with thousands separators: 25000 → "$25,000". Non-numbers print unchanged. */
   usd: (v) => {
@@ -243,10 +278,24 @@ export function tidy(text: string): string {
     .trim();
 }
 
+/**
+ * Fits a typed value to the template text that follows it. A phrase typed with a final period
+ * loses it when the sentence carries on ("cut costs 14%." + ", and" → "cut costs 14%, and"); a
+ * sentence typed without end punctuation gains one when a new sentence follows on the same line.
+ */
+export function joinNext(value: string, after: string): string {
+  if (!value) return value;
+  const endsWithPeriod = /[^.]\.$/.test(value) && !/\b(?:e\.g|i\.e|etc|Inc|Ltd|Co|Jr|Sr|Dr|St|vs)\.$/.test(value) && !/(?:\b[A-Z]\.){2,}$/.test(value);
+  if (endsWithPeriod && /^(?:[,;:)]| +[a-z|·–])/.test(after)) return value.slice(0, -1);
+  const looksLikeSentence = /^["“]?[A-Z]/.test(value) && value.trim().split(/\s+/).length >= 3;
+  if (looksLikeSentence && !/[.!?…"'”’)\]]$/.test(value) && /^ +["“A-Z]/.test(after)) return `${value}.`;
+  return value;
+}
+
 export function renderTemplate(template: string, values: TemplateValues, opts: { rng?: () => number; seed?: number } = {}): RenderResult {
   const rng = opts.rng ?? createRng(opts.seed ?? 1);
   const missing: string[] = [];
-  const text = template.replace(PLACEHOLDER, (_whole, rawInner: string) => {
+  const resolve = (rawInner: string, after: string): string => {
     const inner = rawInner.trim();
     const pick = /^pick\s*:([\s\S]*)$/.exec(inner);
     if (pick) {
@@ -276,10 +325,22 @@ export function renderTemplate(template: string, values: TemplateValues, opts: {
       const fn = FILTERS[name];
       value = fn ? fn(value) : toText(value);
     }
-    const out = toText(value);
+    const out = joinNext(toText(value), after);
     if (!out && !missing.includes(id)) missing.push(id);
     return out;
-  });
+  };
+  // Right to left, so each value sees the text that really follows it, values included.
+  const matches = [...template.matchAll(PLACEHOLDER)];
+  let tail = "";
+  let end = template.length;
+  for (let k = matches.length - 1; k >= 0; k--) {
+    const m = matches[k];
+    const start = m.index ?? 0;
+    tail = template.slice(start + m[0].length, end) + tail;
+    tail = resolve(m[1], tail) + tail;
+    end = start;
+  }
+  const text = template.slice(0, end) + tail;
   return { text: tidy(text), missing };
 }
 
