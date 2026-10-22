@@ -7,7 +7,7 @@ import { compileFormula, evaluateFormula, formatDayLong, formatValue, formulaIde
 import { extractKeywords, matchKeywords } from "@/components/tools/Keywords";
 import { filterItems } from "@/components/tools/Finder";
 import { parseCsv, rowsFromCsv, toCsv, type TrackerRow } from "@/components/tools/Tracker";
-import { limitVerdicts, runChecker } from "@/components/tools/Checker";
+import { limitVerdicts, paragraphCount, runChecker } from "@/components/tools/Checker";
 import { formulaScope, templateValues, type Values } from "@/components/tools/shared";
 
 // The tool views import the consent banner (next-intl navigation) and next/link; only pure functions are tested here.
@@ -62,6 +62,9 @@ describe("template filters", () => {
     expect(FILTERS.cap("iPhone apps for clinics")).toBe("iPhone apps for clinics");
     expect(FILTERS.cap("checkout flows")).toBe("Checkout flows");
     expect(FILTERS.cap("eBay sellers")).toBe("eBay sellers");
+    expect(FILTERS.uncap("Saved 6 hours a week")).toBe("saved 6 hours a week");
+    expect(FILTERS.uncap("Surveyed 60 sites")).toBe("surveyed 60 sites");
+    expect(FILTERS.uncap("Python and SQL")).toBe("Python and SQL");
     expect(FILTERS.cap("keeps ice 24 h")).toBe("Keeps ice 24 h");
   });
   it("drops a period added after a question or exclamation the user typed", () => {
@@ -174,6 +177,11 @@ describe("tracker CSV", () => {
 });
 
 describe("checker limits", () => {
+  it("counts paragraphs split by blank lines, or by single line breaks when pasted from Word or Docs", () => {
+    const p = "I am applying for the analyst role at your company.";
+    expect(paragraphCount(`Dear Ms. Patel,\n\n${p}\n\n${p}\n\nBest,\nSam`)).toBe(2);
+    expect(paragraphCount(`Dear Ms. Patel,\n${p}\n${p}\n${p}\nBest,\nSam`)).toBe(3);
+  });
   const limits = [{ measure: "words" as const, label: "Letter", min: 5, max: 10 }];
   it("reports empty, short, ok and over", () => {
     expect(limitVerdicts(limits, "")[0].state).toBe("empty");

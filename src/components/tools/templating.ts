@@ -96,6 +96,9 @@ const SENTENCE_STARTERS = new Set(
     "rebuilt redesigned set turned made drove scaled expanded opened brought handled introduced restructured streamlined tested researched planned produced directed edited " +
     "help support build lead grow open bring turn make drive reduce improve expand launch scale create deliver develop design run manage own ship write teach strengthen " +
     "working leading building helping running managing teaching writing designing developing making getting moving finding solving keeping creating supporting " +
+    "saved generated achieved boosted closed doubled tripled exceeded resolved processed oversaw partnered established converted " +
+    "surveyed measured monitored interviewed compared evaluated examined assessed modeled sampled collected recorded estimated tracked mapped " +
+    "work return join pursue become study apply use continue explore focus " +
     "how what why who whether which"
   ).split(/\s+/),
 );
