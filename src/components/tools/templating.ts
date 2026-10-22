@@ -98,7 +98,7 @@ const SENTENCE_STARTERS = new Set(
     "working leading building helping running managing teaching writing designing developing making getting moving finding solving keeping creating supporting " +
     "saved generated achieved boosted closed doubled tripled exceeded resolved processed oversaw partnered established converted " +
     "surveyed measured monitored interviewed compared evaluated examined assessed modeled sampled collected recorded estimated tracked mapped " +
-    "work return join pursue become study apply use continue explore focus " +
+    "work return join pursue become study apply use continue explore focus turning owning forecasting faster lower higher better more less day " +
     "how what why who whether which"
   ).split(/\s+/),
 );
@@ -228,6 +228,21 @@ export function placeholderIds(template: string): string[] {
     if (/^(pick|n)\s*:/.test(inner)) continue;
     const id = inner.split("|")[0].trim();
     if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * Inputs the templates place mid-sentence (used with `uncap` or `lower`). Their fields switch off the phone
+ * keyboard's automatic capital, so "Grew revenue…" typed on a phone does not land as "I Grew revenue…".
+ */
+export function midSentenceIds(templates: readonly string[]): Set<string> {
+  const ids = new Set<string>();
+  for (const t of templates) {
+    for (const m of t.matchAll(PLACEHOLDER)) {
+      const [id, ...filters] = m[1].split("|").map((s) => s.trim());
+      if (id && filters.some((f) => f === "uncap" || f === "lower")) ids.add(id);
+    }
   }
   return ids;
 }

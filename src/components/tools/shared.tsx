@@ -184,7 +184,7 @@ export function missingRequired(inputs: readonly InputDef[], values: Values): In
 
 /* ---------- input renderer ---------- */
 
-export function InputField({ input, value, onChange }: { input: InputDef; value: InputValue; onChange: (v: InputValue) => void }) {
+export function InputField({ input, value, onChange, midSentence }: { input: InputDef; value: InputValue; onChange: (v: InputValue) => void; midSentence?: boolean }) {
   const uid = useId();
   const id = `${uid}-${input.id}`;
   const label = (
@@ -200,7 +200,7 @@ export function InputField({ input, value, onChange }: { input: InputDef; value:
       return (
         <div className="min-w-0">
           {label}
-          <input id={id} className="input" type="text" value={String(value ?? "")} placeholder={input.placeholder} maxLength={input.maxLength} onChange={(e) => onChange(e.target.value)} />
+          <input id={id} className="input" type="text" autoCapitalize={midSentence ? "none" : undefined} value={String(value ?? "")} placeholder={input.placeholder} maxLength={input.maxLength} onChange={(e) => onChange(e.target.value)} />
           {help}
         </div>
       );
@@ -338,12 +338,12 @@ export function InputField({ input, value, onChange }: { input: InputDef; value:
   }
 }
 
-/** Grid of inputs; textareas and multiselects span both columns on wide screens. */
-export function InputGrid({ inputs, values, onChange }: { inputs: readonly InputDef[]; values: Values; onChange: (id: string, v: InputValue) => void }) {
+/** Grid of inputs; textareas and multiselects span both columns on wide screens. `midSentence`: ids the templates place mid-sentence. */
+export function InputGrid({ inputs, values, onChange, midSentence }: { inputs: readonly InputDef[]; values: Values; onChange: (id: string, v: InputValue) => void; midSentence?: ReadonlySet<string> }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {inputs.map((inp) => (
-        <InputField key={inp.id} input={inp} value={values[inp.id] ?? null} onChange={(v) => onChange(inp.id, v)} />
+        <InputField key={inp.id} input={inp} value={values[inp.id] ?? null} onChange={(v) => onChange(inp.id, v)} midSentence={midSentence?.has(inp.id)} />
       ))}
     </div>
   );

@@ -44,12 +44,17 @@ export interface KeywordHit {
   present: boolean;
 }
 
-export function extractKeywords(jd: string, max: number, extraStop: readonly string[] = []): { phrase: string; count: number; score: number }[] {
+/**
+ * Keywords of a job description. Matching uses a singular key ("dashboards" and "dashboard" are one
+ * keyword); `phrase` is the posting's own wording as first written, lower-cased ("sales", "kubernetes"),
+ * so what the person copies matches the employer's words exactly.
+ */
+export function extractKeywords(jd: string, max: number, extraStop: readonly string[] = []): { phrase: string; key: string; count: number; score: number }[] {
   const stop = new Set([...STOP, ...extraStop.map((s) => s.toLowerCase())]);
   const proper = new Set<string>();
   for (const m of jd.matchAll(/\b([A-Z][a-zA-Z0-9+#.]*[A-Z0-9+#][a-zA-Z0-9+#.]*|[A-Z][a-z]+[A-Z][A-Za-z]*|[A-Z]{2,})\b/g)) proper.add(m[1].toLowerCase());
   for (const m of jd.matchAll(/(?<!^|[.!?]\s)\b([A-Z][a-z]{2,})\b/gm)) proper.add(m[1].toLowerCase());
-  const stats = new Map<string, { count: number; cue: number }>();
+  const stats = new Map<string, { count: number; cue: number; form: string }>();
   // A requirement cue ("Requirements:", "experience with", "nice to have") applies to its whole line;
   // phrases never cross punctuation ("Data Analyst, Customer Insights" is two phrases, not one).
   const segments = jd.split(/\n|(?<=[.!?])\s/).flatMap((line) => line.split(/[,;:()]/).map((seg) => ({ seg, cue: CUE.test(line) ? 1 : 0 })));
@@ -60,7 +65,7 @@ export function extractKeywords(jd: string, max: number, extraStop: readonly str
         const gram = toks.slice(i, i + n);
         if (gram.some((t) => stop.has(t) || !/[a-z]/.test(t) || t.length < 2)) continue;
         const key = gram.map(singular).join(" ");
-        const s = stats.get(key) ?? { count: 0, cue: 0 };
+        const s = stats.get(key) ?? { count: 0, cue: 0, form: gram.join(" ") };
         s.count++;
         s.cue += cue;
         stats.set(key, s);
@@ -72,17 +77,17 @@ export function extractKeywords(jd: string, max: number, extraStop: readonly str
       const words = phrase.split(" ");
       const isProper = words.some((w) => proper.has(w) || proper.has(`${w}s`));
       const score = s.count * (1 + 0.9 * (words.length - 1)) + s.cue * 0.9 + (isProper ? 1.2 : 0);
-      return { phrase, count: s.count, score, words: words.length };
+      return { phrase, form: s.form, count: s.count, score, words: words.length };
     })
     .filter((x) => (x.words > 1 ? x.count >= 2 || x.score >= 2.7 : x.count >= 2 || x.score >= 1.85))
     .sort((a, b) => b.score - a.score || a.phrase.localeCompare(b.phrase));
-  const kept: { phrase: string; count: number; score: number }[] = [];
+  const kept: { phrase: string; form: string; count: number; score: number }[] = [];
   const contains = (long: string, short: string) => long !== short && ` ${long} `.includes(` ${short} `);
   for (const x of scored) {
     if (kept.length >= max * 2) break;
     if (kept.some((o) => contains(o.phrase, x.phrase) && o.count >= x.count)) continue;
     for (let i = kept.length - 1; i >= 0; i--) if (contains(x.phrase, kept[i].phrase) && x.count >= kept[i].count) kept.splice(i, 1);
-    kept.push({ phrase: x.phrase, count: x.count, score: Math.round(x.score * 10) / 10 });
+    kept.push({ phrase: x.phrase, form: x.form, count: x.count, score: Math.round(x.score * 10) / 10 });
   }
   // Drop a phrase only when every one of its occurrences sits inside an occurrence of a longer kept
   // phrase ("customer" inside "customer insights" and "customer segmentation"). Checked occurrence by
@@ -103,12 +108,12 @@ export function extractKeywords(jd: string, max: number, extraStop: readonly str
       return spans(p.phrase).some(([s, a, b]) => !covers.some(([t, c, d]) => t === s && c <= a && b <= d));
     })
     .slice(0, max);
-  return out;
+  return out.map((p) => ({ phrase: p.form, key: p.phrase, count: p.count, score: p.score }));
 }
 
 export function matchKeywords(jd: string, resume: string, max: number, extraStop: readonly string[] = []): KeywordHit[] {
   const have = ` ${tokens(resume).map(singular).join(" ")} `;
-  return extractKeywords(jd, max, extraStop).map((k) => ({ ...k, present: have.includes(` ${k.phrase} `) }));
+  return extractKeywords(jd, max, extraStop).map(({ key, ...k }) => ({ ...k, present: have.includes(` ${key} `) }));
 }
 
 export function KeywordsView({ tool }: { tool: KeywordsTool }) {

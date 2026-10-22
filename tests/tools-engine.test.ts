@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { validateTool, type FinderItem, type InputDef, type Tool } from "@/content/tools/types";
-import { FILTERS, placeholderIds, renderTemplate, unknownFilters } from "@/components/tools/templating";
+import { FILTERS, midSentenceIds, placeholderIds, renderTemplate, unknownFilters } from "@/components/tools/templating";
 import { compileFormula, evaluateFormula, formatDayLong, formatValue, formulaIdentifiers, isoToDay, parseFormula } from "@/components/tools/formulas";
 import { extractKeywords, matchKeywords } from "@/components/tools/Keywords";
 import { filterItems } from "@/components/tools/Finder";
@@ -65,6 +65,7 @@ describe("template filters", () => {
     expect(FILTERS.uncap("Saved 6 hours a week")).toBe("saved 6 hours a week");
     expect(FILTERS.uncap("Surveyed 60 sites")).toBe("surveyed 60 sites");
     expect(FILTERS.uncap("Python and SQL")).toBe("Python and SQL");
+    expect([...midSentenceIds(["I {{ach|uncap|phrase}} at {{company}}.", "{{why|cap}}", "{{k|lower}}"])].sort()).toEqual(["ach", "k"]);
     expect(FILTERS.cap("keeps ice 24 h")).toBe("Keeps ice 24 h");
   });
   it("drops a period added after a question or exclamation the user typed", () => {
@@ -128,6 +129,14 @@ You will present findings and run analysis on customer segmentation. SQL is used
     expect(phrases.some((p) => p.includes("dashboard"))).toBe(true);
     expect(phrases).not.toContain("analysi");
     expect(phrases.every((p) => /[a-z]/.test(p))).toBe(true);
+  });
+  it("shows the posting's own wording, not the singular matching key", () => {
+    const jd = "Requirements: Kubernetes and DevOps experience. You will support sales.\nWe run Kubernetes clusters with DevOps tooling and grow sales every quarter.";
+    const phrases = extractKeywords(jd, 12).map((k) => k.phrase);
+    expect(phrases).toEqual(expect.arrayContaining(["kubernetes", "devops", "sales"]));
+    expect(phrases.some((p) => /\b(kubernete|devop|sale)\b/.test(p))).toBe(false);
+    const hits = matchKeywords(jd, "I ran Kubernetes for a sales team.", 12);
+    expect(hits.find((h) => h.phrase === "kubernetes")?.present).toBe(true);
   });
   it("keeps a skill whose occurrences are only partly inside nested phrases", () => {
     const text = "Write SQL queries daily. Tune complex SQL queries for reporting. Requirements: 3+ years of experience with SQL and Python.";

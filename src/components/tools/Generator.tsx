@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { DEFAULT_VARIANT_COUNT, type GeneratorTool } from "@/content/tools/types";
-import { countWords, hashString, placeholderIds, renderTemplate, seededShuffle } from "./templating";
+import { countWords, hashString, midSentenceIds, placeholderIds, renderTemplate, seededShuffle } from "./templating";
 import { CopyButton, InputGrid, initialValues, missingRequired, templateValues, useToolEvents, whenMatches, type Values } from "./shared";
 
 interface Variant {
@@ -40,6 +40,7 @@ export function GeneratorView({ tool }: { tool: GeneratorTool }) {
   const [seed, setSeed] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
   const events = useToolEvents(tool);
+  const midSentence = useMemo(() => midSentenceIds(tool.variants.flatMap((g) => g.templates)), [tool]);
   const started = seed > 0;
 
   const variants = useMemo<Variant[]>(() => {
@@ -85,6 +86,7 @@ export function GeneratorView({ tool }: { tool: GeneratorTool }) {
     <div>
       <InputGrid
         inputs={tool.inputs}
+        midSentence={midSentence}
         values={values}
         onChange={(id, v) => {
           events.used();

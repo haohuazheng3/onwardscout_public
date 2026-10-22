@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { BriefTool } from "@/content/tools/types";
-import { hashString, renderTemplate } from "./templating";
+import { hashString, midSentenceIds, renderTemplate } from "./templating";
 import { CopyButton, InputGrid, initialValues, missingRequired, templateValues, useToolEvents, whenMatches, type Values } from "./shared";
 
 export interface BriefDoc {
@@ -71,6 +71,7 @@ export function briefMarkdown(doc: BriefDoc): string {
 export function BriefView({ tool }: { tool: BriefTool }) {
   const [values, setValues] = useState<Values>(() => initialValues(tool.inputs));
   const events = useToolEvents(tool);
+  const midSentence = useMemo(() => midSentenceIds(tool.sections.map((s) => s.template)), [tool]);
   const missing = missingRequired(tool.inputs, values);
   const doc = useMemo(() => buildBrief(tool, values), [tool, values]);
   const ready = missing.length === 0;
@@ -79,6 +80,7 @@ export function BriefView({ tool }: { tool: BriefTool }) {
     <div className="grid gap-6 lg:grid-cols-2">
       <InputGrid
         inputs={tool.inputs}
+        midSentence={midSentence}
         values={values}
         onChange={(id, v) => {
           events.result({ input: id });
