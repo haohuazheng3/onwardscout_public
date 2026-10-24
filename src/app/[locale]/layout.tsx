@@ -79,11 +79,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F5F4F0" },
-    { media: "(prefers-color-scheme: dark)", color: "#0E1210" },
-  ],
+  // Light for everyone by default; dark only from the footer toggle (the CSS sets color-scheme then).
+  colorScheme: "light",
+  themeColor: "#F5F4F0",
 };
 
 export default async function LocaleLayout({ children, params }: { children: ReactNode; params: Promise<Params> }) {

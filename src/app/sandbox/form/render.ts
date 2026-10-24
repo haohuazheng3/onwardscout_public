@@ -163,8 +163,8 @@ export function escapeHtml(v: string): string {
 const LOGO = `<svg class="logo" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false"><path d="M9 7 L19 16 L9 25" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="16" r="3" class="dot"/></svg>`;
 
 const STYLE = `
-:root{color-scheme:light dark;--void:#F5F4F0;--pane:#FFFFFF;--pane-2:#F8F7F3;--line:rgba(18,22,20,.08);--line-2:rgba(18,22,20,.14);--ink:#121614;--ink-2:#3E4541;--ink-3:#626A65;--accent:#E4572E;--accent-ink:#FFF6F2;--accent-text:#B8411F;--accent-soft:rgba(228,87,46,.12);--pine:#1E5A48;--pine-soft:rgba(30,90,72,.12);--bad:#B23A0A;--ok:#1F7A4D}
-@media (prefers-color-scheme:dark){:root{--void:#0E1210;--pane:#161B18;--pane-2:#1C221E;--line:rgba(242,244,241,.1);--line-2:rgba(242,244,241,.18);--ink:#F2F4F1;--ink-2:#C9CFCB;--ink-3:#A3ABA6;--accent:#FF7A50;--accent-ink:#1A0C06;--accent-text:#FF9A78;--accent-soft:rgba(255,122,80,.14);--pine:#5FC2A0;--pine-soft:rgba(95,194,160,.14);--bad:#FF8A5C;--ok:#5FC2A0}}
+:root{color-scheme:light;--void:#F5F4F0;--pane:#FFFFFF;--pane-2:#F8F7F3;--line:rgba(18,22,20,.08);--line-2:rgba(18,22,20,.14);--ink:#121614;--ink-2:#3E4541;--ink-3:#626A65;--accent:#E4572E;--accent-ink:#FFF6F2;--accent-text:#B8411F;--accent-soft:rgba(228,87,46,.12);--pine:#1E5A48;--pine-soft:rgba(30,90,72,.12);--bad:#B23A0A;--ok:#1F7A4D}
+
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;background:var(--void);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif}

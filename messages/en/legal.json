@@ -678,7 +678,7 @@
                 [
                   "os-theme (local storage)",
                   "Onward Scout",
-                  "Remembers light or dark mode if you picked one; stays in your browser and is never sent to us",
+                  "Remembers dark mode or Auto if you picked one (light is the default); stays in your browser and is never sent to us",
                   "Until you change it or clear your browser data"
                 ],
                 [

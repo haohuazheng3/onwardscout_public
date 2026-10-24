@@ -8,7 +8,7 @@ import { radioKeys } from "./radio-keys";
 
 function apply(choice: Choice) {
   const root = document.documentElement;
-  if (choice === "system") delete root.dataset.theme;
+  if (choice === "light") delete root.dataset.theme;
   else root.dataset.theme = choice;
 }
 
@@ -24,16 +24,16 @@ function subscribe(cb: () => void) {
 function readChoice(): Choice {
   try {
     const t = localStorage.getItem(KEY);
-    return t === "light" || t === "dark" ? t : "system";
+    return t === "dark" || t === "system" ? t : "light";
   } catch {
-    return "system"; // storage unavailable (private mode): the system theme applies
+    return "light"; // storage unavailable (private mode): the default light theme applies
   }
 }
 
 export function setTheme(choice: Choice) {
   apply(choice);
   try {
-    if (choice === "system") localStorage.removeItem(KEY);
+    if (choice === "light") localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, choice);
   } catch {
     /* storage unavailable: the choice still applies to this page view */
@@ -42,15 +42,15 @@ export function setTheme(choice: Choice) {
 }
 
 const OPTIONS: { id: Choice; Icon: typeof Sun }[] = [
-  { id: "system", Icon: Monitor },
   { id: "light", Icon: Sun },
   { id: "dark", Icon: Moon },
+  { id: "system", Icon: Monitor },
 ];
 
-/** Three-way theme switch (Auto · Light · Dark). `compact` shows icons only. */
+/** Three-way theme switch (Light, the default · Dark · Auto). `compact` shows icons only. */
 export function ThemeToggle({ compact = false, className = "" }: { compact?: boolean; className?: string }) {
   const t = useTranslations("common.theme");
-  const choice = useSyncExternalStore(subscribe, readChoice, () => "system" as Choice);
+  const choice = useSyncExternalStore(subscribe, readChoice, () => "light" as Choice);
 
   return (
     <div

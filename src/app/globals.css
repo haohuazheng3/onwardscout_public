@@ -6,8 +6,9 @@
  * Everything that matters floats as a pane: generously rounded, lit along its top edge,
  * lifted off the field by a deep, soft shadow. Everything else recedes into an almost
  * empty field — one faint diagonal trail of light and a fine grain — so the panes carry
- * the page. Colours are tokens on :root; light is the default, dark follows the system or
- * the explicit [data-theme] choice (footer toggle, persisted by THEME_SCRIPT).
+ * the page. Colours are tokens on :root; light is the default for everyone, whatever the system
+ * prefers. Dark comes only from the footer toggle: [data-theme="dark"], or [data-theme="system"]
+ * (Auto) on a system set to dark. THEME_SCRIPT restores the choice before the first paint.
  *
  * Accent rule: blaze orange marks the trail (primary actions, the one thing to do next);
  * pine is the scout (focus, progress, verified, the dot in the logo). Text on blaze is ink
@@ -19,7 +20,7 @@
     @slot;
   }
   @media (prefers-color-scheme: dark) {
-    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+    &:where(:root[data-theme="system"], :root[data-theme="system"] *) {
       @slot;
     }
   }
@@ -73,7 +74,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root[data-theme="system"] {
     color-scheme: dark;
     --void: #0e1210;
     --pane: #161b18;
@@ -1009,7 +1010,7 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' fill='none' stroke='%23A3ABA6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .select {
+    :root[data-theme="system"] .select {
       background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' fill='none' stroke='%23A3ABA6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
     }
   }
