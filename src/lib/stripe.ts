@@ -94,11 +94,9 @@ export function paymentsEnabled(sku?: Sku, opts: { adminTester?: boolean } = {})
   if (mode === "live" && !IS_PRODUCTION_DEPLOY && env("ALLOW_LIVE_CHECKOUT_NONPROD") !== "1") {
     return { ok: false, code: "nonprod", reason: `Checkout only opens on ${SITE.domain}.` };
   }
-  // Live sales open only by an explicit switch: the Stripe account in use must be Onward Scout's
-  // own (merchant name, receipts and card statements), which the terms name as the seller. The
-  // interim shared account (another brand's public name) never takes real money from the public.
-  // Admins (ADMIN_EMAILS, verified) may still check out to run the owner's acceptance test with the
-  // 100%-off code — the closed loop is exercised end to end without any buyer seeing the wrong brand.
+  // Live sales open by an explicit switch (PAYMENTS_OPEN=1, on since 2026-10-24). The shared account's
+  // Checkout shows "Onward Scout" through branding_settings below; the owner accepts the account-level
+  // name elsewhere (tab title). Admins (ADMIN_EMAILS, verified) may check out while it is off.
   if (mode === "live" && env("PAYMENTS_OPEN") !== "1" && !opts.adminTester) {
     return { ok: false, code: "not_open", reason: "Purchases open soon." };
   }
