@@ -23,13 +23,13 @@ import { useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { track } from "@/components/Consent";
 import { PaneSkeleton } from "@/components/Skeletons";
-import { Button, Chip, Input, ScoutDot, cx } from "@/components/ui";
+import { Button, Chip, Input, ScoutDot, Tag, cx } from "@/components/ui";
 import { Dialog, toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
-import { IDENTITY_GROUP_DEFS, identitiesInGroup, identityLabel, isMinor } from "@/lib/core/identities";
+import { IDENTITY_GROUP_DEFS, identitiesInGroup, isMinor } from "@/lib/core/identities";
 import { localize } from "@/lib/core/labels";
 import { isOccupationCode, mapOccupation, occupationLabel } from "@/lib/core/occupations";
-import type { GoalFamily, Intensity, IdentityCode, IdentityGroup, Profile, RemotePreference, SubGoalId } from "@/lib/core/types";
+import { groupOfIdentity, type GoalFamily, type IdentityCode, type IdentityGroup, type Intensity, type Profile, type RemotePreference, type SubGoalId } from "@/lib/core/types";
 import { countryOfLocation } from "@/lib/llm/local/geo";
 import { targetRoleOptions } from "@/lib/profile/gaps";
 import type { ProfilePatch } from "@/lib/profile/patch";
@@ -38,24 +38,29 @@ import { snapHorizon, successOptions } from "@/lib/profile/success-params";
 import { signInPath, withLocale } from "@/lib/site";
 import { api, ENDPOINTS, type ApiMode, type DraftStatusView } from "./api";
 import { ParseStatus } from "./ParseStatus";
-import { citySuggestions, type RoleHint } from "./ProfileCard";
+import { citySuggestions } from "./ProfileCard";
 import { Uploader } from "./Uploader";
 import { useDraftStatus } from "./useDraftStatus";
 
 /*
- * /app/start — one question per screen, only the answers the engines use:
- *   files → who you are (confirmed from the files, or picked) → what you're going for →
- *   [jobs: which role, remote or not] → [no city in the files: where] → [under 18: guardian].
- * A single-choice answer moves on by itself; every answer saves at once (optimistic, rolled
- * back with a toast if the save fails). Success definition, horizon and intensity take their
- * defaults and can be changed on /app/goals. The screen is in the URL (?q=), so back works.
- * Works signed out (an anonymous draft) and signed in.
+ * /app/start — one piece of information per screen, every essential question asked:
+ *   files → what you do now → one detail of it → what you're going for → [a founder or creator
+ *   goal for someone who isn't one: that detail too] → [jobs: which role, remote or not] →
+ *   where you're based → [under 18: guardian].
+ * The files never answer for the person: what they say only pre-selects an answer ("From your
+ * résumé"), which one tap confirms or another tap changes. Answers save at once (queued; a failed
+ * save rolls back with a toast) and the goal is created last, so it copies the saved remote, role
+ * and city. Success definition, horizon and intensity take defaults (kept for a goal the person
+ * already runs), editable on /app/goals. The screen is in the URL (?q=, with ?g= and ?goal=).
  */
 
-type Screen = "files" | "who" | "kind" | "goal" | "role" | "remote" | "where" | "guardian";
+type Screen = "files" | "situation" | "detail" | "goal" | "extra" | "role" | "remote" | "where" | "guardian";
 
-const SCREENS: readonly Screen[] = ["files", "who", "kind", "goal", "role", "remote", "where", "guardian"];
-const USER_GROUPS = IDENTITY_GROUP_DEFS.filter((g) => !g.supplySide);
+const SCREENS: readonly Screen[] = ["files", "situation", "detail", "goal", "extra", "role", "remote", "where", "guardian"];
+const USER_GROUPS = IDENTITY_GROUP_DEFS.filter((g) => !g.supplySide).map((g) => g.id);
+/** Startup goals are for founders and creative goals for creators: someone who isn't one is asked that detail too. */
+const EXTRA_GROUP: Partial<Record<GoalFamily, IdentityGroup>> = { G3: "F", G6: "C" };
+const EXTRA_GROUPS: readonly IdentityGroup[] = ["F", "C"];
 const GOAL_ICON: Record<QuickGoal["icon"], LucideIcon> = {
   briefcase: Briefcase,
   graduation: GraduationCap,
@@ -69,18 +74,6 @@ const GOAL_ICON: Record<QuickGoal["icon"], LucideIcon> = {
 };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export interface OnboardingFlowProps {
-  mode: ApiMode;
-  signedIn: boolean;
-  locale: "en" | "zh";
-  claim: boolean;
-  status: DraftStatusView;
-  profile: Profile;
-  roleHints: Record<string, RoleHint>;
-  /** Goals the person already runs: picking one again keeps its success definition, horizon and intensity. */
-  activeGoals: ExistingGoal[];
-}
-
 export interface ExistingGoal {
   family: GoalFamily;
   sub: SubGoalId | null;
@@ -89,13 +82,38 @@ export interface ExistingGoal {
   intensity: Intensity | null;
 }
 
+export interface OnboardingFlowProps {
+  mode: ApiMode;
+  signedIn: boolean;
+  locale: "en" | "zh";
+  claim: boolean;
+  status: DraftStatusView;
+  profile: Profile;
+  /** Goals the person already runs: picking one again keeps its success definition, horizon and intensity. */
+  activeGoals: ExistingGoal[];
+  /** Profile paths the person answered themselves: their values are presets without the "from your résumé" tag. */
+  confirmedPaths: string[];
+}
+
+type Role = Profile["roles"][number];
+
 /** True once the person has moved between screens: from then on each new question takes the focus. */
 const FocusTitle = createContext(false);
 
 /** ?q=<screen>; the old three-step links (?step=2 profile, ?step=3 goals) land on their question. */
 function readScreen(q: string | null, step: string | null): Screen {
   if (SCREENS.includes(q as Screen)) return q as Screen;
-  return step === "2" ? "who" : step === "3" ? "goal" : "files";
+  return step === "2" ? "situation" : step === "3" ? "goal" : "files";
+}
+
+function readGroup(v: string | null): IdentityGroup | null {
+  return USER_GROUPS.includes(v as IdentityGroup) ? (v as IdentityGroup) : null;
+}
+
+/** The founder or creator detail a goal needs when the person's main identity isn't one. */
+function extraGroupFor(family: GoalFamily, primary: IdentityCode | undefined): IdentityGroup | null {
+  const need = EXTRA_GROUP[family];
+  return need && primary && groupOfIdentity(primary) !== need ? need : null;
 }
 
 export function OnboardingFlow(props: OnboardingFlowProps) {
@@ -106,13 +124,13 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
   const router = useRouter();
   const search = useSearchParams();
   const screen = readScreen(search.get("q"), search.get("step"));
+  const goalId = search.get("goal");
   const { status, kick } = useDraftStatus(mode, locale, props.status);
   const [profile, setProfile] = useState<Profile>(props.profile);
-  const [roleHints, setRoleHints] = useState(props.roleHints);
-  const [group, setGroup] = useState<IdentityGroup | null>(null);
-  const goalId = search.get("goal");
-  const [sawWho, setSawWho] = useState(false);
+  /** What the files said about the person: presets only, never answers. */
+  const [fromFiles, setFromFiles] = useState<Role[]>(() => props.profile.roles.filter((r) => r.inferred));
   const [moved, setMoved] = useState(false);
+  const [sawWho, setSawWho] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [claiming, setClaiming] = useState(props.claim && signedIn);
@@ -128,21 +146,28 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
 
   const docs = status?.documents ?? [];
   const reading = status?.phase === "reading" || status?.phase === "building";
-  const codes = profile.roles.map((r) => r.code) as IdentityCode[];
+  const roles = profile.roles;
+  const codes = roles.map((r) => r.code);
+  const primary = roles[0];
   const goal = goalId ? quickGoalById(goalId) : null;
+  const extraGroup = goal ? extraGroupFor(goal.family, primary?.code) : null;
+  const answered = (path: string) => props.confirmedPaths.includes(path);
+
+  /** The answer to pre-select for a group: the person's own answer first, else what the files said. */
+  const presetIn = (group: IdentityGroup): Role | undefined => roles.find((r) => groupOfIdentity(r.code) === group) ?? fromFiles.find((r) => groupOfIdentity(r.code) === group);
+  const situationPreset = (primary ?? fromFiles[0]) ? groupOfIdentity((primary ?? fromFiles[0])!.code) : null;
+  const situation = readGroup(search.get("g")) ?? situationPreset;
 
   /* ---------- the plan: which screens this person sees ---------- */
 
   const plan = useMemo<Screen[]>(() => {
-    const out: Screen[] = ["files", "who"];
-    if (group || screen === "kind") out.push("kind");
-    out.push("goal");
+    const out: Screen[] = ["files", "situation", "detail", "goal"];
+    if (extraGroup) out.push("extra");
     if (goal && isJobGoal(goal.sub)) out.push("role", "remote");
-    // Asked only when the files didn't say (a city answered here stays in the plan while it's on screen).
-    if (!profile.identity.location || screen === "where") out.push("where");
+    out.push("where");
     if (isMinor(codes) && (!profile.identity.guardianEmail || screen === "guardian")) out.push("guardian");
     return out;
-  }, [group, screen, goal, codes, profile.identity.location, profile.identity.guardianEmail]);
+  }, [extraGroup, goal, codes, profile.identity.guardianEmail, screen]);
 
   const index = Math.max(0, plan.indexOf(screen));
 
@@ -160,33 +185,37 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
     setMoved(true);
   }
 
-  // A screen that isn't in the plan (the browser's back button after the goal changed) falls back to the goal question.
+  // A screen that isn't in the plan (the browser's back button after an answer changed) falls back to the goal question;
+  // the detail question without a situation falls back to the situation question.
   useEffect(() => {
-    if (plan.includes(screen)) return;
+    const fallback: Screen | null = !plan.includes(screen) ? "goal" : screen === "detail" && !situation ? "situation" : null;
+    if (!fallback) return;
     const url = new URL(window.location.href);
-    url.searchParams.set("q", "goal");
+    url.searchParams.set("q", fallback);
     window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-  }, [plan, screen]);
+  }, [plan, screen, situation]);
 
-  // Remembered for finishing: only someone who saw "who you are" has confirmed it.
-  if ((screen === "who" || screen === "kind") && !sawWho) setSawWho(true);
+  // Remembered for finishing: only someone who answered who they are has confirmed it.
+  if ((screen === "situation" || screen === "detail") && !sawWho) setSawWho(true);
 
   /** The screen after `from` in the current plan; finishing when there is none. */
-  function next(from: Screen, override?: { plan?: Screen[]; goalId?: string }) {
+  function next(from: Screen, override?: { plan?: Screen[]; params?: Record<string, string | null> }) {
     const p = override?.plan ?? plan;
     const after = p[p.indexOf(from) + 1];
-    if (after) go(after, override?.goalId ? { goal: override.goalId } : {});
-    else void finish(override?.goalId ?? goalId);
+    if (after) go(after, override?.params ?? {});
+    else void finish(override?.params?.goal ?? goalId);
   }
 
-  /* ---------- keep the profile in step with the reading ---------- */
+  /* ---------- keep the presets in step with the reading ---------- */
 
   const refreshProfile = useCallback(async () => {
     try {
       await chain.current; // never overwrite an answer that is still on its way to the server
-      const res = await api<{ profile: Profile | null; roleHints?: Record<string, RoleHint> }>(ENDPOINTS[mode].profile, {}, msgs);
-      if (res.profile) setProfile(res.profile);
-      if (res.roleHints) setRoleHints(res.roleHints);
+      const res = await api<{ profile: Profile | null }>(ENDPOINTS[mode].profile, {}, msgs);
+      if (!res.profile) return;
+      const read = res.profile.roles.filter((r) => r.inferred);
+      if (read.length) setFromFiles(read);
+      setProfile(res.profile);
     } catch (err) {
       console.warn("[start] profile refresh failed", err);
     }
@@ -254,6 +283,18 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
     return done;
   }
 
+  /** The person's identities: their main answer, plus the founder/creator detail a goal needed. */
+  function saveRoles(next: Role[]) {
+    const clean = next.map((r) => ({ ...r, inferred: false }));
+    void save({ op: "roles", roles: clean.map((r) => ({ code: r.code, stage: r.stage })) }, { ...profile, roles: clean });
+  }
+
+  /** A role answered on a detail screen keeps the stage the files gave for that same code. */
+  function roleFor(code: IdentityCode): Role {
+    const known = roles.find((r) => r.code === code) ?? fromFiles.find((r) => r.code === code);
+    return { code, stage: known?.stage ?? null, since: known?.since ?? null, inferred: false };
+  }
+
   async function finish(id: string | null) {
     const chosen = id ? quickGoalById(id) : null;
     if (!chosen) {
@@ -269,7 +310,6 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         setFinishing(false);
         return;
       }
-      // Only a person who saw "who you are" has confirmed it (?q=goal from the home page skips it).
       if (sawWho) {
         await api(ENDPOINTS[mode].profile, { method: "PATCH", json: { patch: { op: "confirm" }, locale } }, msgs);
         track("profile_confirmed", { signedIn, roles: codes.join(",") });
@@ -317,163 +357,188 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
     );
   }
 
+  const fromFilesTag = tf("fromResume");
+  const readingNote = reading ? (
+    <p className="flex items-center gap-2.5 px-1 text-[0.95rem] text-ink-3" aria-live="polite">
+      <ScoutDot live />
+      {tf("reading")}
+    </p>
+  ) : null;
+
   return (
     <FocusTitle.Provider value={moved}>
-    <div className="mx-auto max-w-[640px]">
-      <div className="mb-6 flex items-center gap-3">
-        {index > 0 ? (
-          <button type="button" onClick={() => go(plan[index - 1]!)} className="press grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-pane-2" aria-label={tc("buttons.back")}>
-            <ArrowLeft size={19} aria-hidden />
-          </button>
-        ) : null}
-        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line-2" role="progressbar" aria-valuemin={1} aria-valuemax={plan.length} aria-valuenow={index + 1} aria-label={tf("progress", { n: index + 1, total: plan.length })}>
-          <span className="block h-full rounded-full bg-ink transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${((index + 1) / plan.length) * 100}%` }} />
-        </div>
-        <span className="num shrink-0 text-[0.82rem] text-ink-4">{tf("progress", { n: index + 1, total: plan.length })}</span>
-      </div>
-
-      {screen === "files" ? (
-        <Question title={t("drop.title")} hint={t("drop.lede")}>
-          <Uploader mode={mode} locale={locale} docs={docs} onActivity={kick} />
-          <ParseStatus status={status} />
-          <div className="flex flex-col-reverse items-stretch gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-            <button type="button" className="link self-center text-[0.92rem] sm:self-auto" onClick={() => next("files")}>
-              {docs.length ? t("drop.skipMore") : t("drop.skip")}
+      <div className="mx-auto max-w-[640px]">
+        <div className="mb-6 flex items-center gap-3">
+          {index > 0 ? (
+            <button type="button" onClick={() => go(plan[index - 1]!)} className="press grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-pane-2" aria-label={tc("buttons.back")}>
+              <ArrowLeft size={19} aria-hidden />
             </button>
-            <Button size="lg" onClick={() => next("files")} disabled={!docs.length} iconRight={<ArrowRight size={18} aria-hidden />}>
-              {reading ? t("drop.continueWhileReading") : t("drop.continue")}
-            </Button>
+          ) : null}
+          <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line-2" role="progressbar" aria-valuemin={1} aria-valuemax={plan.length} aria-valuenow={index + 1} aria-label={tf("progress", { n: index + 1, total: plan.length })}>
+            <span className="block h-full rounded-full bg-ink transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${((index + 1) / plan.length) * 100}%` }} />
           </div>
-          {!signedIn ? <p className="px-1 text-center text-[0.84rem] leading-relaxed text-ink-4 sm:text-left">{t("drop.privacy")}</p> : null}
-        </Question>
-      ) : null}
+          <span className="num shrink-0 text-[0.82rem] text-ink-4">{tf("progress", { n: index + 1, total: plan.length })}</span>
+        </div>
 
-      {screen === "who" ? (
-        <WhoScreen
-          profile={profile}
-          locale={locale}
-          reading={reading}
-          roleHints={roleHints}
-          onConfirm={() => {
-            if (profile.roles.some((r) => r.inferred)) {
-              const roles = profile.roles.map((r) => ({ ...r, inferred: false }));
-              void save({ op: "roles", roles: roles.map((r) => ({ code: r.code, stage: r.stage })) }, { ...profile, roles });
-            }
-            setGroup(null);
-            next("who", { plan: plan.filter((s) => s !== "kind") });
-          }}
-          onGroup={(g) => {
-            setGroup(g);
-            go("kind");
-          }}
-        />
-      ) : null}
+        {screen === "files" ? (
+          <Question title={t("drop.title")} hint={t("drop.lede")}>
+            <Uploader mode={mode} locale={locale} docs={docs} onActivity={kick} />
+            <ParseStatus status={status} />
+            <div className="flex flex-col-reverse items-stretch gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" className="link self-center text-[0.92rem] sm:self-auto" onClick={() => next("files")}>
+                {docs.length ? t("drop.skipMore") : t("drop.skip")}
+              </button>
+              <Button size="lg" onClick={() => next("files")} disabled={!docs.length} iconRight={<ArrowRight size={18} aria-hidden />}>
+                {reading ? t("drop.continueWhileReading") : t("drop.continue")}
+              </Button>
+            </div>
+            {!signedIn ? <p className="px-1 text-center text-[0.84rem] leading-relaxed text-ink-4 sm:text-left">{t("drop.privacy")}</p> : null}
+          </Question>
+        ) : null}
 
-      {screen === "kind" ? (
-        <KindScreen
-          group={group}
-          locale={locale}
-          selected={codes}
-          onPick={(code) => {
-            const roles = [{ code, stage: null, since: null, inferred: false }];
-            void save({ op: "roles", roles: [{ code, stage: null }] }, { ...profile, roles });
-            next("kind");
-          }}
-          onRestart={() => go("who")}
-        />
-      ) : null}
+        {screen === "situation" ? (
+          <Question title={tf("situation.title")} hint={tf("situation.hint")}>
+            {readingNote}
+            <Single
+              options={USER_GROUPS.map((g) => ({ value: g, label: tf(`situation.${g}`) }))}
+              preset={situationPreset}
+              presetTag={situationPreset && !roles.some((r) => !r.inferred) ? fromFilesTag : undefined}
+              continueLabel={tf("continue")}
+              onPick={(g) => next("situation", { params: { g } })}
+            />
+          </Question>
+        ) : null}
 
-      {screen === "goal" ? (
-        <GoalScreen
-          codes={codes}
-          locale={locale}
-          selected={goalId}
-          onPick={(g) => {
-            // The plan depends on the goal (jobs add two questions), so it is worked out here.
-            const p: Screen[] = plan.filter((s) => s !== "role" && s !== "remote");
-            if (isJobGoal(g.sub)) p.splice(p.indexOf("goal") + 1, 0, "role", "remote");
-            next("goal", { plan: p, goalId: g.id });
-          }}
-        />
-      ) : null}
+        {screen === "detail" && situation ? (
+          <Question title={tf(`detail.${situation}`)} hint={tf("detailHint")}>
+            {readingNote}
+            <Single
+              options={identitiesInGroup(situation).map((d) => ({ value: d.code, label: localize(d.label, locale) }))}
+              preset={presetIn(situation)?.code ?? null}
+              presetTag={presetIn(situation)?.inferred !== false && fromFiles.some((r) => groupOfIdentity(r.code) === situation) ? fromFilesTag : undefined}
+              continueLabel={tf("continue")}
+              onPick={(code) => {
+                // The main identity is this answer; a founder/creator detail stays only if the goal still needs it.
+                const keepExtra = roles.slice(1).filter((r) => EXTRA_GROUPS.includes(groupOfIdentity(r.code)) && groupOfIdentity(r.code) !== situation);
+                saveRoles([roleFor(code), ...keepExtra]);
+                next("detail");
+              }}
+            />
+          </Question>
+        ) : null}
 
-      {screen === "role" ? (
-        <RoleScreen
-          profile={profile}
-          locale={locale}
-          onDone={(picks) => {
-            if (picks.length) void save({ op: "answer", questionId: "jobSeeker.targetRole", values: picks }, withTargetRoles(profile, picks));
-            next("role");
-          }}
-        />
-      ) : null}
+        {screen === "goal" ? (
+          <GoalScreen
+            codes={primary ? [primary.code] : []}
+            locale={locale}
+            selected={goalId}
+            onPick={(g) => {
+              // The plan depends on the goal (a founder/creator detail, the two job questions), so it is worked out here.
+              const extra = extraGroupFor(g.family, primary?.code);
+              if (!extra && roles.length > 1) saveRoles(roles.slice(0, 1));
+              const p: Screen[] = ["files", "situation", "detail", "goal", ...(extra ? (["extra"] as Screen[]) : []), ...(isJobGoal(g.sub) ? (["role", "remote"] as Screen[]) : []), "where"];
+              if (isMinor(codes) && !profile.identity.guardianEmail) p.push("guardian");
+              next("goal", { plan: p, params: { goal: g.id } });
+            }}
+          />
+        ) : null}
 
-      {screen === "remote" ? (
-        <Question title={tf("remote.title")} hint={tf("remote.hint")}>
-          <Options>
-            {(["remote_only", "remote_ok"] as RemotePreference[]).map((v) => (
-              <Option
-                key={v}
-                selected={profile.packs.jobSeeker?.remote === v}
-                label={tf(v === "remote_only" ? "remote.only" : "remote.either")}
-                onClick={() => {
-                  void save({ op: "remote", value: v }, withRemote(profile, v));
-                  next("remote");
-                }}
-              />
+        {screen === "extra" && extraGroup ? (
+          <Question title={tf(`extra.${extraGroup}`)} hint={tf(`extraHint.${extraGroup}`)}>
+            <Single
+              options={identitiesInGroup(extraGroup).map((d) => ({ value: d.code, label: localize(d.label, locale) }))}
+              preset={presetIn(extraGroup)?.code ?? null}
+              presetTag={fromFiles.some((r) => groupOfIdentity(r.code) === extraGroup) && !roles.slice(1).length ? fromFilesTag : undefined}
+              continueLabel={tf("continue")}
+              onPick={(code) => {
+                saveRoles([...(primary ? [primary] : []), roleFor(code)]);
+                next("extra");
+              }}
+            />
+          </Question>
+        ) : null}
+
+        {screen === "role" ? (
+          <RoleScreen
+            profile={profile}
+            locale={locale}
+            fromFilesTag={answered("/packs/jobSeeker/targetOccupations") ? undefined : fromFilesTag}
+            onDone={(picks) => {
+              if (picks.length) void save({ op: "answer", questionId: "jobSeeker.targetRole", values: picks }, withTargetRoles(profile, picks));
+              next("role");
+            }}
+          />
+        ) : null}
+
+        {screen === "remote" ? (
+          <Question title={tf("remote.title")} hint={tf("remote.hint")}>
+            <Single
+              options={(["remote_only", "remote_ok"] as RemotePreference[]).map((v) => ({ value: v, label: tf(v === "remote_only" ? "remote.only" : "remote.either") }))}
+              preset={profile.packs.jobSeeker?.remote === "remote_only" ? "remote_only" : profile.packs.jobSeeker?.remote ? "remote_ok" : null}
+              presetTag={answered("/packs/jobSeeker/remote") ? undefined : fromFilesTag}
+              continueLabel={tf("continue")}
+              onPick={(v) => {
+                void save({ op: "remote", value: v }, withRemote(profile, v));
+                next("remote");
+              }}
+            />
+          </Question>
+        ) : null}
+
+        {screen === "where" ? (
+          <WhereScreen
+            initial={profile.identity.location ?? ""}
+            presetTag={profile.identity.location === props.profile.identity.location && !answered("/identity/location") ? fromFilesTag : undefined}
+            locale={locale}
+            onDone={(loc) => {
+              if (loc && loc.location !== profile.identity.location) {
+                void save({ op: "location", location: loc.location, city: loc.city, countryCode: loc.countryCode }, { ...profile, identity: { ...profile.identity, location: loc.location, city: loc.city, countryCode: loc.countryCode } });
+              } else if (loc) {
+                // Confirmed as it was: saved as the person's answer, so a later reading never changes it.
+                void save({ op: "location", location: loc.location, city: loc.city, countryCode: loc.countryCode }, profile);
+              }
+              next("where");
+            }}
+          />
+        ) : null}
+
+        {screen === "guardian" ? (
+          <GuardianScreen
+            initial={profile.identity.guardianEmail ?? ""}
+            onDone={(email) => {
+              if (email) void save({ op: "field", field: "guardianEmail", value: email }, { ...profile, identity: { ...profile.identity, guardianEmail: email } });
+              next("guardian");
+            }}
+          />
+        ) : null}
+
+        <Dialog
+          open={saveOpen}
+          onClose={() => setSaveOpen(false)}
+          title={t("save.title")}
+          description={t("save.body")}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setSaveOpen(false)}>
+                {t("save.later")}
+              </Button>
+              <a href={signInHref} className="btn btn-primary" onClick={() => track("save_scout_clicked")}>
+                <span className="btn-label">{t("save.cta")}</span>
+                <ArrowRight size={17} aria-hidden />
+              </a>
+            </>
+          }
+        >
+          <ul className="grid gap-2.5 text-[0.95rem] text-ink-2">
+            {(["point1", "point2", "point3"] as const).map((k) => (
+              <li key={k} className="flex gap-2.5">
+                <Check size={18} className="mt-0.5 shrink-0 text-pine" aria-hidden />
+                <span>{t(`save.${k}`)}</span>
+              </li>
             ))}
-          </Options>
-        </Question>
-      ) : null}
-
-      {screen === "where" ? (
-        <WhereScreen
-          initial={profile.identity.location ?? ""}
-          locale={locale}
-          onDone={(loc) => {
-            if (loc) void save({ op: "location", location: loc.location, city: loc.city, countryCode: loc.countryCode }, { ...profile, identity: { ...profile.identity, location: loc.location, city: loc.city, countryCode: loc.countryCode } });
-            next("where");
-          }}
-        />
-      ) : null}
-
-      {screen === "guardian" ? (
-        <GuardianScreen
-          initial={profile.identity.guardianEmail ?? ""}
-          onDone={(email) => {
-            if (email) void save({ op: "field", field: "guardianEmail", value: email }, { ...profile, identity: { ...profile.identity, guardianEmail: email } });
-            next("guardian");
-          }}
-        />
-      ) : null}
-
-      <Dialog
-        open={saveOpen}
-        onClose={() => setSaveOpen(false)}
-        title={t("save.title")}
-        description={t("save.body")}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setSaveOpen(false)}>
-              {t("save.later")}
-            </Button>
-            <a href={signInHref} className="btn btn-primary" onClick={() => track("save_scout_clicked")}>
-              <span className="btn-label">{t("save.cta")}</span>
-              <ArrowRight size={17} aria-hidden />
-            </a>
-          </>
-        }
-      >
-        <ul className="grid gap-2.5 text-[0.95rem] text-ink-2">
-          {(["point1", "point2", "point3"] as const).map((k) => (
-            <li key={k} className="flex gap-2.5">
-              <Check size={18} className="mt-0.5 shrink-0 text-pine" aria-hidden />
-              <span>{t(`save.${k}`)}</span>
-            </li>
-          ))}
-        </ul>
-      </Dialog>
-    </div>
+          </ul>
+        </Dialog>
+      </div>
     </FocusTitle.Provider>
   );
 }
@@ -517,7 +582,7 @@ function Options({ children }: { children: ReactNode }) {
   return <div className="grid gap-2.5">{children}</div>;
 }
 
-function Option({ label, hint, icon, selected, onClick }: { label: string; hint?: string; icon?: ReactNode; selected?: boolean; onClick: () => void }) {
+function Option({ label, hint, icon, tag, selected, onClick }: { label: string; hint?: string; icon?: ReactNode; tag?: string; selected?: boolean; onClick: () => void }) {
   const [pressed, setPressed] = useState(false);
   const on = selected || pressed;
   return (
@@ -528,98 +593,60 @@ function Option({ label, hint, icon, selected, onClick }: { label: string; hint?
         setPressed(true);
         onClick();
       }}
-      className={cx(
-        "pane pane-hover press flex w-full min-w-0 items-center gap-3.5 px-4 py-3.5 text-left sm:px-5 sm:py-4",
-        on && "shadow-[inset_0_0_0_2px_var(--pine)]",
-      )}
+      className={cx("pane pane-hover press flex w-full min-w-0 items-center gap-3.5 px-4 py-3.5 text-left sm:px-5 sm:py-4", on && "shadow-[inset_0_0_0_2px_var(--pine)]")}
     >
       {icon ? <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", on ? "bg-pine text-void" : "bg-pine-soft text-pine")}>{icon}</span> : null}
       <span className="min-w-0 flex-1">
         <span className="block text-[1.02rem] font-semibold leading-snug text-ink">{label}</span>
         {hint ? <span className="mt-0.5 block text-[0.88rem] leading-snug text-ink-3">{hint}</span> : null}
+        {tag ? (
+          <span className="mt-1.5 block">
+            <Tag tone="pine">{tag}</Tag>
+          </span>
+        ) : null}
       </span>
       {on ? <Check size={19} className="shrink-0 text-pine" aria-hidden /> : <ChevronRight size={18} className="shrink-0 text-ink-4" aria-hidden />}
     </button>
   );
 }
 
-/* ------------------------------------------------------------------ screens */
-
-function WhoScreen({
-  profile,
-  locale,
-  reading,
-  roleHints,
-  onConfirm,
-  onGroup,
+/**
+ * One answer out of a list. A tap on any answer moves on; a pre-selected answer (the person's earlier
+ * answer, or what their files said, tagged) is confirmed by a tap on it or on Continue.
+ */
+function Single<V extends string>({
+  options,
+  preset,
+  presetTag,
+  continueLabel,
+  onPick,
 }: {
-  profile: Profile;
-  locale: "en" | "zh";
-  reading: boolean;
-  roleHints: Record<string, RoleHint>;
-  onConfirm: () => void;
-  onGroup: (g: IdentityGroup) => void;
+  options: { value: V; label: string; hint?: string; icon?: ReactNode }[];
+  preset: V | null;
+  presetTag?: string;
+  continueLabel: string;
+  onPick: (value: V) => void;
 }) {
-  const tf = useTranslations("onboarding.flow");
-  const [changing, setChanging] = useState(false);
-  const roles = profile.roles;
-
-  if (roles.length && !changing) {
-    const names = roles.map((r) => identityLabel(r.code, locale)).join(locale === "zh" ? "、" : " · ");
-    const inferred = roles.some((r) => r.inferred);
-    const why = inferred ? roles.map((r) => roleHints[r.code]?.why).find(Boolean) : undefined;
-    return (
-      <Question title={tf("who.confirmTitle")} hint={why ? tf("who.because", { why }) : inferred ? tf("who.confirmHint") : tf("who.savedHint")}>
-        <div className="pane p-5 sm:p-6">
-          <p className="text-[1.25rem] font-semibold leading-snug text-ink">{names}</p>
+  const valid = preset && options.some((o) => o.value === preset) ? preset : null;
+  return (
+    <>
+      <Options>
+        {options.map((o) => (
+          <Option key={o.value} label={o.label} hint={o.hint} icon={o.icon} selected={o.value === valid} tag={o.value === valid ? presetTag : undefined} onClick={() => onPick(o.value)} />
+        ))}
+      </Options>
+      {valid ? (
+        <div className="flex justify-end pt-1">
+          <Button size="lg" onClick={() => onPick(valid)} iconRight={<ArrowRight size={18} aria-hidden />}>
+            {continueLabel}
+          </Button>
         </div>
-        <Options>
-          <Option label={tf("who.yes")} onClick={onConfirm} />
-          <Option label={tf("who.change")} onClick={() => setChanging(true)} />
-        </Options>
-      </Question>
-    );
-  }
-
-  return (
-    <Question title={tf("who.title")} hint={tf("who.hint")}>
-      {reading && !changing ? (
-        <p className="flex items-center gap-2.5 px-1 text-[0.95rem] text-ink-3" aria-live="polite">
-          <ScoutDot live />
-          {tf("who.reading")}
-        </p>
       ) : null}
-      <Options>
-        {USER_GROUPS.map((g) => (
-          <Option key={g.id} label={localize(g.label, locale)} onClick={() => onGroup(g.id)} />
-        ))}
-      </Options>
-    </Question>
+    </>
   );
 }
 
-function KindScreen({ group, locale, selected, onPick, onRestart }: { group: IdentityGroup | null; locale: "en" | "zh"; selected: IdentityCode[]; onPick: (code: IdentityCode) => void; onRestart: () => void }) {
-  const tf = useTranslations("onboarding.flow");
-  if (!group) {
-    // Reached by a reload or the back button: the group lives in memory only.
-    return (
-      <Question title={tf("who.title")}>
-        <Options>
-          <Option label={tf("kind.restart")} onClick={onRestart} />
-        </Options>
-      </Question>
-    );
-  }
-  return (
-    <Question title={tf("kind.title")} hint={tf("kind.hint")}>
-      <Options>
-        {identitiesInGroup(group).map((d) => (
-          <Option key={d.code} label={localize(d.label, locale)} selected={selected.length === 1 && selected[0] === d.code} onClick={() => onPick(d.code)} />
-        ))}
-      </Options>
-    </Question>
-  );
-}
+/* ------------------------------------------------------------------ screens */
 
 function GoalScreen({ codes, locale, selected, onPick }: { codes: IdentityCode[]; locale: "en" | "zh"; selected: string | null; onPick: (g: QuickGoal) => void }) {
   const tf = useTranslations("onboarding.flow");
@@ -654,13 +681,16 @@ function GoalScreen({ codes, locale, selected, onPick }: { codes: IdentityCode[]
   );
 }
 
-function RoleScreen({ profile, locale, onDone }: { profile: Profile; locale: "en" | "zh"; onDone: (picks: string[]) => void }) {
+function RoleScreen({ profile, locale, fromFilesTag, onDone }: { profile: Profile; locale: "en" | "zh"; fromFilesTag?: string; onDone: (picks: string[]) => void }) {
   const tf = useTranslations("onboarding.flow");
   const suggested = useMemo(() => targetRoleOptions(profile).map((o) => o.value), [profile]);
-  // The files may hold a target role in the person's own words ("Head of Growth"): only taxonomy codes are
-  // picks; the first such phrase seeds the search so it maps in one tap.
+  // An earlier answer is the preset; otherwise the role the files show the person doing now.
+  // A target written in the person's own words ("Head of Growth") seeds the search instead.
   const saved = profile.packs.jobSeeker?.targetOccupations ?? [];
-  const [picks, setPicks] = useState<string[]>(() => saved.filter(isOccupationCode).slice(0, 3));
+  const savedCodes = saved.filter(isOccupationCode).slice(0, 3);
+  const current = profile.occupations.filter(isOccupationCode).slice(0, 1);
+  const presetFromFiles = Boolean(fromFilesTag) && (savedCodes.length > 0 || current.length > 0);
+  const [picks, setPicks] = useState<string[]>(() => (savedCodes.length ? savedCodes : current));
   const [query, setQuery] = useState(() => saved.find((c) => !isOccupationCode(c)) ?? "");
   const shown = [...new Set([...picks, ...suggested])];
   const results = useMemo(() => (query.trim().length >= 2 ? mapOccupation(query, { limit: 6 }).map((m) => m.code) : []), [query]);
@@ -672,6 +702,11 @@ function RoleScreen({ profile, locale, onDone }: { profile: Profile; locale: "en
 
   return (
     <Question title={tf("role.title")} hint={tf("role.hint")}>
+      {presetFromFiles && picks.length ? (
+        <p className="px-1">
+          <Tag tone="pine">{fromFilesTag}</Tag>
+        </p>
+      ) : null}
       {shown.length ? (
         <div className="flex flex-wrap gap-2">
           {shown.map((c) => (
@@ -688,16 +723,16 @@ function RoleScreen({ profile, locale, onDone }: { profile: Profile; locale: "en
       {fresh.length ? (
         <div className="flex flex-wrap gap-2 animate-pop" role="group" aria-label={tf("role.results")}>
           {fresh.map((c) => (
-              <Chip
-                key={c}
-                onClick={() => {
-                  toggle(c);
-                  setQuery("");
-                }}
-              >
-                {occupationLabel(c, locale)}
-              </Chip>
-            ))}
+            <Chip
+              key={c}
+              onClick={() => {
+                toggle(c);
+                setQuery("");
+              }}
+            >
+              {occupationLabel(c, locale)}
+            </Chip>
+          ))}
         </div>
       ) : query.trim().length >= 2 && !results.length ? (
         <p className="px-1 text-[0.86rem] text-ink-4">{tf("role.none")}</p>
@@ -714,18 +749,30 @@ function RoleScreen({ profile, locale, onDone }: { profile: Profile; locale: "en
   );
 }
 
-function WhereScreen({ initial, locale, onDone }: { initial: string; locale: "en" | "zh"; onDone: (loc: { location: string; city: string | null; countryCode: string | null } | null) => void }) {
+type Place = { location: string; city: string | null; countryCode: string | null };
+
+function WhereScreen({ initial, presetTag, locale, onDone }: { initial: string; presetTag?: string; locale: "en" | "zh"; onDone: (loc: Place | null) => void }) {
   const tf = useTranslations("onboarding.flow");
-  const [query, setQuery] = useState(initial);
+  const [query, setQuery] = useState("");
   const suggestions = useMemo(() => citySuggestions(query, locale), [query, locale]);
   const typed = query.trim();
+  const preset: Place | null = initial ? { location: initial, city: null, countryCode: countryOfLocation(initial) } : null;
   return (
     <Question title={tf("where.title")} hint={tf("where.hint")}>
+      {preset ? (
+        <Single
+          options={[{ value: "preset", label: preset.location, icon: <MapPin size={17} aria-hidden /> }]}
+          preset="preset"
+          presetTag={presetTag}
+          continueLabel={tf("continue")}
+          onPick={() => onDone(preset)}
+        />
+      ) : null}
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={tf("where.placeholder")}
-        aria-label={tf("where.title")}
+        placeholder={preset ? tf("where.other") : tf("where.placeholder")}
+        aria-label={preset ? tf("where.other") : tf("where.title")}
         autoComplete="address-level2"
         onKeyDown={(e) => {
           if (e.key === "Enter" && typed) {
@@ -744,11 +791,13 @@ function WhereScreen({ initial, locale, onDone }: { initial: string; locale: "en
           )}
         </Options>
       ) : null}
-      <div className="pt-1">
-        <button type="button" className="link text-[0.92rem]" onClick={() => onDone(null)}>
-          {tf("skip")}
-        </button>
-      </div>
+      {preset ? null : (
+        <div className="pt-1">
+          <button type="button" className="link text-[0.92rem]" onClick={() => onDone(null)}>
+            {tf("skip")}
+          </button>
+        </div>
+      )}
     </Question>
   );
 }

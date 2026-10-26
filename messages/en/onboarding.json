@@ -180,22 +180,6 @@
     "skip": "Skip",
     "finishing": "Setting up your scout…",
     "finishingBody": "Saving your answers and finding your first picks.",
-    "who": {
-      "confirmTitle": "Is this you?",
-      "confirmHint": "From the files you added.",
-      "because": "From your files: {why}",
-      "yes": "Yes, that's me",
-      "change": "No, let me pick",
-      "title": "Which describes you best?",
-      "hint": "So we can check which programs you're eligible for.",
-      "reading": "Still reading your files. Pick yourself, or wait a moment.",
-      "savedHint": "From your profile."
-    },
-    "kind": {
-      "title": "Which one fits?",
-      "hint": "Programs often limit who can apply, so this keeps your list honest.",
-      "restart": "Choose again"
-    },
     "goal": {
       "title": "What are you going for?",
       "hint": "Pick one to start. You can add more goals later.",
@@ -218,7 +202,8 @@
       "title": "Where are you based?",
       "hint": "We use it to check where you can apply and to rank roles near you higher.",
       "placeholder": "Start typing a city…",
-      "useTyped": "Use “{text}”"
+      "useTyped": "Use “{text}”",
+      "other": "Somewhere else? Type a city…"
     },
     "guardian": {
       "title": "A parent or guardian's email",
@@ -226,6 +211,37 @@
       "invalid": "That email address doesn't look right.",
       "later": "Later"
     },
-    "finishingBodyDraft": "Saving your answers."
+    "finishingBodyDraft": "Saving your answers.",
+    "fromResume": "From your résumé",
+    "reading": "Still reading your files. Answers they show will be pre-selected for you.",
+    "situation": {
+      "title": "What do you do right now?",
+      "hint": "Pick the one that fits best today.",
+      "S": "I'm a student",
+      "E": "I'm working",
+      "F": "I'm building a startup or business",
+      "R": "I do research",
+      "C": "I freelance or create",
+      "P": "I'm a licensed professional (doctor, lawyer, teacher…)",
+      "T": "I'm between jobs or changing direction"
+    },
+    "detail": {
+      "S": "What are you studying for?",
+      "E": "Which best describes your work?",
+      "F": "Where is your startup or business?",
+      "R": "What's your research position?",
+      "C": "What kind of work do you do?",
+      "P": "What's your profession?",
+      "T": "Which fits your situation?"
+    },
+    "detailHint": "Programs often limit who can apply, so this keeps your list honest.",
+    "extra": {
+      "F": "Where is your startup?",
+      "C": "What kind of creative work do you do?"
+    },
+    "extraHint": {
+      "F": "These programs are for founders, so we need this too.",
+      "C": "These programs are for artists and creators, so we need this too."
+    }
   }
 }

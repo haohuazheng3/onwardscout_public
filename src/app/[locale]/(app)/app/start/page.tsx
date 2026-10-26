@@ -7,7 +7,6 @@ import { routing } from "@/i18n/routing";
 import { emptyProfile } from "@/lib/core/types";
 import { captureError } from "@/lib/errors";
 import { claimAnonymousDraft } from "@/lib/profile";
-import { roleHintsOf } from "@/lib/profile/actions";
 import { readAnonId } from "@/lib/profile/anon";
 import { EMPTY_STATUS } from "@/lib/profile/draft-route";
 import { draftStatus } from "@/lib/profile/status";
@@ -64,7 +63,7 @@ export default async function StartPage({ params, searchParams }: Props) {
       claim={claim}
       status={JSON.parse(JSON.stringify(status))}
       profile={row ? profileOf(row) : emptyProfile()}
-      roleHints={roleHintsOf(facts)}
+      confirmedPaths={facts.filter((f) => f.confirmedByUser).map((f) => f.path)}
       activeGoals={goals.map((g) => ({ family: g.family, sub: g.sub, successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, intensity: g.constraints.intensity ?? null }))}
     />
   );
