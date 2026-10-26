@@ -33,7 +33,7 @@ import { groupOfIdentity, type GoalFamily, type IdentityCode, type IdentityGroup
 import { countryOfLocation } from "@/lib/llm/local/geo";
 import { targetRoleOptions } from "@/lib/profile/gaps";
 import type { ProfilePatch } from "@/lib/profile/patch";
-import { isJobGoal, quickGoalById, quickGoalsFor, type QuickGoal } from "@/lib/profile/quick-goals";
+import { OTHER_GOAL, QUICK_GOALS, isJobGoal, quickGoalById, quickGoalsFor, type QuickGoal } from "@/lib/profile/quick-goals";
 import { snapHorizon, successOptions } from "@/lib/profile/success-params";
 import { signInPath, withLocale } from "@/lib/site";
 import { api, ENDPOINTS, type ApiMode, type DraftStatusView } from "./api";
@@ -149,6 +149,8 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
   const roles = profile.roles;
   const codes = roles.map((r) => r.code);
   const primary = roles[0];
+  // The goal the person already runs is the preset when they come back through here.
+  const runningGoal = [...QUICK_GOALS, OTHER_GOAL].find((q) => props.activeGoals.some((g) => g.family === q.family && g.sub === q.sub));
   const goal = goalId ? quickGoalById(goalId) : null;
   const extraGroup = goal ? extraGroupFor(goal.family, primary?.code) : null;
   const answered = (path: string) => props.confirmedPaths.includes(path);
@@ -431,7 +433,8 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
           <GoalScreen
             codes={primary ? [primary.code] : []}
             locale={locale}
-            selected={goalId}
+            selected={goalId ?? runningGoal?.id ?? null}
+            continueLabel={tf("continue")}
             onPick={(g) => {
               // The plan depends on the goal (a founder/creator detail, the two job questions), so it is worked out here.
               const extra = extraGroupFor(g.family, primary?.code);
@@ -648,7 +651,7 @@ function Single<V extends string>({
 
 /* ------------------------------------------------------------------ screens */
 
-function GoalScreen({ codes, locale, selected, onPick }: { codes: IdentityCode[]; locale: "en" | "zh"; selected: string | null; onPick: (g: QuickGoal) => void }) {
+function GoalScreen({ codes, locale, selected, continueLabel, onPick }: { codes: IdentityCode[]; locale: "en" | "zh"; selected: string | null; continueLabel: string; onPick: (g: QuickGoal) => void }) {
   const tf = useTranslations("onboarding.flow");
   const { first, more } = useMemo(() => quickGoalsFor(codes), [codes]);
   const [showMore, setShowMore] = useState(() => more.some((g) => g.id === selected));
@@ -677,6 +680,13 @@ function GoalScreen({ codes, locale, selected, onPick }: { codes: IdentityCode[]
           {tf("goal.more", { count: more.length })}
         </button>
       )}
+      {selected && quickGoalById(selected) ? (
+        <div className="flex justify-end pt-1">
+          <Button size="lg" onClick={() => onPick(quickGoalById(selected)!)} iconRight={<ArrowRight size={18} aria-hidden />}>
+            {continueLabel}
+          </Button>
+        </div>
+      ) : null}
     </Question>
   );
 }
