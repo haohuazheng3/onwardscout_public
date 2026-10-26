@@ -75,7 +75,8 @@ export async function saveGoals(ownerId: string, inputs: readonly GoalInput[], l
     if (same) {
       const rows = await db
         .update(goals)
-        .set({ successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: { ...same.constraints, intensity: g.intensity }, status: "active", updatedAt: sql`now()` })
+        // Remote, salary, places and start date come from the profile as it is now (onboarding may have just changed them).
+        .set({ successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: { ...same.constraints, ...constraintsFor(profile, g.intensity) }, status: "active", updatedAt: sql`now()` })
         .where(and(eq(goals.id, same.id), eq(goals.userId, ownerId)))
         .returning();
       if (rows[0]) {

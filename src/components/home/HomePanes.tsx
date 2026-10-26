@@ -42,7 +42,7 @@ export function HeroPane({ goal, others, strings }: { goal: HeroGoal | null; oth
           {strings.empty}
         </h2>
         <p className="mt-2 max-w-lg text-[0.98rem] leading-relaxed opacity-80">{strings.emptyBody}</p>
-        <ButtonLink href="/app/start?step=3" className="mt-5" variant="primary" iconRight={<ArrowRight size={17} aria-hidden />}>
+        <ButtonLink href="/app/start?q=goal" className="mt-5" variant="primary" iconRight={<ArrowRight size={17} aria-hidden />}>
           {strings.set}
         </ButtonLink>
       </section>

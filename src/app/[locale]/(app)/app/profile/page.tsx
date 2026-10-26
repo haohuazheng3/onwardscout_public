@@ -46,7 +46,7 @@ export default async function ProfilePage({ params }: Props) {
         title={profile.identity.name ?? t("title")}
         description={t("lede")}
         actions={
-          <ButtonLink href="/app/start?step=2" variant="ghost" size="sm" prefetch={false}>
+          <ButtonLink href="/app/start?q=who" variant="ghost" size="sm" prefetch={false}>
             {t("rerun")}
           </ButtonLink>
         }

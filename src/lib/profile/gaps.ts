@@ -445,13 +445,16 @@ function label(options: readonly GapOption[], value: string, locale: Locale): st
 export function applyGapAnswer(profile: Profile, id: GapId, values: readonly string[], opts: { now?: Date; locale?: Locale } = {}): GapAnswerResult {
   const now = opts.now ?? new Date();
   const locale = opts.locale ?? "en";
-  const q = gapQuestion(id, profile, now);
+  // The target role may be any occupation in the taxonomy (onboarding searches it), not only the
+  // suggestions built from the profile, and it can be answered before there is anything to suggest.
+  const anyOccupation = id === "jobSeeker.targetRole";
+  const q: Pick<GapQuestion, "path" | "maxPicks" | "options"> | null = gapQuestion(id, profile, now) ?? (anyOccupation ? { path: "/packs/jobSeeker/targetOccupations", maxPicks: 3, options: [] } : null);
   if (!q) throw new GapAnswerError("That question doesn't apply to your profile any more.");
   const picks = [...new Set(values)];
   if (!picks.length) throw new GapAnswerError("Pick an answer first.");
   if (picks.length > q.maxPicks) throw new GapAnswerError(`Pick up to ${q.maxPicks}.`);
-  for (const p of picks) if (!q.options.some((o) => o.value === p)) throw new GapAnswerError("That answer isn't one of the choices.");
-  const said = picks.map((p) => label(q.options, p, locale)).join(locale === "zh" ? "、" : ", ");
+  for (const p of picks) if (anyOccupation ? !isOccupationCode(p) : !q.options.some((o) => o.value === p)) throw new GapAnswerError("That answer isn't one of the choices.");
+  const said = picks.map((p) => (anyOccupation && isOccupationCode(p) ? localize(getOccupation(p).label, locale) : label(q.options, p, locale))).join(locale === "zh" ? "、" : ", ");
   const claim = locale === "zh" ? `你告诉我们：${said}` : `You told us: ${said}`;
   const cur = bandCurrency(profile.identity.countryCode);
   const one = picks[0]!;

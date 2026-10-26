@@ -5,6 +5,7 @@
  * organiser's free-text note is always "?" ("read it on the official page").
  * Pure (no I/O); the words are in messages/<locale>/scout.json under `eligibility.*`.
  */
+import { stageVerdict } from "@/lib/core/stage-match";
 import { IDENTITY_GROUP_DEFS, IDENTITIES, audienceIncludes, identityLabel, isIdentityCode } from "@/lib/core/identities";
 import { localize, type Locale } from "@/lib/core/labels";
 import type { DegreeLevel, Eligibility, IdentityCode, IdentityTarget, OpportunityGeo, Profile } from "@/lib/core/types";
@@ -108,8 +109,8 @@ export function eligibilityChecklist(
 
   if (el?.stages?.length) {
     const stages = list(el.stages.map((s) => stageLabel(s, locale)), locale);
-    const mine = [...profile.roles.map((r) => r.stage), ...(profile.packs.founder?.ventures.map((v) => v.stage) ?? [])].filter((s): s is string => Boolean(s));
-    const status: CheckStatus = !mine.length ? "unknown" : mine.some((s) => el.stages.includes(s)) ? "yes" : "no";
+    const verdict = stageVerdict(el.stages, profile);
+    const status: CheckStatus = verdict === "match" ? "yes" : verdict === "mismatch" ? "no" : "unknown";
     out.push({ key: "stage", status, values: { stages } });
   }
 

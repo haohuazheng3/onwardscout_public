@@ -173,5 +173,59 @@
     "point3": "Nothing is ever sent without your tap.",
     "cta": "Continue with email",
     "later": "Not now"
+  },
+  "flow": {
+    "progress": "{n} of {total}",
+    "continue": "Continue",
+    "skip": "Skip",
+    "finishing": "Setting up your scout…",
+    "finishingBody": "Saving your answers and finding your first picks.",
+    "who": {
+      "confirmTitle": "Is this you?",
+      "confirmHint": "From the files you added.",
+      "because": "From your files: {why}",
+      "yes": "Yes, that's me",
+      "change": "No, let me pick",
+      "title": "Which describes you best?",
+      "hint": "So we can check which programs you're eligible for.",
+      "reading": "Still reading your files. Pick yourself, or wait a moment.",
+      "savedHint": "From your profile."
+    },
+    "kind": {
+      "title": "Which one fits?",
+      "hint": "Programs often limit who can apply, so this keeps your list honest.",
+      "restart": "Choose again"
+    },
+    "goal": {
+      "title": "What are you going for?",
+      "hint": "Pick one to start. You can add more goals later.",
+      "more": "{count, plural, one {# more option} other {# more options}}"
+    },
+    "role": {
+      "title": "Which role do you want?",
+      "hint": "Pick up to three. We look for these first.",
+      "search": "Search a role: product manager, nurse, 设计师…",
+      "results": "Matching roles",
+      "none": "No match yet. Try the full job title, like “product manager”."
+    },
+    "remote": {
+      "title": "Do you need a remote job?",
+      "hint": "If you do, we leave out on-site and hybrid roles.",
+      "only": "Yes, remote only",
+      "either": "No, on-site works too"
+    },
+    "where": {
+      "title": "Where are you based?",
+      "hint": "We use it to check where you can apply and to rank roles near you higher.",
+      "placeholder": "Start typing a city…",
+      "useTyped": "Use “{text}”"
+    },
+    "guardian": {
+      "title": "A parent or guardian's email",
+      "hint": "You're under 18, so we need it before your first application goes out. It's never used for marketing.",
+      "invalid": "That email address doesn't look right.",
+      "later": "Later"
+    },
+    "finishingBodyDraft": "Saving your answers."
   }
 }

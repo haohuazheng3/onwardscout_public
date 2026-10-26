@@ -1,5 +1,6 @@
 import { getSubGoal, isGoalFamily, isSubGoalId, opportunityTypesOfFamily } from "@/lib/core/goals";
 import { audienceIncludes } from "@/lib/core/identities";
+import { stageVerdict } from "@/lib/core/stage-match";
 import { industryLabel, isIndustryCode } from "@/lib/core/industries";
 import { isMaterialId, materialLabel } from "@/lib/core/materials";
 import { getOccupation, isOccupationCode, mapOccupation } from "@/lib/core/occupations";
@@ -209,10 +210,12 @@ export function scoreOne(profile: Profile, goals: GoalInput[], opp: Opp, lang: L
   if (el.studentsOnly && !codes.some((c) => c.startsWith("S")) && !profile.education.some((e) => e.current)) blockers.push(t("Only open to current students", "仅限在读学生申请"));
   const stages = (el.stages ?? []).filter(Boolean);
   if (stages.length) {
-    const userStages = [...profile.roles.map((r) => r.stage), ...(profile.packs.founder?.ventures.map((v) => v.stage) ?? [])].filter((s): s is string => Boolean(s));
-    if (!userStages.length) gaps.push(t("Confirm your stage", "确认你所处的阶段"));
-    else if (!userStages.some((s) => stages.includes(s))) blockers.push(t(`Only for stages: ${stages.join(", ")}`, `仅限以下阶段：${stages.join("、")}`));
-    else reasons.push(t("Right stage for this program", "阶段符合要求"), 7);
+    // One vocabulary for both sides (src/lib/core/stage-match.ts): only a clear mismatch excludes.
+    const verdict = stageVerdict(stages, profile);
+    const named = stages.map((s) => s.replace(/[_-]+/g, " "));
+    if (verdict === "match") reasons.push(t("Right stage for this program", "阶段符合要求"), 7);
+    else if (verdict === "mismatch") blockers.push(t(`Only for stages: ${named.join(", ")}`, `仅限以下阶段：${named.join("、")}`));
+    else gaps.push(t(`Check the stage it asks for: ${named.join(", ")}`, `请核对它要求的阶段：${named.join("、")}`));
   }
 
   /* degree */

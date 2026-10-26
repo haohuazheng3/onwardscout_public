@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { StartWizard } from "@/components/onboarding/StartWizard";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { routing } from "@/i18n/routing";
 import { emptyProfile } from "@/lib/core/types";
 import { captureError } from "@/lib/errors";
 import { claimAnonymousDraft } from "@/lib/profile";
-import { openGaps, roleHintsOf } from "@/lib/profile/actions";
+import { roleHintsOf } from "@/lib/profile/actions";
 import { readAnonId } from "@/lib/profile/anon";
 import { EMPTY_STATUS } from "@/lib/profile/draft-route";
 import { draftStatus } from "@/lib/profile/status";
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * /app/start — the "no typing" onboarding: drop what you have → is this you? → what next.
+ * /app/start — the "no typing" onboarding, one question per screen (OnboardingFlow).
  * Works signed out (anonymous draft, cookie `os_anon`) and signed in; after signing in from
  * the "save your scout" step (?claim=1) the draft is claimed here before anything loads.
  */
@@ -52,22 +52,20 @@ export default async function StartPage({ params, searchParams }: Props) {
   }
   if (!session) ownerId = await readAnonId();
 
-  const [status, row, facts, gaps, goals] = ownerId
-    ? await Promise.all([draftStatus(ownerId, { locale }), getProfile(ownerId), getFacts(ownerId), openGaps(ownerId), activeGoals(ownerId)])
-    : [EMPTY_STATUS, null, [], [], []];
+  const [status, row, facts, goals] = ownerId
+    ? await Promise.all([draftStatus(ownerId, { locale }), getProfile(ownerId), getFacts(ownerId), activeGoals(ownerId)])
+    : [EMPTY_STATUS, null, [], []];
 
   return (
-    <StartWizard
+    <OnboardingFlow
       mode={session ? "user" : "draft"}
       signedIn={Boolean(session)}
       locale={locale}
       claim={claim}
       status={JSON.parse(JSON.stringify(status))}
       profile={row ? profileOf(row) : emptyProfile()}
-      profileStatus={row?.status ?? "empty"}
       roleHints={roleHintsOf(facts)}
-      gaps={gaps}
-      activeSubGoals={goals.map((g) => g.sub).filter((s): s is NonNullable<typeof s> => Boolean(s))}
+      activeGoals={goals.map((g) => ({ family: g.family, sub: g.sub, successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, intensity: g.constraints.intensity ?? null }))}
     />
   );
 }
