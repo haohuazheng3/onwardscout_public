@@ -399,7 +399,7 @@
       "retry": "Try again"
     },
     "plan": {
-      "eyebrow": "Your path · {months}-month plan",
+      "eyebrow": "{months}-month plan",
       "change": "Change my answers",
       "compass": "Where your profile points",
       "current": "Your plan",

@@ -399,7 +399,7 @@
       "retry": "再试一次"
     },
     "plan": {
-      "eyebrow": "你的方向 · {months} 个月规划",
+      "eyebrow": "{months} 个月规划",
       "change": "修改我的回答",
       "compass": "你的资料更指向哪条路",
       "current": "当前规划",

@@ -44,7 +44,9 @@ describe("sealed state cookie", () => {
     expect(openState(sealed, "user_a", now + 1000)).toEqual(s);
     expect(openState(sealed, "user_b", now + 1000)).toBeNull(); // bound to the user
     expect(openState(sealed, "user_a", now + 11 * 60 * 1000)).toBeNull(); // expired
-    expect(openState(`${sealed.slice(0, -2)}xx`, "user_a", now)).toBeNull(); // tampered
+    // tampered: one character in the middle changed (the end may only carry padding bits)
+    const mid = Math.floor(sealed.length / 2);
+    expect(openState(`${sealed.slice(0, mid)}${sealed[mid] === "A" ? "B" : "A"}${sealed.slice(mid + 1)}`, "user_a", now)).toBeNull();
     expect(openState(undefined, "user_a")).toBeNull();
   });
 });
