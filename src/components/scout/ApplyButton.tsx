@@ -1,17 +1,20 @@
 "use client";
 
 import { ArrowRight, Send } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { track } from "@/components/Consent";
 import { Button, ButtonLink, type ButtonSize } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
+import { signInPath, withLocale } from "@/lib/site";
 
 /**
  * "Apply for me": pressed state at once, POST /api/applications, then straight to the
  * application page (its skeleton renders while it loads). Failure rolls back with a toast;
  * when credits run out the toast offers the billing page. An existing application opens instead.
+ * A visitor without an account (the dashboard works signed out) is taken to save their scout
+ * with their email first; back on the dashboard the draft is claimed and they apply from there.
  */
 export function ApplyButton({
   opportunityId,
@@ -40,6 +43,7 @@ export function ApplyButton({
   const tc = useTranslations("common");
   const ta = useTranslations("applications");
   const router = useRouter();
+  const locale = useLocale() === "zh" ? "zh" : "en";
   const [pending, setPending] = useState(false);
 
   if (applicationId) {
@@ -62,6 +66,10 @@ export function ApplyButton({
         body: JSON.stringify({ opportunityId, ...(goalId ? { goalId } : {}), ...(practice ? { practice: true } : {}) }),
       });
       status = res.status;
+      if (status === 401) {
+        window.location.assign(signInPath(locale, withLocale(locale, "/app")));
+        return; // stays pressed while the sign-in page loads
+      }
       const data = (await res.json().catch(() => null)) as { applicationId?: string; error?: string; code?: string } | null;
       if (!res.ok || !data?.applicationId) {
         // The server's code, in the person's language (applications.errors.*); its English sentence otherwise.

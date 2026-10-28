@@ -144,7 +144,8 @@ export async function finishOnboarding(ownerId: string, locale: "en" | "zh", opt
     const success = existing?.successDefinition || successOptions(sub, profile, horizon, locale)[0]?.text?.trim() || d.label;
     return { family: d.family as GoalInput["family"], sub, successDefinition: success, templateId: null, horizonMonths: horizon, intensity: existing?.constraints.intensity ?? "steady", rationale: d.reason };
   });
-  const saved = inputs.length ? await saveGoals(ownerId, inputs, locale) : { goals: [] };
+  // Goals are listed newest first (listGoals): saving the strongest direction last puts it at the top of the dashboard.
+  const saved = inputs.length ? await saveGoals(ownerId, [...inputs].reverse(), locale) : { goals: [] };
   await refreshMatchesSoon(ownerId);
   return { summary: plan.summary, goals: saved.goals.map((g) => ({ id: g.id, family: g.family, sub: g.sub })), provider: plan.provider };
 }
