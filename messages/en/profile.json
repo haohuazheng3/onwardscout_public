@@ -385,7 +385,7 @@
     },
     "save": {
       "title": "Your scout is ready",
-      "body": "It's saved in this browser for now. Save it to your email to keep it on any device and to apply. One code, no password.",
+      "body": "It's saved in this browser for now. Save it to your email to keep it on any device, to apply, and to get {bonus} more re-plans. One code, no password.",
       "cta": "Save with my email"
     },
     "planning": {
@@ -446,6 +446,15 @@
         "title": "Let Onward Scout plan your path",
         "body": "We read your answers and files, choose the path that fits you, and lay out the steps.",
         "cta": "Plan my path"
+      },
+      "replans": {
+        "left": "{count, plural, =0 {No re-plans left} one {# re-plan left} other {# re-plans left}}",
+        "note": "Switching path or changing your answers uses one.",
+        "more": "Sign up for {bonus} more",
+        "hook": "Sign up free for {bonus} more re-plans. Your answers and plan come with you.",
+        "hookCta": "Sign up free",
+        "done": "You've used all your re-plans.",
+        "limited": "Your answers are saved. No re-plans left, so your plan stays as it is."
       }
     }
   }

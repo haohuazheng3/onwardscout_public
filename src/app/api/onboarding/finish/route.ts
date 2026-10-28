@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { withErrorCapture } from "@/lib/errors";
 import { LifePath } from "@/lib/llm/types";
-import { finishOnboarding } from "@/lib/profile/directions";
+import { finishOnboarding, replanLimit } from "@/lib/profile/directions";
 import { ok, readBody } from "@/lib/profile/http";
 import { rateLimit, tooMany } from "@/lib/ratelimit";
 import { isResponse, requireUserApi } from "@/lib/user";
@@ -20,5 +20,8 @@ export const POST = withErrorCapture("/api/onboarding/finish", async (req: Reque
   if (!rl.ok) return tooMany(rl);
   const body = await readBody(req, bodySchema);
   if ("error" in body) return body.error;
-  return ok(await finishOnboarding(session.userId, body.data.locale, { confirm: body.data.confirm, path: body.data.path ?? null }));
+  const result = await finishOnboarding(session.userId, body.data.locale, { confirm: body.data.confirm, path: body.data.path ?? null });
+  // Switching path with no re-plan left is refused (the dashboard disables it; this is the server's word).
+  if (result.limited && body.data.path) return replanLimit(body.data.locale, true);
+  return ok(result);
 });

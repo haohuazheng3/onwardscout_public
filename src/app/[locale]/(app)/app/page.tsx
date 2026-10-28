@@ -21,7 +21,8 @@ import { listNotifications } from "@/lib/notifications";
 import { GAP_ACTIONS, LIFE_PATHS, type GapAction } from "@/lib/llm/types";
 import { refreshState, topMatches } from "@/lib/opportunities";
 import { readAnonId } from "@/lib/profile/anon";
-import { directionCandidates, latestPlan } from "@/lib/profile/directions";
+import { directionCandidates, latestPlan, planCount } from "@/lib/profile/directions";
+import { REPLANS, replansLeft } from "@/lib/profile/replans";
 import { listGoals } from "@/lib/profile/goals";
 import { getProfile, profileOf } from "@/lib/profile/store";
 import { signInPath, withLocale } from "@/lib/site";
@@ -78,7 +79,7 @@ export default async function HomePage({ params, searchParams }: Props) {
   // "Today" in the person's own time zone (remembered by TimeZoneCookie), not the server's UTC day.
   const timeZone = timeZoneFrom(jar.get(TIME_ZONE_COOKIE)?.value);
 
-  const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity, refresh, stored] = await Promise.all([
+  const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity, refresh, stored, plans] = await Promise.all([
     getProfile(userId),
     section("documents", async () => Number((await db.select({ n: count() }).from(documents).where(eq(documents.userId, userId)))[0]?.n ?? 0)),
     section("goals", () => listGoals(userId, { onlyActive: true })),
@@ -108,6 +109,7 @@ export default async function HomePage({ params, searchParams }: Props) {
     ),
     section("refresh", () => refreshState(userId)),
     section("plan", () => latestPlan(userId)),
+    section("plans", () => planCount(userId)),
   ]);
 
   const profile = row ? profileOf(row) : null;
@@ -197,7 +199,7 @@ export default async function HomePage({ params, searchParams }: Props) {
               <h2 id="save-title" className="title text-[1.05rem] text-ink">
                 {t("save.title")}
               </h2>
-              <p className="text-[0.9rem] leading-snug text-ink-3">{t("save.body")}</p>
+              <p className="text-[0.9rem] leading-snug text-ink-3">{t("save.body", { bonus: REPLANS.accountBonus })}</p>
             </div>
             <ButtonLink href={saveHref} external size="sm" iconRight={<ArrowRight size={15} aria-hidden />}>
               {t("save.cta")}
@@ -239,6 +241,7 @@ export default async function HomePage({ params, searchParams }: Props) {
                 reason={plan.pathReason}
                 summary={plan.summary}
                 scores={plan.pathScores}
+                replans={{ left: replansLeft(plans ?? 1, signedIn), bonus: REPLANS.accountBonus, saveHref }}
                 strings={{
                   eyebrow: t("plan.eyebrow", { months: plan.horizonMonths }),
                   change: t("plan.change"),
@@ -249,6 +252,12 @@ export default async function HomePage({ params, searchParams }: Props) {
                   failed: t("plan.failed"),
                   footer: stored?.provider === "anthropic" ? t("plan.byClaude") : t("plan.byRules"),
                   paths: pathNames,
+                  left: t("plan.replans.left", { count: replansLeft(plans ?? 1, signedIn) }),
+                  note: t("plan.replans.note"),
+                  more: t("plan.replans.more", { bonus: REPLANS.accountBonus }),
+                  hook: t("plan.replans.hook", { bonus: REPLANS.accountBonus }),
+                  hookCta: t("plan.replans.hookCta"),
+                  done: t("plan.replans.done"),
                 }}
               />
             </div>

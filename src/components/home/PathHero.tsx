@@ -1,10 +1,10 @@
 "use client";
 
-import { Briefcase, Compass, GraduationCap, Microscope, Palette, Rocket, type LucideIcon } from "lucide-react";
+import { ArrowRight, Briefcase, Compass, GraduationCap, Lock, Microscope, Palette, Rocket, type LucideIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { track } from "@/components/Consent";
 import { api, ENDPOINTS } from "@/components/onboarding/api";
-import { cx, ScoutDot } from "@/components/ui";
+import { ButtonLink, cx, ScoutDot } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { LifePath } from "@/lib/llm/types";
@@ -13,7 +13,9 @@ import type { LifePath } from "@/lib/llm/types";
  * The top of the dashboard: the path Onward Scout planned (work, startup, research, study,
  * create), the destination in a few words and why, and the compass — how clearly the person's
  * profile points to each path. Tapping another path plans that one instead (Claude when on): the
- * press shows at once, the plan arrives in place, a failure rolls back with a toast.
+ * press shows at once, the plan arrives in place, a failure rolls back with a toast. Re-plans are
+ * counted (REPLANS in src/lib/profile/directions.ts): the count shows under the compass, the
+ * paths lock when none is left, and a visitor is told an account adds more.
  */
 
 export const PATH_ICONS: Record<LifePath, LucideIcon> = {
@@ -33,6 +35,8 @@ export interface PathHeroProps {
   reason: string;
   summary: string;
   scores: Array<{ path: LifePath; score: number }>;
+  /** Re-plans left, what an account adds, and where saving the draft starts (a full path). */
+  replans: { left: number; bonus: number; saveHref: string };
   strings: {
     eyebrow: string;
     change: string;
@@ -43,19 +47,26 @@ export interface PathHeroProps {
     failed: string;
     footer: string;
     paths: Record<LifePath, string>;
+    left: string;
+    note: string;
+    more: string;
+    hook: string;
+    hookCta: string;
+    done: string;
   };
 }
 
-export function PathHero({ signedIn, locale, path, headline, reason, summary, scores, strings }: PathHeroProps) {
+export function PathHero({ signedIn, locale, path, headline, reason, summary, scores, replans, strings }: PathHeroProps) {
   const router = useRouter();
   const [target, setTarget] = useState<LifePath | null>(null);
   const [refreshing, startRefresh] = useTransition();
   const busy = target !== null || refreshing;
+  const locked = replans.left === 0;
   const Icon = PATH_ICONS[path];
   const rows = scores.some((s) => s.path === path) ? scores : [...scores, { path, score: 0 }];
 
   async function choose(next: LifePath) {
-    if (busy || next === path) return;
+    if (busy || locked || next === path) return;
     setTarget(next);
     try {
       await api(ENDPOINTS[signedIn ? "user" : "draft"].finish, { method: "POST", json: { locale, confirm: false, path: next } }, { network: strings.failed, generic: strings.failed });
@@ -109,7 +120,7 @@ export function PathHero({ signedIn, locale, path, headline, reason, summary, sc
                   <button
                     type="button"
                     onClick={() => choose(s.path)}
-                    disabled={busy && !pending}
+                    disabled={(busy && !pending) || (locked && !current)}
                     aria-pressed={current}
                     className={cx(
                       "w-full rounded-[18px] px-3.5 py-2.5 text-left transition-colors duration-200 disabled:cursor-default",
@@ -121,8 +132,8 @@ export function PathHero({ signedIn, locale, path, headline, reason, summary, sc
                         <RowIcon size={16} className="shrink-0 opacity-80" aria-hidden />
                         <span className="truncate font-medium">{strings.paths[s.path]}</span>
                       </span>
-                      <span className={cx("shrink-0 text-[0.78rem]", current ? "text-[color:var(--accent-2)]" : "opacity-60")}>
-                        {pending ? strings.planning : current ? strings.current : strings.choose}
+                      <span className={cx("flex shrink-0 items-center gap-1 text-[0.78rem]", current ? "text-[color:var(--accent-2)]" : "opacity-60")}>
+                        {pending ? strings.planning : current ? strings.current : locked ? <Lock size={13} aria-label={strings.done} /> : strings.choose}
                       </span>
                     </span>
                     <span className="mt-2 block h-1.5 rounded-full bg-[color:var(--pane-3)]" aria-hidden>
@@ -136,6 +147,26 @@ export function PathHero({ signedIn, locale, path, headline, reason, summary, sc
               );
             })}
           </ul>
+          {locked && !signedIn ? (
+            <div className="mt-4 rounded-[20px] bg-[color:var(--pane-2)] p-4 shadow-[inset_0_0_0_1px_var(--line-2)]">
+              <p className="text-[0.92rem] leading-snug">{strings.hook}</p>
+              <ButtonLink href={replans.saveHref} external size="sm" variant="primary" className="mt-3" iconRight={<ArrowRight size={15} aria-hidden />}>
+                {strings.hookCta}
+              </ButtonLink>
+            </div>
+          ) : (
+            <p className="mt-3 px-1 text-[0.8rem] leading-relaxed opacity-70">
+              {locked ? strings.done : `${strings.left} · ${strings.note}`}
+              {!signedIn && !locked ? (
+                <>
+                  {" "}
+                  <a href={replans.saveHref} className="link font-semibold text-[color:var(--accent-2)]">
+                    {strings.more}
+                  </a>
+                </>
+              ) : null}
+            </p>
+          )}
         </div>
       </div>
     </section>

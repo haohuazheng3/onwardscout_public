@@ -1,12 +1,12 @@
 import "server-only";
-import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { functionLabel, isFunctionId } from "@/lib/core/functions";
 import { subGoalAppliesTo, getSubGoal } from "@/lib/core/goals";
 import { localize } from "@/lib/core/labels";
 import { emptyProfile, type Profile } from "@/lib/core/types";
 import { db } from "@/lib/db";
 import { events, opportunities } from "@/lib/db/schema";
-import { actualProvider, getIntelligence } from "@/lib/llm";
+import { actualProvider, getIntelligence, isAnonymousOwner } from "@/lib/llm";
 import { DirectionPlan, type DirectionCandidate, type LifePath, type ProviderName } from "@/lib/llm/types";
 import { recordEvent } from "@/lib/notifications";
 import { refreshMatchesSoon } from "@/lib/opportunities";
@@ -15,6 +15,7 @@ import { patchProfile } from "./actions";
 import { saveGoals, updateGoal, type GoalInput } from "./goals";
 import { snapHorizon, successOptions } from "./success-params";
 import { OTHER_GOAL, QUICK_GOALS, type QuickGoal } from "./quick-goals";
+import { REPLANS, replansLeft } from "./replans";
 import { activeGoals as listActiveGoals, getProfile, profileOf } from "./store";
 
 /*
@@ -30,6 +31,25 @@ import { activeGoals as listActiveGoals, getProfile, profileOf } from "./store";
 
 /** Event kind that stores a plan (the newest one is the person's current plan). */
 export const PLAN_EVENT = "plan.created";
+
+/** The refusal when no re-plan is left: a JSON error with a sentence in the person's language. */
+export function replanLimit(locale: "en" | "zh", signedIn: boolean): Response {
+  const zh = locale === "zh";
+  const error = signedIn
+    ? zh
+      ? "重新规划次数已用完。"
+      : "You've used all your re-plans."
+    : zh
+      ? `免费的重新规划已用完。免费注册即可再获得 ${REPLANS.accountBonus} 次。`
+      : `You've used your free re-plan. Sign up free to get ${REPLANS.accountBonus} more.`;
+  return Response.json({ error, code: "replan_limit" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+}
+
+/** How many plans the owner has made. */
+export async function planCount(ownerId: string): Promise<number> {
+  const rows = await db.select({ n: count() }).from(events).where(and(eq(events.userId, ownerId), eq(events.kind, PLAN_EVENT)));
+  return Number(rows[0]?.n ?? 0);
+}
 
 /** Opportunity types whose count follows the person's field (job postings carry functions). */
 const FIELD_TYPES = new Set(["job", "remote_job", "internship"]);
@@ -138,6 +158,8 @@ export interface FinishResult {
   path: LifePath;
   goals: { id: string; family: string; sub: string | null }[];
   provider: ProviderName;
+  /** No re-plan was left: the answers are saved and matching refreshed, the plan stayed as it was. */
+  limited: boolean;
 }
 
 /**
@@ -148,6 +170,13 @@ export interface FinishResult {
  */
 export async function finishOnboarding(ownerId: string, locale: "en" | "zh", opts: { confirm: boolean; path?: LifePath | null }): Promise<FinishResult> {
   if (opts.confirm) await patchProfile(ownerId, { op: "confirm" }, locale);
+  const plans = await planCount(ownerId);
+  if (plans > 0 && replansLeft(plans, !isAnonymousOwner(ownerId)) === 0) {
+    // Changed answers still refresh the picks; a refused path switch changes nothing.
+    if (!opts.path) await refreshMatchesSoon(ownerId);
+    const current = await latestPlan(ownerId);
+    return { summary: current?.plan.summary ?? "", path: current?.plan.path ?? "explore", goals: [], provider: current?.provider ?? "local", limited: true };
+  }
   const result = await recommendDirections(ownerId, locale, opts.path ?? null);
   const row = await getProfile(ownerId);
   const profile = row ? profileOf(row) : emptyProfile();
@@ -169,7 +198,7 @@ export async function finishOnboarding(ownerId: string, locale: "en" | "zh", opt
   }
   await recordEvent({ userId: ownerId, kind: PLAN_EVENT, data: { plan: result.plan, provider: result.provider, preferredPath: opts.path ?? null } });
   await refreshMatchesSoon(ownerId);
-  return { summary: result.plan.summary, path: result.plan.path, goals: saved.goals.map((g) => ({ id: g.id, family: g.family, sub: g.sub })), provider: result.provider };
+  return { summary: result.plan.summary, path: result.plan.path, goals: saved.goals.map((g) => ({ id: g.id, family: g.family, sub: g.sub })), provider: result.provider, limited: false };
 }
 
 export interface StoredPlan {

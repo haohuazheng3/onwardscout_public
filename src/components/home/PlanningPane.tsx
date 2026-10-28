@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/components/Consent";
 import { Button, ScoutDot } from "@/components/ui";
+import { toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
 import { api, ENDPOINTS } from "@/components/onboarding/api";
 
@@ -19,6 +20,7 @@ import { api, ENDPOINTS } from "@/components/onboarding/api";
 export function PlanningPane({ signedIn, locale, manual = false }: { signedIn: boolean; locale: "en" | "zh"; manual?: boolean }) {
   const t = useTranslations("profile.home.planning");
   const tn = useTranslations("profile.home.plan.none");
+  const tl = useTranslations("profile.home.plan.replans");
   const tc = useTranslations("common");
   const router = useRouter();
   const [failed, setFailed] = useState<string | null>(null);
@@ -31,18 +33,19 @@ export function PlanningPane({ signedIn, locale, manual = false }: { signedIn: b
     started.current = attempt;
     (async () => {
       try {
-        const res = await api<{ goals: { id: string; family: string; sub: string | null }[] }>(
+        const res = await api<{ goals: { id: string; family: string; sub: string | null }[]; limited?: boolean }>(
           ENDPOINTS[signedIn ? "user" : "draft"].finish,
           { method: "POST", json: { locale, confirm: !manual } },
           { network: tc("errors.network"), generic: tc("errors.generic") },
         );
         for (const g of res.goals) track("goal_set", { goalId: g.id, family: g.family, sub: g.sub, via: "onboarding" });
+        if (res.limited) toast.info(tl("limited"));
         router.replace("/app");
       } catch (err) {
         setFailed(err instanceof Error ? err.message : tc("errors.generic"));
       }
     })();
-  }, [attempt, manual, signedIn, locale, router, tc]);
+  }, [attempt, manual, signedIn, locale, router, tc, tl]);
 
   if (attempt < 0) {
     return (
