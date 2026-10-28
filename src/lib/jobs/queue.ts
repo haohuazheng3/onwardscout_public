@@ -35,7 +35,7 @@ export interface EnqueueOptions {
    * `profile.extract:<profileId>:<docsHash>`, `digest.send:<userId>:<isoWeek>`.
    */
   dedupeKey?: string | null;
-  /** When a job with the same dedupe key already finished: "skip" (default) or "rearm" it. */
+  /** When a job with the same dedupe key already finished (or its worker died): "skip" (default) or "rearm" it. */
   onDuplicate?: "skip" | "rearm";
   maxAttempts?: number;
 }
@@ -81,7 +81,8 @@ export async function enqueue(kind: JobKind, payload: JsonObject = {}, opts: Enq
               error: null,
               updatedAt: sql`now()`,
             },
-            setWhere: inArray(jobs.status, ["done", "failed", "cancelled"]),
+            // A running job whose lease ran out lost its worker (the invocation died): start it over too.
+            setWhere: or(inArray(jobs.status, ["done", "failed", "cancelled"]), and(eq(jobs.status, "running"), isNotNull(jobs.lockedUntil), lt(jobs.lockedUntil, sql`now()`)))!,
           })
           .returning({ id: jobs.id, status: jobs.status })
       : await insert.onConflictDoNothing({ target: jobs.dedupeKey }).returning({ id: jobs.id, status: jobs.status });
