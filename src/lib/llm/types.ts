@@ -699,6 +699,21 @@ export type BrowserStep = z.infer<typeof BrowserStep>;
 
 /* ------------------------------------------------------------------ recommendDirections */
 
+/**
+ * The life paths a plan follows (the dashboard's compass): a job, a company, research, more
+ * study, creative work, or "explore" when the profile shows too little to choose.
+ */
+export const LIFE_PATHS = ["work", "startup", "research", "study", "create", "explore"] as const;
+export const LifePath = z.enum(LIFE_PATHS);
+export type LifePath = z.infer<typeof LifePath>;
+/** The paths the compass scores (explore is the fallback, never scored). */
+export const SCORED_PATHS = ["work", "startup", "research", "study", "create"] as const satisfies readonly LifePath[];
+
+/** What closes a gap: each maps to a page in the app. */
+export const GAP_ACTIONS = ["upload_resume", "upload_deck", "add_portfolio", "add_skills", "add_publications", "add_experience", "edit_profile"] as const;
+export const GapAction = z.enum(GAP_ACTIONS);
+export type GapAction = z.infer<typeof GapAction>;
+
 /** One direction the person could take: a sub-goal with opportunities behind it in the catalog. */
 export const DirectionCandidate = z.object({
   /** Stable id (src/lib/profile/quick-goals.ts). */
@@ -714,6 +729,8 @@ export const DirectionCandidate = z.object({
   forThem: z.boolean(),
   /** The field `open` was counted in (job directions, when the person's field has postings), else null. */
   field: z.string().nullable().default(null),
+  /** The life paths this direction serves. */
+  paths: z.array(LifePath).default([]),
 });
 export type DirectionCandidate = z.infer<typeof DirectionCandidate>;
 
@@ -721,14 +738,43 @@ export const RecommendDirectionsInput = z.object({
   profile: z.unknown(),
   candidates: z.array(DirectionCandidate).min(1),
   language: Language.default("en"),
+  /** The path the person chose on the dashboard; the plan follows it. Null = decide. */
+  preferredPath: LifePath.nullable().default(null),
 });
 export type RecommendDirectionsInput = z.input<typeof RecommendDirectionsInput>;
 
+export const PlanStage = z.object({
+  title: z.string(),
+  detail: z.string(),
+  /** Months from now (0 = now); a stage may overlap the next. */
+  startMonth: z.number().min(0),
+  endMonth: z.number().min(0),
+});
+export type PlanStage = z.infer<typeof PlanStage>;
+
+/**
+ * The plan for the person's next chapter: the path, the destination, the directions that become
+ * goals, a roadmap, and what they already have and still need. Every sentence comes from the
+ * person's own facts; nothing promises an outcome.
+ */
 export const DirectionPlan = z.object({
   /** One sentence on where the person stands, from their answers and files, in the request language. */
   summary: z.string(),
-  /** Up to three candidate ids, best first, each with a reason that cites the person's own facts. */
+  path: LifePath.default("explore"),
+  /** Why this path, one sentence citing a fact. */
+  pathReason: z.string().default(""),
+  /** The destination in a few words ("A data internship by summer"). */
+  headline: z.string().default(""),
+  horizonMonths: z.number().int().min(1).max(24).default(6),
+  /** How clearly the profile points to each scored path (0..1). */
+  pathScores: z.array(z.object({ path: LifePath, score: z.number().min(0).max(1) })).default([]),
+  /** Up to three candidate ids that serve the path, best first, each with a reason that cites the person's own facts. */
   directions: z.array(z.object({ id: z.string(), reason: z.string(), strength: z.number().min(0).max(1) })).max(3),
+  roadmap: z.array(PlanStage).default([]),
+  /** What the person already has that the path needs (label + evidence from the profile). */
+  strengths: z.array(z.object({ label: z.string(), evidence: z.string() })).default([]),
+  /** What would make applications stronger, each with the action that closes it. */
+  gaps: z.array(z.object({ label: z.string(), action: GapAction })).default([]),
 });
 export type DirectionPlan = z.infer<typeof DirectionPlan>;
 
@@ -778,7 +824,7 @@ export interface Intelligence {
   classifyReply(input: ClassifyReplyInput, ctx?: CallContext): Promise<ReplyClassification>;
   mapFormFields(input: MapFormFieldsInput, ctx?: CallContext): Promise<FieldMapping[]>;
   planBrowserStep(input: PlanBrowserStepInput, ctx?: CallContext): Promise<BrowserStep>;
-  /** Where the person should go next: up to three directions from the candidates, with reasons. */
+  /** The person's plan: a life path, its directions (up to three candidates, with reasons), a roadmap, strengths and gaps. */
   recommendDirections(input: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan>;
 }
 

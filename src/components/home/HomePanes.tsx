@@ -1,11 +1,9 @@
-import { ArrowRight, Bell, CalendarClock, CircleAlert, Target } from "lucide-react";
+import { ArrowRight, Bell, CircleAlert } from "lucide-react";
 import type { ReactNode } from "react";
-import { ApplyButton } from "@/components/scout/ApplyButton";
-import { ButtonLink, EmptyState, Progress, ScoutDot, Tag, cx } from "@/components/ui";
+import { ScoutDot, Tag, cx } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { boardColumnLabel, statusLabel, type BoardColumn } from "@/lib/core/state-machine";
-import { opportunityTypeLabel } from "@/lib/core/opportunity-types";
-import type { ApplicationStatus, OpportunityTypeId } from "@/lib/core/types";
+import type { ApplicationStatus } from "@/lib/core/types";
 
 /*
  * The weekly cockpit's panes (server components; strings come in already translated, so
@@ -21,60 +19,6 @@ export function PaneTitle({ id, icon, title, action }: { id: string; icon: React
       </h2>
       {action}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ hero */
-
-export interface HeroGoal {
-  id: string;
-  label: string;
-  successDefinition: string | null;
-  milestones: { id: string; title: string; target: number; progress: number }[];
-}
-
-export function HeroPane({ goal, others, strings }: { goal: HeroGoal | null; others: number; strings: { eyebrow: string; empty: string; emptyBody: string; set: string; all: string; more: string } }) {
-  if (!goal) {
-    return (
-      <section className="pane-ink min-w-0 p-6 sm:p-8" aria-labelledby="hero-title">
-        <p className="eyebrow text-[color:var(--ink-3)]">{strings.eyebrow}</p>
-        <h2 id="hero-title" className="headline mt-3 text-[1.6rem] sm:text-[2rem]">
-          {strings.empty}
-        </h2>
-        <p className="mt-2 max-w-lg text-[0.98rem] leading-relaxed opacity-80">{strings.emptyBody}</p>
-        <ButtonLink href="/app/start?q=goal" className="mt-5" variant="primary" iconRight={<ArrowRight size={17} aria-hidden />}>
-          {strings.set}
-        </ButtonLink>
-      </section>
-    );
-  }
-  return (
-    <section className="pane-ink min-w-0 p-6 sm:p-8" aria-labelledby="hero-title">
-      <div className="flex items-start justify-between gap-3">
-        <p className="eyebrow flex min-w-0 items-center gap-2 opacity-80">
-          <Target size={14} className="shrink-0" aria-hidden />
-          <span className="truncate">
-            {strings.eyebrow} · {goal.label}
-          </span>
-        </p>
-        <Link href="/app/goals" className="link shrink-0 text-[0.86rem] opacity-80">
-          {strings.all}
-        </Link>
-      </div>
-      <h2 id="hero-title" className="headline mt-3 text-[1.55rem] leading-tight sm:text-[2rem]">
-        {goal.successDefinition ?? goal.label}
-      </h2>
-      {goal.milestones.length ? (
-        <ul className="mt-6 grid gap-4">
-          {goal.milestones.slice(0, 3).map((m) => (
-            <li key={m.id}>
-              <Progress value={Math.min(m.progress, m.target)} max={m.target} label={m.title} showValue />
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {others > 0 ? <p className="mt-5 text-[0.86rem] opacity-70">{strings.more}</p> : null}
-    </section>
   );
 }
 
@@ -119,66 +63,6 @@ export function NeedsYouPane({ items, locale, strings }: { items: NeedsYouItem[]
         </ul>
       ) : (
         <p className="mt-4 text-[0.92rem] text-ink-3">{strings.empty}</p>
-      )}
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ picks */
-
-export interface PickItem {
-  opportunityId: string;
-  goalId: string | null;
-  type: OpportunityTypeId;
-  channel: string;
-  name: string;
-  orgName: string | null;
-  deadline: string | null;
-  rolling: boolean;
-  fit: number;
-  reason: string | null;
-  isNew: boolean;
-}
-
-export function PicksPane({ items, locale, strings }: { items: PickItem[] | null; locale: string; strings: { title: string; all: string; empty: string; emptyBody: string; error: string; fit: (fit: number) => string; rolling: string; due: (iso: string) => string; isNew: string; scout: string } }) {
-  return (
-    <section className="min-w-0" aria-labelledby="picks-title">
-      <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-        <h2 id="picks-title" className="title text-[1.2rem] text-ink">
-          {strings.title}
-        </h2>
-        <Link href="/app/scout" prefetch={false} className="link text-[0.9rem]">
-          {strings.all}
-        </Link>
-      </div>
-      {items === null ? (
-        <div className="pane p-5 text-[0.92rem] text-ink-3">{strings.error}</div>
-      ) : items.length ? (
-        <ul className="grid gap-3">
-          {items.map((p) => (
-            <li key={p.opportunityId} className="pane min-w-0 p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Tag>{opportunityTypeLabel(p.type, locale)}</Tag>
-                <Tag tone="pine">{strings.fit(p.fit)}</Tag>
-                {p.isNew ? <Tag tone="accent">{strings.isNew}</Tag> : null}
-              </div>
-              <Link href={`/app/scout/${p.opportunityId}`} prefetch={false} className="mt-3 block min-w-0">
-                <h3 className="title truncate text-[1.1rem] text-ink hover:underline">{p.name}</h3>
-                {p.orgName ? <p className="truncate text-[0.92rem] text-ink-3">{p.orgName}</p> : null}
-              </Link>
-              {p.reason ? <p className="mt-2 line-clamp-2 text-[0.9rem] leading-relaxed text-ink-2">{p.reason}</p> : null}
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 text-[0.84rem] text-ink-3">
-                  <CalendarClock size={14} aria-hidden />
-                  {p.deadline ? strings.due(p.deadline) : p.rolling ? strings.rolling : "—"}
-                </span>
-                <ApplyButton opportunityId={p.opportunityId} type={p.type} channel={p.channel} goalId={p.goalId} size="sm" />
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState compact title={strings.empty} body={strings.emptyBody} action={<ButtonLink href="/app/scout" variant="ghost">{strings.scout}</ButtonLink>} />
       )}
     </section>
   );

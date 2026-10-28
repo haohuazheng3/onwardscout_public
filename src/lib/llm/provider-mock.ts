@@ -15,7 +15,7 @@ import {
   type BrowserStep,
   type CallContext,
   type ComposedDocument,
-  type DirectionPlan,
+  DirectionPlan,
   type ExtractProfileOutput,
   type FieldMapping,
   type Intelligence,
@@ -166,8 +166,18 @@ export class MockIntelligence implements Intelligence {
   async recommendDirections(raw: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan> {
     const input = RecommendDirectionsInput.parse(raw);
     this.report(ctx);
-    const picks = input.candidates.filter((c) => c.open > 0 && c.forThem).slice(0, 2);
-    return { summary: "Mock summary", directions: picks.map((c, i) => ({ id: c.id, reason: `Mock reason ${i + 1}`, strength: 1 - i * 0.2 })) };
+    const path = input.preferredPath ?? input.candidates.find((c) => c.open > 0 && c.forThem)?.paths[0] ?? "explore";
+    const picks = input.candidates.filter((c) => c.open > 0 && (input.preferredPath ? c.paths.includes(path) : c.forThem)).slice(0, 2);
+    return DirectionPlan.parse({
+      summary: "Mock summary",
+      path,
+      headline: "Mock headline",
+      directions: picks.map((c, i) => ({ id: c.id, reason: `Mock reason ${i + 1}`, strength: 1 - i * 0.2 })),
+      roadmap: [
+        { title: "Mock stage 1", detail: "", startMonth: 0, endMonth: 1 },
+        { title: "Mock stage 2", detail: "", startMonth: 1, endMonth: 6 },
+      ],
+    });
   }
 }
 

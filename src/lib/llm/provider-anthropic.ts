@@ -7,7 +7,7 @@ import { localExtractProfile, profileGaps } from "./local/extract";
 import { fieldKey, localPlanBrowserStep } from "./local/forms";
 import { inferIdentities, rolesFromGuesses } from "./local/identity";
 import { localScoreMatches } from "./local/match";
-import { localRecommendDirections } from "./local/directions";
+import { finishPlan, personFacts } from "./local/directions";
 import { countWords } from "./local/text";
 import { MODEL_HAIKU, MODEL_OPUS, responseCostCents, roundCents } from "./prices";
 import {
@@ -19,7 +19,9 @@ import {
   ExtractProfileInput,
   ExtractionIR,
   FieldMapping,
+  GapAction,
   IdentityGuess,
+  LifePath,
   LlmError,
   MapFormFieldsInput,
   MatchScore,
@@ -27,13 +29,13 @@ import {
   NormalizedOpportunity,
   PlanBrowserStepInput,
   QuestionAnswer,
-  DirectionPlan,
   RecommendDirectionsInput,
   ReplyClassification,
   ScoreMatchesInput,
   readProfile,
   type CallContext,
   type ComposedDocument,
+  type DirectionPlan,
   type ExtractProfileOutput,
   type Intelligence,
   type Purpose,
@@ -76,6 +78,8 @@ interface Spec<T> {
   effort: Effort;
   maxTokens: number;
   timeoutMs: number;
+  /** SDK retries for this call (default 2); a person waiting on the screen gets fewer. */
+  maxRetries?: number;
   system: string;
   /** Stable per-person context (profile + facts), cached after the system prompt. */
   context?: string;
@@ -154,12 +158,18 @@ Task: you drive a web browser to fill an application form, one step at a time. G
 - After a submit, look for a confirmation message: if present, return stop with done=true.`,
   recommend_directions: `${SHARED_RULES}
 
-Task: decide where this person should go next. You get their profile and facts, and a list of candidate directions (each a kind of opportunity Onward Scout can find, with how many are open now and whether the person is in its audience).
-- Pick one to three candidate ids, best first. Pick only ids from the list. Never pick one with open = 0. Prefer directions whose audience includes the person (forThem = true); pick one where it is false only when the profile clearly shows the person already belongs to that audience (e.g. a venture in the documents for a founder direction).
-- Judge from facts only: identity and stage, field, education, years and kind of work, publications, ventures, portfolio. Do not guess ambitions the profile does not show; when it shows little, pick the safest broad direction for their identity.
-- reason: one sentence in the requested language, addressed to the person ("you"), that cites a concrete fact from the profile and the number open. No flattery, no promises of success.
-- strength 0..1: how clearly the profile points to this direction.
-- summary: one sentence in the requested language on where the person stands (identity, field, place), from facts only.`,
+Task: plan this person's next chapter. You get their profile and facts, what they told us in words (<person>), and candidate directions: kinds of opportunity Onward Scout can find, each with how many are open now, the life paths it serves, and whether the person is in its audience (forThem). When <preferredPath> is given the person chose that path: plan it.
+- path: the life path that fits best — work (a job or internship), startup (build and fund a company), research (academic research), study (further study and its funding), create (creative or freelance work), or explore (only when the profile shows too little to choose).
+- pathScores: one entry for each of work, startup, research, study, create: 0..1, how clearly the profile points there.
+- directions: one to three candidate ids that serve the chosen path, best first. Only ids from the list, never one with open = 0, prefer forThem = true. reason: one sentence to the person ("you") citing a concrete fact and the number open. strength 0..1.
+- headline: the destination in at most eight words, concrete and reachable within horizonMonths ("A data internship by summer"). No hype.
+- pathReason: one sentence, at most 25 words, to the person, citing a fact from their profile or answers.
+- horizonMonths: 3, 6 or 12.
+- roadmap: three to five stages from now to the destination; title at most four words, detail at most twelve; startMonth/endMonth within 0..horizonMonths; stages may overlap. Onward Scout finds openings, prepares applications and drafts follow-ups; the person confirms every submission and does the interviews.
+- strengths: up to four things the person already has that this path needs: label (at most four words) and evidence (at most twelve words) taken from the profile or answers.
+- gaps: up to three things missing that would make applications stronger: label (at most six words) and the action that closes it.
+- summary: one sentence describing the person (identity and stage, field, place) from facts only; do not list what is missing.
+Judge from facts only. Never invent ambitions, numbers, employers or achievements; never promise outcomes.`,
 };
 
 function wrap(tag: string, attrs: Record<string, string | number | null | undefined>, body: string): string {
@@ -213,6 +223,19 @@ const ComposeOut = z.object({
 });
 
 const ScoreOut = z.object({ matches: z.array(MatchScore) });
+/** The plan as the model writes it (every field required; finishPlan validates and clips). */
+const PlanOut = z.object({
+  summary: z.string(),
+  path: LifePath,
+  pathReason: z.string(),
+  headline: z.string(),
+  horizonMonths: z.number().int(),
+  pathScores: z.array(z.object({ path: LifePath, score: z.number() })),
+  directions: z.array(z.object({ id: z.string(), reason: z.string(), strength: z.number() })),
+  roadmap: z.array(z.object({ title: z.string(), detail: z.string(), startMonth: z.number(), endMonth: z.number() })),
+  strengths: z.array(z.object({ label: z.string(), evidence: z.string() })),
+  gaps: z.array(z.object({ label: z.string(), action: GapAction })),
+});
 const AnswersOut = z.object({ answers: z.array(QuestionAnswer) });
 const FieldsOut = z.object({ fields: z.array(FieldMapping) });
 
@@ -254,7 +277,7 @@ export class AnthropicIntelligence implements Intelligence {
       usage?: Parameters<typeof responseCostCents>[1];
     };
     try {
-      message = (await this.client.beta.messages.stream(params, { timeout: spec.timeoutMs, maxRetries: 2, ...(ctx.signal ? { signal: ctx.signal } : {}) }).finalMessage()) as typeof message;
+      message = (await this.client.beta.messages.stream(params, { timeout: spec.timeoutMs, maxRetries: spec.maxRetries ?? 2, ...(ctx.signal ? { signal: ctx.signal } : {}) }).finalMessage()) as typeof message;
     } catch (err) {
       if (err instanceof Anthropic.APIConnectionTimeoutError) throw new LlmError("timeout", `Claude timed out (${spec.purpose})`);
       if (err instanceof Anthropic.APIError) throw new LlmError("api", `Claude API error ${err.status ?? ""} (${spec.purpose})`, err.message.slice(0, 300));
@@ -457,16 +480,14 @@ export class AnthropicIntelligence implements Intelligence {
   async recommendDirections(raw: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan> {
     const input = RecommendDirectionsInput.parse(raw);
     const content = [
+      { type: "text", text: wrap("person", {}, stableJson(personFacts(readProfile(input.profile), input.language))) },
       { type: "text", text: wrap("candidates", {}, stableJson(input.candidates)) },
-      { type: "text", text: `Write summary and reasons in ${input.language === "zh" ? "Simplified Chinese" : "English"}.` },
+      ...(input.preferredPath ? [{ type: "text", text: wrap("preferredPath", {}, input.preferredPath) }] : []),
+      { type: "text", text: `Write every sentence in ${input.language === "zh" ? "Simplified Chinese" : "English"}.` },
     ];
-    const plan = await this.run({ purpose: "recommend_directions", model: MODEL_OPUS, effort: "medium", maxTokens: 6_000, timeoutMs: 90_000, system: SYSTEM.recommend_directions, context: profileContext(input.profile, []), content, schema: DirectionPlan }, ctx);
-    // Only real candidates with something open; anything else and the deterministic answer stands in.
-    const open = new Map(input.candidates.map((c) => [c.id, c.open]));
-    const seen = new Set<string>();
-    const directions = plan.directions.filter((d) => (open.get(d.id) ?? 0) > 0 && !seen.has(d.id) && seen.add(d.id));
-    if (!directions.length) return localRecommendDirections(input);
-    return { summary: plan.summary, directions };
+    const plan = await this.run({ purpose: "recommend_directions", model: MODEL_OPUS, effort: "medium", maxTokens: 12_000, timeoutMs: 120_000, maxRetries: 1, system: SYSTEM.recommend_directions, context: profileContext(input.profile, []), content, schema: PlanOut }, ctx);
+    // Checked against the candidates and clipped; anything unusable comes from the deterministic plan.
+    return finishPlan(plan, input);
   }
 
   async planBrowserStep(raw: PlanBrowserStepInput, ctx?: CallContext): Promise<BrowserStep> {

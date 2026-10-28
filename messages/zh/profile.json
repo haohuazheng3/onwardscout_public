@@ -277,22 +277,14 @@
     "eyebrow": "本周 · {date}",
     "title": "你的这一周",
     "titleNamed": "你好，{name}",
-    "lede": "需要你处理的事、本周最值得关注的精选机会，以及你的目标进展。",
-    "ledeNew": "回答几个关于你的问题，我们就会定好方向，并找出第一批精选机会。",
+    "lede": "你的方向、下一步和最适合你的机会。",
+    "ledeNew": "回答几个关于你的问题，我们就帮你规划方向、找到第一批机会。",
     "openScout": "查看机会",
     "sectionError": "这部分没有加载出来。请刷新重试。",
     "start": {
       "title": "从你已有的材料开始",
       "body": "一份简历、一份 BP、作品集或几个链接。我们据此生成你的档案，找到你有机会拿下的机会，并把每一份申请准备好，等你点一下。",
       "cta": "上传你的文件"
-    },
-    "hero": {
-      "eyebrow": "你的目标",
-      "empty": "一起弄清楚你该往哪里走",
-      "emptyBody": "回答几个关于你自己的问题，我们会为你定好方向并找出第一批机会。",
-      "set": "回答几个问题",
-      "all": "全部目标",
-      "more": "{count, plural, one {另有 # 个目标在推进} other {另有 # 个目标在推进}}"
     },
     "needsYou": {
       "title": "需要你处理",
@@ -314,7 +306,7 @@
       }
     },
     "picks": {
-      "title": "本周精选",
+      "title": "最适合你的机会",
       "all": "全部精选",
       "empty": "还没有精选机会",
       "emptyBody": "我们正在为你匹配；新的精选会出现在这里和「机会」页。",
@@ -382,19 +374,13 @@
       "opportunity_imported": "通过链接添加了一个机会",
       "match_feedback": "对推荐给出了反馈"
     },
-    "direction": {
-      "eyebrow": "你的方向",
-      "change": "修改我的回答",
-      "also": "也值得争取"
-    },
     "next": {
-      "title": "接下来怎么走",
-      "picksReady": "{count, plural, one {你的第一个精选机会在下面，并写明了为什么适合你。} other {你的前 # 个精选机会在下面，每个都写明了为什么适合你。}}",
-      "picksFinding": "正在为你找第一批精选机会，找好后本页会自动更新。",
-      "picksNone": "目前还没有完全适合你的开放机会，一有合适的就会出现在这里。",
-      "apply": "在想要的机会上点「帮我申请」。我们会根据你的资料准备申请材料，你确认之前什么都不会发出。",
-      "save": "用邮箱保存你的进度（一次性验证码，无需密码），就能长期保留、查看完整详情并提交申请。",
-      "keepGoing": "我们每天都会重新查找，新的精选会出现在这里；需要你处理的事会显示在最上方。"
+      "picksReady": "{count, plural, one {先看看下面为你选出的第一个机会。} other {先看看下面最适合你的 # 个机会。}}",
+      "picksFinding": "第一批推荐正在路上，页面会自动更新。",
+      "picksNone": "暂时没有完全匹配的机会，一有新的就会出现在这里。",
+      "apply": "在想申请的机会上点「帮我申请」，你确认之前什么都不会发出。",
+      "save": "用邮箱保存你的 scout，才能长期保留并提交申请。",
+      "keepGoing": "我们每天都会重新查找，需要你处理的事会排在最前面。"
     },
     "save": {
       "title": "你的专属方案已就绪",
@@ -403,13 +389,63 @@
     },
     "planning": {
       "eyebrow": "规划中",
-      "title": "正在为你规划方向",
-      "body": "正在根据你的回答和资料，选出最适合你的方向，并找出第一批机会。",
+      "title": "正在规划你接下来的方向",
+      "body": "我们在读你的回答和文件，判断最适合你的路线，并找出现在开放的机会。",
       "step1": "读取你告诉我们的信息",
-      "step2": "选定你的方向",
-      "step3": "查找对你开放的机会",
+      "step2": "选择你的路线",
+      "step3": "找出现在为你开放的机会",
       "failed": "规划没能完成",
       "retry": "再试一次"
+    },
+    "plan": {
+      "eyebrow": "你的方向 · {months} 个月规划",
+      "change": "修改我的回答",
+      "compass": "你的资料更指向哪条路",
+      "current": "当前规划",
+      "choose": "改走这条",
+      "planning": "正在规划…",
+      "failed": "这条路线没能规划成功，请再试一次。",
+      "byClaude": "由 Claude 规划",
+      "byRules": "根据你的资料生成",
+      "paths": {
+        "work": "就业",
+        "startup": "创业",
+        "research": "科研",
+        "study": "深造",
+        "create": "创作",
+        "explore": "探索"
+      },
+      "roadmap": "你的路线图",
+      "span": "{from} 到 {to}",
+      "stand": "你的现状",
+      "profile": "资料完整度",
+      "profileBody": "我们了解得越多，推荐就越准。",
+      "improve": "去完善",
+      "ringLabel": "资料完整度 {value}%",
+      "open": "现在为你开放",
+      "openNote": "来自机会库的实时数量，每天更新。",
+      "openCount": "{count, number}",
+      "gaps": "让申请更有竞争力",
+      "gapsNone": "这条路线目前没有缺的。",
+      "gapCta": {
+        "upload_resume": "上传",
+        "upload_deck": "上传",
+        "add_portfolio": "添加",
+        "add_skills": "添加",
+        "add_publications": "添加",
+        "add_experience": "添加",
+        "edit_profile": "编辑"
+      },
+      "week": "本周要做",
+      "deadlines": "即将截止",
+      "deadlinesNone": "你的推荐里，未来八周没有到期的。",
+      "inDays": "{count, plural, =0 {今天截止} one {还剩 # 天} other {还剩 # 天}}",
+      "moreDeadlines": "{count, plural, one {另有 # 个即将截止} other {另有 # 个即将截止}}",
+      "none": {
+        "title": "让 Onward Scout 为你规划方向",
+        "body": "我们会读你的回答和文件，选出最适合你的路线，并列出每一步。",
+        "cta": "规划我的方向"
+      }
     }
   }
 }
