@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { applications, matches, milestones, opportunities, type GoalRow } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
-import { getIntelligence, readProfile, type GoalInput, type MatchScore, type OpportunityInput } from "@/lib/llm";
+import { getIntelligence, localIntelligence, readProfile, type GoalInput, type MatchScore, type OpportunityInput } from "@/lib/llm";
 import { notify } from "@/lib/notifications";
 import { activeGoals, getProfile } from "@/lib/profile";
 import { getUserLocale } from "@/lib/user";
@@ -33,20 +33,22 @@ import {
  *   1. Prefilter in SQL (≤ 600): open, visible, the goals' types, identity overlap, place and
  *      remote compatibility, not already applied, not dismissed — ordered by text and field
  *      relevance to the profile. The person's own links are always included.
- *   2. Score in batches of 50 with getIntelligence().scoreMatches (the local engine in
- *      production until Claude is switched on; same output shape either way).
+ *   2. Score every candidate with the deterministic engine (instant, free); when Claude is on,
+ *      it re-scores the strongest REFINE_TOP of them (two calls in parallel), so the first
+ *      board is ready in seconds and a daily refresh costs a fraction of a cent.
  *   3. Rank (ranking.ts): fit, value, win chance, playbook type priority, current milestone,
  *      deadline proximity, the person's time, and what "Not interested" taught us.
  *   4. Upsert the top 150 into `matches` (unique per user + opportunity) keeping feedback;
  *      drop stale picks without feedback, unrank stale ones with feedback.
  *   5. Pin the practice run (rank 0) for people with no application yet.
  *
- * Long runs (Claude scoring hundreds of candidates) checkpoint between batches and continue
- * in the next job invocation.
+ * A run that is cut short checkpoints its scores and continues in the next job invocation.
  */
 
 export const MAX_CANDIDATES = 600;
 export const SCORE_BATCH = 50;
+/** How many of the deterministic engine's best candidates Claude re-scores (when it is on). */
+export const REFINE_TOP = 50;
 const UPSERT_CHUNK = 50;
 /** Yield to the next invocation when less than this is left before the job's deadline. */
 const YIELD_MS = 45_000;
@@ -324,20 +326,34 @@ export async function refreshMatches(userId: string, opts: RefreshOptions = {}):
   }
   const byId = new Map(candidates.map((c) => [c.id, c]));
 
-  /* 2. score in batches */
+  /* 2. score: every candidate deterministically, then the strongest ones with Claude */
   const scores = new Map<string, CompactScore>((opts.state?.scores ?? []).filter((s) => byId.has(s.o)).map((s) => [s.o, s]));
   const todo = candidates.filter((c) => !scores.has(c.id));
   const ai = getIntelligence({ userId });
   const goalInputs = goals.map((g, i) => goalInput(g, plans[i].types));
   for (let i = 0; i < todo.length; i += SCORE_BATCH) {
-    if (i > 0 && opts.timeLeftMs && opts.timeLeftMs() < YIELD_MS) {
+    const batch = todo.slice(i, i + SCORE_BATCH);
+    const result = await localIntelligence.scoreMatches({ profile, goals: goalInputs, opportunities: batch.map(toInput), language: locale, now });
+    for (const s of result) if (byId.has(s.opportunityId)) scores.set(s.opportunityId, compact(s));
+  }
+  if (ai.provider !== "local") {
+    if (opts.timeLeftMs && opts.timeLeftMs() < YIELD_MS) {
       const state: RefreshState = { candidateIds: candidates.map((c) => c.id), scores: [...scores.values()] };
       await opts.checkpoint?.(state);
       return { status: "continue", state };
     }
-    const batch = todo.slice(i, i + SCORE_BATCH);
-    const result = await ai.scoreMatches({ profile, goals: goalInputs, opportunities: batch.map(toInput), language: locale, now });
-    for (const s of result) if (byId.has(s.opportunityId)) scores.set(s.opportunityId, compact(s));
+    const top = [...scores.values()]
+      .filter((s) => s.ok)
+      .sort((a, b) => b.f - a.f || b.v - a.v)
+      .slice(0, REFINE_TOP)
+      .flatMap((s) => (byId.has(s.o) ? [byId.get(s.o)!] : []));
+    const half = Math.ceil(top.length / 2);
+    const refined = await Promise.all(
+      [top.slice(0, half), top.slice(half)]
+        .filter((chunk) => chunk.length)
+        .map((chunk) => ai.scoreMatches({ profile, goals: goalInputs, opportunities: chunk.map(toInput), language: locale, now })),
+    );
+    for (const s of refined.flat()) if (byId.has(s.opportunityId)) scores.set(s.opportunityId, compact(s));
   }
 
   /* 3. rank */

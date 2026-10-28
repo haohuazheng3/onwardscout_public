@@ -1,7 +1,7 @@
 import { ArrowRight, CalendarClock, Check, ChartNoAxesColumn, CircleCheck, Flag, ListChecks, Plus, Route, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { ApplyButton } from "@/components/scout/ApplyButton";
-import { ButtonLink, Progress, Skeleton, cx } from "@/components/ui";
+import { ButtonLink, Progress, ScoutDot, Skeleton, cx } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { opportunityTypeLabel } from "@/lib/core/opportunity-types";
 import type { OpportunityTypeId } from "@/lib/core/types";
@@ -323,7 +323,7 @@ export function PicksListPane({
   refreshing: boolean;
   locale: string;
   className?: string;
-  strings: { title: string; all: string; empty: string; emptyBody: string; finding: string; error: string; fit: (fit: number) => string; rolling: string; due: (iso: string) => string };
+  strings: { title: string; all: string; empty: string; emptyBody: string; finding: string; updating: string; error: string; fit: (fit: number) => string; rolling: string; due: (iso: string) => string };
 }) {
   return (
     <section className={cx("pane min-w-0 p-5 sm:p-6", className)} aria-labelledby="picks-title" aria-busy={refreshing && !items?.length}>
@@ -332,9 +332,16 @@ export function PicksListPane({
         icon={<Sparkles size={17} aria-hidden />}
         title={strings.title}
         action={
-          <Link href="/app/scout" prefetch={false} className="link shrink-0 text-[0.88rem]">
-            {strings.all}
-          </Link>
+          refreshing && items?.length ? (
+            <span className="flex shrink-0 items-center gap-2 text-[0.84rem] text-ink-3" role="status">
+              <ScoutDot live />
+              {strings.updating}
+            </span>
+          ) : (
+            <Link href="/app/scout" prefetch={false} className="link shrink-0 text-[0.88rem]">
+              {strings.all}
+            </Link>
+          )
         }
       />
       {items === null ? (

@@ -166,8 +166,8 @@ Task: plan this person's next chapter. You get their profile and facts, what the
 - pathReason: one sentence, at most 25 words, to the person, citing a fact from their profile or answers.
 - horizonMonths: 3, 6 or 12.
 - roadmap: three to five stages from now to the destination; title at most four words, detail at most twelve; startMonth/endMonth within 0..horizonMonths; stages may overlap. Onward Scout finds openings, prepares applications and drafts follow-ups; the person confirms every submission and does the interviews.
-- strengths: up to four things the person already has that this path needs: label (at most four words) and evidence (at most twelve words) taken from the profile or answers.
-- gaps: up to three things missing that would make applications stronger: label (at most six words) and the action that closes it.
+- strengths: up to four assets the person already has that this path values: label (a noun phrase, at most four words) and evidence (at most twelve words) taken from the profile or answers. A place or a field alone is not an asset; with little in the profile, give fewer.
+- gaps: up to three things missing that would make applications stronger: label written as the step to take, imperative, at most six words ("Add your data projects"), and the action that closes it.
 - summary: one sentence describing the person (identity and stage, field, place) from facts only; do not list what is missing.
 Judge from facts only. Never invent ambitions, numbers, employers or achievements; never promise outcomes.`,
 };

@@ -317,7 +317,8 @@
       "new": "New",
       "scout": "Open Scout",
       "finding": "Finding your first picks…",
-      "findingBody": "We're matching you against what's open now. This takes a few seconds."
+      "findingBody": "We're matching you against what's open now. This takes a few seconds.",
+      "updating": "Updating…"
     },
     "pipeline": {
       "title": "Your pipeline",

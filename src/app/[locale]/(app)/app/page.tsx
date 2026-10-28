@@ -185,7 +185,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         }
       />
 
-      {refresh?.refreshing && !pickCount && !planning ? <PicksRefresher /> : null}
+      {refresh?.refreshing && !planning ? <PicksRefresher /> : null}
 
       {!signedIn ? (
         <section className="pane mb-4 min-w-0 p-4 sm:p-5" aria-labelledby="save-title">
@@ -299,6 +299,7 @@ export default async function HomePage({ params, searchParams }: Props) {
               empty: t("picks.empty"),
               emptyBody: t("picks.emptyBody"),
               finding: t("picks.finding"),
+              updating: t("picks.updating"),
               error: t("sectionError"),
               fit: (fit: number) => t("picks.fit", { fit }),
               rolling: t("picks.rolling"),
