@@ -406,7 +406,7 @@
       "choose": "Plan this",
       "planning": "Planning…",
       "failed": "We couldn't plan that path. Try again.",
-      "byClaude": "Planned with Claude",
+      "byAi": "Planned with AI from your answers",
       "byRules": "Drafted from your profile",
       "paths": {
         "work": "Work",

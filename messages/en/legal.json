@@ -105,7 +105,7 @@
         "body": [
           "Reading documents, matching, drafting, answering form questions, mapping form fields and sorting replies can run in two ways.",
           "**On our own servers.** By default these tasks run on our own deterministic engine: rules and templates applied to your sourced facts. Nothing is sent to an AI provider, and drafts made this way are labelled “Drafted from your profile”.",
-          "**With Anthropic.** When AI processing is switched on, the documents involved (their text, or the file itself when it is a scan or a photo), the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API (Claude) to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
+          "**With Anthropic.** When AI processing is switched on, the documents involved (their text, or the file itself when it is a scan or a photo), the relevant profile facts, the opportunity’s requirements and, for replies, the reply text are sent to **Anthropic**’s API to perform that task, and drafts made this way are labelled “Written with AI”. Under Anthropic’s commercial terms, content sent through its API is not used to train its models. We haven’t opted into any program that would change that, and we never use your data to train models ourselves.",
           "Every result goes through the same checks either way: facts must trace to your documents or your confirmations, and anything that doesn’t is flagged for you."
         ]
       },

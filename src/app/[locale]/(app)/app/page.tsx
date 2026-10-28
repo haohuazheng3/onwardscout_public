@@ -250,7 +250,7 @@ export default async function HomePage({ params, searchParams }: Props) {
                   choose: t("plan.choose"),
                   planning: t("plan.planning"),
                   failed: t("plan.failed"),
-                  footer: stored?.provider === "anthropic" ? t("plan.byClaude") : t("plan.byRules"),
+                  footer: stored?.provider === "anthropic" ? t("plan.byAi") : t("plan.byRules"),
                   paths: pathNames,
                   left: t("plan.replans.left", { count: replansLeft(plans ?? 1, signedIn) }),
                   note: t("plan.replans.note"),

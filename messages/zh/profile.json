@@ -406,7 +406,7 @@
       "choose": "改走这条",
       "planning": "正在规划…",
       "failed": "这条路线没能规划成功，请再试一次。",
-      "byClaude": "由 Claude 规划",
+      "byAi": "由 AI 根据你的回答规划",
       "byRules": "根据你的资料生成",
       "paths": {
         "work": "就业",
