@@ -3,6 +3,7 @@ import type {
   BrowserStep,
   ClassifyReplyInput,
   ComposedDocument,
+  DirectionPlan,
   ComposeInput,
   ExtractProfileInput,
   ExtractProfileOutput,
@@ -14,11 +15,13 @@ import type {
   NormalizeOpportunityInput,
   PlanBrowserStepInput,
   QuestionAnswer,
+  RecommendDirectionsInput,
   ReplyClassification,
   ScoreMatchesInput,
 } from "./types";
 import { localAnswerQuestions } from "./local/answers";
 import { localCompose } from "./local/compose";
+import { localRecommendDirections } from "./local/directions";
 import { localExtractProfile } from "./local/extract";
 import { localMapFormFields, localPlanBrowserStep } from "./local/forms";
 import { localScoreMatches } from "./local/match";
@@ -58,6 +61,9 @@ export class LocalIntelligence implements Intelligence {
   }
   async planBrowserStep(input: PlanBrowserStepInput): Promise<BrowserStep> {
     return localPlanBrowserStep(input);
+  }
+  async recommendDirections(input: RecommendDirectionsInput): Promise<DirectionPlan> {
+    return localRecommendDirections(input);
   }
 }
 

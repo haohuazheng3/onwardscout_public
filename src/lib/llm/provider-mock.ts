@@ -9,11 +9,13 @@ import {
   MapFormFieldsInput,
   NormalizeOpportunityInput,
   PlanBrowserStepInput,
+  RecommendDirectionsInput,
   ScoreMatchesInput,
   emptyIR,
   type BrowserStep,
   type CallContext,
   type ComposedDocument,
+  type DirectionPlan,
   type ExtractProfileOutput,
   type FieldMapping,
   type Intelligence,
@@ -159,6 +161,13 @@ export class MockIntelligence implements Intelligence {
     PlanBrowserStepInput.parse(raw);
     this.report(ctx);
     return { action: "stop", target: null, value: null, done: true, needsUser: false, reason: "Mock: nothing to do" };
+  }
+
+  async recommendDirections(raw: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan> {
+    const input = RecommendDirectionsInput.parse(raw);
+    this.report(ctx);
+    const picks = input.candidates.filter((c) => c.open > 0 && c.forThem).slice(0, 2);
+    return { summary: "Mock summary", directions: picks.map((c, i) => ({ id: c.id, reason: `Mock reason ${i + 1}`, strength: 1 - i * 0.2 })) };
   }
 }
 

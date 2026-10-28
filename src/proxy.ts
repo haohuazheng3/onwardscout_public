@@ -1,8 +1,10 @@
 import { clerkClient, clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { ANON_COOKIE } from "@/lib/profile/anon-cookie";
 import {
   isAdminPath,
   isAnonymousStartPath,
+  isAppHomePath,
   isPersonalApiPath,
   isPersonalPagePath,
   isSignInPath,
@@ -140,6 +142,14 @@ const withClerk = clerkMiddleware(async (auth, req) => {
     const { userId } = await auth();
     if (!userId) {
       if (isAdminPath(pathname)) return isApi(req) ? notFoundJson() : notFoundPage(req);
+      // The dashboard without a session: a visitor with a draft sees theirs (the page checks the cookie's
+      // signature); anyone else starts onboarding rather than being asked to sign in.
+      if (isAppHomePath(pathname)) {
+        if (req.cookies.get(ANON_COOKIE)?.value) return passPage(req);
+        const res = NextResponse.redirect(new URL(`${localeOfPath(pathname) === "zh" ? "/zh" : ""}/app/start`, req.url));
+        res.headers.set("Cache-Control", NO_STORE);
+        return res;
+      }
       if (isApi(req)) return NextResponse.json({ error: "Please sign in to continue." }, { status: 401, headers: { "Cache-Control": "no-store" } });
       return toSignIn(req);
     }

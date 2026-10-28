@@ -697,6 +697,41 @@ export const BrowserStep = z.object({
 });
 export type BrowserStep = z.infer<typeof BrowserStep>;
 
+/* ------------------------------------------------------------------ recommendDirections */
+
+/** One direction the person could take: a sub-goal with opportunities behind it in the catalog. */
+export const DirectionCandidate = z.object({
+  /** Stable id (src/lib/profile/quick-goals.ts). */
+  id: z.string(),
+  family: z.string(),
+  sub: z.string(),
+  /** What it is, in the request language. */
+  label: z.string(),
+  opportunityTypes: z.array(z.string()),
+  /** Opportunities of these types open in the catalog now (in the person's field, for jobs, when known). */
+  open: z.number().int().min(0),
+  /** The sub-goal's audience includes the person's identities. */
+  forThem: z.boolean(),
+  /** The field `open` was counted in (job directions, when the person's field has postings), else null. */
+  field: z.string().nullable().default(null),
+});
+export type DirectionCandidate = z.infer<typeof DirectionCandidate>;
+
+export const RecommendDirectionsInput = z.object({
+  profile: z.unknown(),
+  candidates: z.array(DirectionCandidate).min(1),
+  language: Language.default("en"),
+});
+export type RecommendDirectionsInput = z.input<typeof RecommendDirectionsInput>;
+
+export const DirectionPlan = z.object({
+  /** One sentence on where the person stands, from their answers and files, in the request language. */
+  summary: z.string(),
+  /** Up to three candidate ids, best first, each with a reason that cites the person's own facts. */
+  directions: z.array(z.object({ id: z.string(), reason: z.string(), strength: z.number().min(0).max(1) })).max(3),
+});
+export type DirectionPlan = z.infer<typeof DirectionPlan>;
+
 /* ------------------------------------------------------------------ the interface */
 
 export const PURPOSES = [
@@ -708,6 +743,7 @@ export const PURPOSES = [
   "classify_reply",
   "map_form_fields",
   "plan_browser_step",
+  "recommend_directions",
 ] as const;
 export type Purpose = (typeof PURPOSES)[number];
 
@@ -742,6 +778,8 @@ export interface Intelligence {
   classifyReply(input: ClassifyReplyInput, ctx?: CallContext): Promise<ReplyClassification>;
   mapFormFields(input: MapFormFieldsInput, ctx?: CallContext): Promise<FieldMapping[]>;
   planBrowserStep(input: PlanBrowserStepInput, ctx?: CallContext): Promise<BrowserStep>;
+  /** Where the person should go next: up to three directions from the candidates, with reasons. */
+  recommendDirections(input: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan>;
 }
 
 /** Errors a provider raises; the selector falls back to the local engine on any of them. */

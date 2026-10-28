@@ -7,6 +7,7 @@ import { localExtractProfile, profileGaps } from "./local/extract";
 import { fieldKey, localPlanBrowserStep } from "./local/forms";
 import { inferIdentities, rolesFromGuesses } from "./local/identity";
 import { localScoreMatches } from "./local/match";
+import { localRecommendDirections } from "./local/directions";
 import { countWords } from "./local/text";
 import { MODEL_HAIKU, MODEL_OPUS, responseCostCents, roundCents } from "./prices";
 import {
@@ -26,6 +27,8 @@ import {
   NormalizedOpportunity,
   PlanBrowserStepInput,
   QuestionAnswer,
+  DirectionPlan,
+  RecommendDirectionsInput,
   ReplyClassification,
   ScoreMatchesInput,
   readProfile,
@@ -149,6 +152,14 @@ Task: you drive a web browser to fill an application form, one step at a time. G
 - Never submit unless allowSubmit is true. When everything is filled and allowSubmit is false, return stop with done=true.
 - If the page is on another host than allowedHost, return stop with needsUser=true.
 - After a submit, look for a confirmation message: if present, return stop with done=true.`,
+  recommend_directions: `${SHARED_RULES}
+
+Task: decide where this person should go next. You get their profile and facts, and a list of candidate directions (each a kind of opportunity Onward Scout can find, with how many are open now and whether the person is in its audience).
+- Pick one to three candidate ids, best first. Pick only ids from the list. Never pick one with open = 0. Prefer directions whose audience includes the person (forThem = true); pick one where it is false only when the profile clearly shows the person already belongs to that audience (e.g. a venture in the documents for a founder direction).
+- Judge from facts only: identity and stage, field, education, years and kind of work, publications, ventures, portfolio. Do not guess ambitions the profile does not show; when it shows little, pick the safest broad direction for their identity.
+- reason: one sentence in the requested language, addressed to the person ("you"), that cites a concrete fact from the profile and the number open. No flattery, no promises of success.
+- strength 0..1: how clearly the profile points to this direction.
+- summary: one sentence in the requested language on where the person stands (identity, field, place), from facts only.`,
 };
 
 function wrap(tag: string, attrs: Record<string, string | number | null | undefined>, body: string): string {
@@ -441,6 +452,21 @@ export class AnthropicIntelligence implements Intelligence {
       const value = m.value !== null && options.length && !options.includes(m.value) ? null : m.value;
       return { ...m, value, needsUser: m.needsUser || (value === null && Boolean(field.required)) };
     });
+  }
+
+  async recommendDirections(raw: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan> {
+    const input = RecommendDirectionsInput.parse(raw);
+    const content = [
+      { type: "text", text: wrap("candidates", {}, stableJson(input.candidates)) },
+      { type: "text", text: `Write summary and reasons in ${input.language === "zh" ? "Simplified Chinese" : "English"}.` },
+    ];
+    const plan = await this.run({ purpose: "recommend_directions", model: MODEL_OPUS, effort: "medium", maxTokens: 6_000, timeoutMs: 90_000, system: SYSTEM.recommend_directions, context: profileContext(input.profile, []), content, schema: DirectionPlan }, ctx);
+    // Only real candidates with something open; anything else and the deterministic answer stands in.
+    const open = new Map(input.candidates.map((c) => [c.id, c.open]));
+    const seen = new Set<string>();
+    const directions = plan.directions.filter((d) => (open.get(d.id) ?? 0) > 0 && !seen.has(d.id) && seen.add(d.id));
+    if (!directions.length) return localRecommendDirections(input);
+    return { summary: plan.summary, directions };
   }
 
   async planBrowserStep(raw: PlanBrowserStepInput, ctx?: CallContext): Promise<BrowserStep> {

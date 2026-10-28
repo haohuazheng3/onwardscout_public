@@ -18,6 +18,7 @@ export const ENDPOINTS = {
     status: "/api/drafts/status",
     profile: "/api/drafts/profile",
     goals: "/api/drafts/goals",
+    finish: "/api/drafts/finish",
     documents: "/api/drafts/documents",
   },
   user: {
@@ -28,6 +29,7 @@ export const ENDPOINTS = {
     status: "/api/profile/status",
     profile: "/api/profile",
     goals: "/api/goals",
+    finish: "/api/onboarding/finish",
     documents: "/api/documents",
   },
 } as const;

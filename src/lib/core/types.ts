@@ -656,6 +656,8 @@ export const goalConstraintsSchema = z.object({
   opportunityTypes: z.array(opportunityTypeIdSchema).default([]),
   languages: z.array(z.string()).default([]),
   startBy: partialDateSchema.nullable().default(null),
+  /** Why Onward Scout set this direction for the person (shown on the dashboard), in their language. */
+  rationale: z.string().max(400).nullable().default(null),
 });
 export type GoalConstraints = z.infer<typeof goalConstraintsSchema>;
 

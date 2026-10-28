@@ -1,10 +1,13 @@
 import { and, count, desc, eq, inArray, ne, notLike } from "drizzle-orm";
-import { Activity, ArrowRight, Bell, FileUp } from "lucide-react";
+import { Activity, ArrowRight, Bell, FileUp, Save } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { FeedPane, HeroPane, NeedsYouPane, PicksPane, PipelinePane, type FeedItem, type NeedsYouItem, type PickItem } from "@/components/home/HomePanes";
+import { DirectionPane, NextStepsPane } from "@/components/home/DirectionPanes";
+import { FeedPane, NeedsYouPane, PicksPane, PipelinePane, type FeedItem, type NeedsYouItem, type PickItem } from "@/components/home/HomePanes";
+import { PicksRefresher } from "@/components/home/PicksRefresher";
+import { PlanningPane } from "@/components/home/PlanningPane";
 import { PracticePane } from "@/components/home/PracticePane";
 import { ButtonLink, PageHeader } from "@/components/ui";
 import { localizePath } from "@/i18n/paths";
@@ -14,14 +17,17 @@ import { db } from "@/lib/db";
 import { applications, documents, events, opportunities } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
 import { listNotifications } from "@/lib/notifications";
-import { topMatches } from "@/lib/opportunities";
+import { profileSummary } from "@/lib/llm/local/directions";
+import { refreshState, topMatches } from "@/lib/opportunities";
+import { readAnonId } from "@/lib/profile/anon";
 import { listGoals } from "@/lib/profile/goals";
 import { getProfile, profileOf } from "@/lib/profile/store";
-import { requireUser } from "@/lib/user";
+import { signInPath, withLocale } from "@/lib/site";
+import { optionalUser } from "@/lib/user";
 import { cookies } from "next/headers";
 import { TIME_ZONE_COOKIE, timeZoneFrom } from "@/i18n/request";
 
-type Props = { params: Promise<{ locale: string }> };
+type Props = { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -41,17 +47,27 @@ async function section<T>(name: string, run: () => Promise<T>): Promise<T | null
 
 const NEEDS_YOU = ["needs_info", "needs_you", "ready"] as const;
 
-/** /app — the weekly cockpit: success definition and milestones, what needs you, this week's picks, the pipeline, activity. */
-export default async function HomePage({ params }: Props) {
+/**
+ * /app — the dashboard: where the person is heading and why, what happens next, what needs them,
+ * their picks, the pipeline, activity. A visitor who finished onboarding signed out sees their
+ * draft here too (no sign-up on the way in); saving it to an account is offered, never required.
+ */
+export default async function HomePage({ params, searchParams }: Props) {
   const { locale } = await params;
+  // Straight from the questions: Onward Scout plans here first (PlanningPane), then this page reloads with the plan.
+  const planning = (await searchParams).plan === "1";
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
-  const { userId } = await requireUser({ locale, returnTo: localizePath("/app", locale) });
+  const session = await optionalUser();
+  const anonId = session ? null : await readAnonId();
+  if (!session && !anonId) redirect(localizePath("/app/start", locale));
+  const userId = session?.userId ?? anonId!;
+  const signedIn = Boolean(session);
   const [t, format, jar] = await Promise.all([getTranslations({ locale, namespace: "profile.home" }), getFormatter({ locale }), cookies()]);
   // "Today" in the person's own time zone (remembered by TimeZoneCookie), not the server's UTC day.
   const timeZone = timeZoneFrom(jar.get(TIME_ZONE_COOKIE)?.value);
 
-  const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity] = await Promise.all([
+  const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity, refresh] = await Promise.all([
     getProfile(userId),
     section("documents", async () => Number((await db.select({ n: count() }).from(documents).where(eq(documents.userId, userId)))[0]?.n ?? 0)),
     section("goals", () => listGoals(userId, { onlyActive: true })),
@@ -78,10 +94,11 @@ export default async function HomePage({ params }: Props) {
         .orderBy(desc(events.createdAt))
         .limit(8),
     ),
+    section("refresh", () => refreshState(userId)),
   ]);
 
   const profile = row ? profileOf(row) : null;
-  const isNew = !row || ((docCount ?? 0) === 0 && !profile?.roles.length);
+  const isNew = !row || ((docCount ?? 0) === 0 && !profile?.roles.length && !(goals?.length ?? 0));
   const firstName = profile?.identity.name ? (locale === "zh" ? profile.identity.name : profile.identity.name.split(/\s+/)[0]) : null;
   const goal = goals?.[0] ?? null;
   const now = new Date();
@@ -118,6 +135,21 @@ export default async function HomePage({ params }: Props) {
       })
     : null;
 
+  const saveHref = signInPath(locale, withLocale(locale, "/app"));
+  const pickCount = pickItems?.length ?? 0;
+  const steps = [
+    { text: pickCount ? t("next.picksReady", { count: pickCount }) : refresh?.refreshing ? t("next.picksFinding") : t("next.picksNone") },
+    { text: t("next.apply") },
+    signedIn ? { text: t("next.keepGoing") } : { text: t("next.save"), href: saveHref, cta: t("save.cta"), external: true },
+  ];
+  const directionGoals = (goals ?? []).map((g) => ({
+    id: g.id,
+    label: g.label,
+    successDefinition: g.successDefinition,
+    rationale: g.constraints.rationale ?? null,
+    milestones: g.milestones.map((m) => ({ id: m.id, title: m.title, target: m.target, progress: m.progress })),
+  }));
+
   return (
     <>
       <PageHeader
@@ -125,7 +157,7 @@ export default async function HomePage({ params }: Props) {
         title={firstName ? t("titleNamed", { name: firstName }) : t("title")}
         description={isNew ? t("ledeNew") : t("lede")}
         actions={
-          isNew ? null : (
+          isNew || !signedIn ? null : (
             <ButtonLink href="/app/scout" variant="ghost" size="sm" iconRight={<ArrowRight size={16} aria-hidden />}>
               {t("openScout")}
             </ButtonLink>
@@ -133,7 +165,28 @@ export default async function HomePage({ params }: Props) {
         }
       />
 
-      {isNew ? (
+      {refresh?.refreshing && !pickCount && !planning ? <PicksRefresher /> : null}
+
+      {!signedIn ? (
+        <section className="pane mb-4 min-w-0 p-5 sm:p-6" aria-labelledby="save-title">
+          <div className="flex items-start gap-4">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-pine-soft text-pine">
+              <Save size={20} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2 id="save-title" className="title text-[1.15rem] text-ink">
+                {t("save.title")}
+              </h2>
+              <p className="mt-1 max-w-xl text-[0.95rem] leading-relaxed text-ink-3">{t("save.body")}</p>
+              <ButtonLink href={saveHref} external size="sm" className="mt-3.5" iconRight={<ArrowRight size={15} aria-hidden />}>
+                {t("save.cta")}
+              </ButtonLink>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {isNew && !planning ? (
         <section className="pane mb-4 min-w-0 p-6 sm:p-8" aria-labelledby="start-title">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent text-accent-ink">
@@ -152,26 +205,32 @@ export default async function HomePage({ params }: Props) {
         </section>
       ) : null}
 
+      {planning ? (
+        <PlanningPane signedIn={signedIn} locale={locale} />
+      ) : (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] [&>*]:min-w-0">
         <div className="grid content-start gap-4">
-          <HeroPane
-            goal={goal ? { id: goal.id, label: goal.label, successDefinition: goal.successDefinition, milestones: goal.milestones.map((m) => ({ id: m.id, title: m.title, target: m.target, progress: m.progress })) } : null}
-            others={Math.max(0, (goals?.length ?? 0) - 1)}
-            strings={{ eyebrow: t("hero.eyebrow"), empty: t("hero.empty"), emptyBody: t("hero.emptyBody"), set: t("hero.set"), all: t("hero.all"), more: t("hero.more", { count: Math.max(0, (goals?.length ?? 0) - 1) }) }}
+          <DirectionPane
+            summary={profile && directionGoals.length ? profileSummary(profile, locale) : null}
+            goals={directionGoals}
+            strings={{ eyebrow: t("direction.eyebrow"), change: t("direction.change"), empty: t("hero.empty"), emptyBody: t("hero.emptyBody"), start: t("hero.set"), also: t("direction.also") }}
           />
-          <NeedsYouPane
-            items={needsYouItems}
-            locale={locale}
-            strings={{ title: t("needsYou.title"), empty: t("needsYou.empty"), error: t("sectionError"), practice: t("needsYou.practice"), open: t("needsYou.open") }}
-          />
+          {directionGoals.length ? <NextStepsPane title={t("next.title")} steps={steps} /> : null}
+          {signedIn ? (
+            <NeedsYouPane
+              items={needsYouItems}
+              locale={locale}
+              strings={{ title: t("needsYou.title"), empty: t("needsYou.empty"), error: t("sectionError"), practice: t("needsYou.practice"), open: t("needsYou.open") }}
+            />
+          ) : null}
           <PicksPane
             items={pickItems}
             locale={locale}
             strings={{
               title: t("picks.title"),
               all: t("picks.all"),
-              empty: t("picks.empty"),
-              emptyBody: goal ? t("picks.emptyBody") : t("picks.emptyNoGoal"),
+              empty: refresh?.refreshing ? t("picks.finding") : t("picks.empty"),
+              emptyBody: refresh?.refreshing ? t("picks.findingBody") : goal ? t("picks.emptyBody") : t("picks.emptyNoGoal"),
               error: t("sectionError"),
               fit: (fit: number) => t("picks.fit", { fit }),
               rolling: t("picks.rolling"),
@@ -181,13 +240,16 @@ export default async function HomePage({ params }: Props) {
             }}
           />
         </div>
-        <div className="grid content-start gap-4">
-          <PipelinePane counts={pipeline} locale={locale} strings={{ title: t("pipeline.title"), error: t("sectionError"), board: t("pipeline.board") }} />
-          {appCount === 0 ? <PracticePane /> : null}
-          <FeedPane id="notifications" icon={<Bell size={17} aria-hidden />} title={t("notifications.title")} items={feedNotes} empty={t("notifications.empty")} error={t("sectionError")} />
-          <FeedPane id="activity" icon={<Activity size={17} aria-hidden />} title={t("activity.title")} items={feedActivity} empty={t("activity.empty")} error={t("sectionError")} />
-        </div>
+        {signedIn ? (
+          <div className="grid content-start gap-4">
+            <PipelinePane counts={pipeline} locale={locale} strings={{ title: t("pipeline.title"), error: t("sectionError"), board: t("pipeline.board") }} />
+            {appCount === 0 ? <PracticePane /> : null}
+            <FeedPane id="notifications" icon={<Bell size={17} aria-hidden />} title={t("notifications.title")} items={feedNotes} empty={t("notifications.empty")} error={t("sectionError")} />
+            <FeedPane id="activity" icon={<Activity size={17} aria-hidden />} title={t("activity.title")} items={feedActivity} empty={t("activity.empty")} error={t("sectionError")} />
+          </div>
+        ) : null}
       </div>
+      )}
     </>
   );
 }

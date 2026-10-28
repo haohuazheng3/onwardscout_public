@@ -27,6 +27,8 @@ export const goalInputSchema = z
     templateId: z.string().max(24).nullable().optional(),
     horizonMonths: z.number().int().min(1).max(36),
     intensity: intensitySchema,
+    /** Why this direction (set by onboarding's analysis); kept from before when omitted. */
+    rationale: z.string().trim().max(400).nullable().optional(),
   })
   .refine((g) => familyOfSubGoal(g.sub) === g.family, { message: "That sub-goal belongs to another goal." });
 export type GoalInput = z.infer<typeof goalInputSchema>;
@@ -50,10 +52,11 @@ export interface GoalWithMilestones extends GoalRow {
   milestones: (MilestoneRow & { progress: number })[];
 }
 
-function constraintsFor(profile: Profile | null, intensity: Intensity) {
+function constraintsFor(profile: Profile | null, intensity: Intensity, rationale?: string | null) {
   const j = profile?.packs.jobSeeker;
   return goalConstraintsSchema.parse({
     intensity,
+    rationale: rationale ?? null,
     remote: j?.remote ?? null,
     salaryMin: j?.salaryMin ?? null,
     currency: j?.currency ?? null,
@@ -76,7 +79,7 @@ export async function saveGoals(ownerId: string, inputs: readonly GoalInput[], l
       const rows = await db
         .update(goals)
         // Remote, salary, places and start date come from the profile as it is now (onboarding may have just changed them).
-        .set({ successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: { ...same.constraints, ...constraintsFor(profile, g.intensity) }, status: "active", updatedAt: sql`now()` })
+        .set({ successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: { ...same.constraints, ...constraintsFor(profile, g.intensity, g.rationale ?? same.constraints.rationale) }, status: "active", updatedAt: sql`now()` })
         .where(and(eq(goals.id, same.id), eq(goals.userId, ownerId)))
         .returning();
       if (rows[0]) {
@@ -88,7 +91,7 @@ export async function saveGoals(ownerId: string, inputs: readonly GoalInput[], l
     const id = newId("gol");
     const rows = await db
       .insert(goals)
-      .values({ id, userId: ownerId, family: g.family, sub: g.sub, label: subGoalLabel(g.sub, locale), successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: constraintsFor(profile, g.intensity), status: "active" })
+      .values({ id, userId: ownerId, family: g.family, sub: g.sub, label: subGoalLabel(g.sub, locale), successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: constraintsFor(profile, g.intensity, g.rationale), status: "active" })
       .returning();
     const goal = rows[0]!;
     const planned = buildMilestones(g.family, { intensity: g.intensity, horizonMonths: g.horizonMonths });

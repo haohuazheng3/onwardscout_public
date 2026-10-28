@@ -10,7 +10,7 @@ import { claimAnonymousDraft } from "@/lib/profile";
 import { readAnonId } from "@/lib/profile/anon";
 import { EMPTY_STATUS } from "@/lib/profile/draft-route";
 import { draftStatus } from "@/lib/profile/status";
-import { activeGoals, getFacts, getProfile, profileOf } from "@/lib/profile/store";
+import { getFacts, getProfile, profileOf } from "@/lib/profile/store";
 import { optionalUser } from "@/lib/user";
 
 type Props = {
@@ -51,9 +51,7 @@ export default async function StartPage({ params, searchParams }: Props) {
   }
   if (!session) ownerId = await readAnonId();
 
-  const [status, row, facts, goals] = ownerId
-    ? await Promise.all([draftStatus(ownerId, { locale }), getProfile(ownerId), getFacts(ownerId), activeGoals(ownerId)])
-    : [EMPTY_STATUS, null, [], []];
+  const [status, row, facts] = ownerId ? await Promise.all([draftStatus(ownerId, { locale }), getProfile(ownerId), getFacts(ownerId)]) : [EMPTY_STATUS, null, []];
 
   return (
     <OnboardingFlow
@@ -64,7 +62,6 @@ export default async function StartPage({ params, searchParams }: Props) {
       status={JSON.parse(JSON.stringify(status))}
       profile={row ? profileOf(row) : emptyProfile()}
       confirmedPaths={facts.filter((f) => f.confirmedByUser).map((f) => f.path)}
-      activeGoals={goals.map((g) => ({ family: g.family, sub: g.sub, successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, intensity: g.constraints.intensity ?? null }))}
     />
   );
 }

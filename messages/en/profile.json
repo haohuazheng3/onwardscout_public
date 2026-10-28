@@ -278,7 +278,7 @@
     "title": "Your week",
     "titleNamed": "Hi, {name}",
     "lede": "What needs you, your best picks this week, and how your goal is moving.",
-    "ledeNew": "Two minutes to set up: drop what you have, tap to confirm, pick what's next.",
+    "ledeNew": "A few questions about you, then we set your direction and find your first picks.",
     "openScout": "Open Scout",
     "sectionError": "This part didn't load. Refresh to try again.",
     "start": {
@@ -288,9 +288,9 @@
     },
     "hero": {
       "eyebrow": "Your goal",
-      "empty": "What does success look like?",
-      "emptyBody": "Pick a goal and one line that says when you've made it. Everything else is planned from there.",
-      "set": "Set your goal",
+      "empty": "Let's work out where you're heading",
+      "emptyBody": "Answer a few questions about yourself and we set your direction and find your first picks.",
+      "set": "Answer a few questions",
       "all": "All goals",
       "more": "{count, plural, one {Plus # more goal running} other {Plus # more goals running}}"
     },
@@ -323,7 +323,9 @@
       "rolling": "Rolling deadline",
       "due": "Due {date}",
       "new": "New",
-      "scout": "Open Scout"
+      "scout": "Open Scout",
+      "finding": "Finding your first picks…",
+      "findingBody": "We're matching you against what's open now. This takes a few seconds."
     },
     "pipeline": {
       "title": "Your pipeline",
@@ -379,6 +381,35 @@
       "authorization_revoked": "Turned off a standing permission",
       "opportunity_imported": "Added an opportunity by link",
       "match_feedback": "Gave feedback on a pick"
+    },
+    "direction": {
+      "eyebrow": "Where you're heading",
+      "change": "Change my answers",
+      "also": "Also worth pursuing"
+    },
+    "next": {
+      "title": "What happens next",
+      "picksReady": "{count, plural, one {Your first pick is below, with why it fits you.} other {Your first # picks are below, each with why it fits you.}}",
+      "picksFinding": "We're finding your first picks now. This page updates by itself when they're ready.",
+      "picksNone": "Nothing open fits you exactly right now. We add picks here as soon as matching ones open.",
+      "apply": "Tap “Apply for me” on the ones you want. We prepare the application from your profile, and nothing is sent until you confirm it.",
+      "save": "Save your scout to your email (a one-time code, no password) to keep it, see full details and apply.",
+      "keepGoing": "We look again every day and add new picks here; anything that needs you shows up at the top."
+    },
+    "save": {
+      "title": "Your scout is ready",
+      "body": "It's saved in this browser for now. Save it to your email to keep it on any device and to apply. One code, no password.",
+      "cta": "Save with my email"
+    },
+    "planning": {
+      "eyebrow": "Planning",
+      "title": "Working out where you should head",
+      "body": "We're reading your answers and files, choosing the directions that fit you best, and finding your first picks.",
+      "step1": "Reading what you told us",
+      "step2": "Choosing your directions",
+      "step3": "Finding what's open for you",
+      "failed": "We couldn't finish your plan",
+      "retry": "Try again"
     }
   }
 }

@@ -178,26 +178,8 @@
     "progress": "{n} of {total}",
     "continue": "Continue",
     "skip": "Skip",
-    "finishing": "Setting up your scout…",
-    "finishingBody": "Saving your answers and finding your first picks.",
-    "goal": {
-      "title": "What are you going for?",
-      "hint": "Pick one to start. You can add more goals later.",
-      "more": "{count, plural, one {# more option} other {# more options}}"
-    },
-    "role": {
-      "title": "Which role do you want?",
-      "hint": "Pick up to three. We look for these first.",
-      "search": "Search a role: product manager, nurse, 设计师…",
-      "results": "Matching roles",
-      "none": "No match yet. Try the full job title, like “product manager”."
-    },
-    "remote": {
-      "title": "Do you need a remote job?",
-      "hint": "If you do, we leave out on-site and hybrid roles.",
-      "only": "Yes, remote only",
-      "either": "No, on-site works too"
-    },
+    "finishing": "Opening your dashboard…",
+    "finishingBody": "Your answers are saved. Your plan is next.",
     "where": {
       "title": "Where are you based?",
       "hint": "We use it to check where you can apply and to rank roles near you higher.",
@@ -211,7 +193,6 @@
       "invalid": "That email address doesn't look right.",
       "later": "Later"
     },
-    "finishingBodyDraft": "Saving your answers.",
     "fromResume": "From your résumé",
     "reading": "Still reading your files. Answers they show will be pre-selected for you.",
     "situation": {
@@ -235,13 +216,13 @@
       "T": "Which fits your situation?"
     },
     "detailHint": "Programs often limit who can apply, so this keeps your list honest.",
-    "extra": {
-      "F": "Where is your startup?",
-      "C": "What kind of creative work do you do?"
-    },
-    "extraHint": {
-      "F": "These programs are for founders, so we need this too.",
-      "C": "These programs are for artists and creators, so we need this too."
+    "field": {
+      "study": "What area is your study in?",
+      "work": "What area do you work in?",
+      "industry": "What sector is your startup or business in?",
+      "research": "What's your research field?",
+      "hint": "Pick the closest one; we use it to find what fits you.",
+      "more": "{count, plural, one {# more} other {# more}}"
     }
   }
 }

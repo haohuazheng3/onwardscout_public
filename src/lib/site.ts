@@ -94,6 +94,14 @@ export function isAnonymousStartPath(pathname: string): boolean {
   return /^\/app\/start\/?$/.test(stripLocale(pathname));
 }
 
+/**
+ * The dashboard `/app`: a visitor who finished onboarding signed out lands here with their draft
+ * (owner decision 2026-10-27: no sign-up or sign-in on the way to the dashboard).
+ */
+export function isAppHomePath(pathname: string): boolean {
+  return /^\/app\/?$/.test(stripLocale(pathname));
+}
+
 /** The admin area: pages in either locale and `/api/admin/**`. */
 export function isAdminPath(pathname: string): boolean {
   return /^\/admin(?:\/|$)/.test(stripLocale(pathname)) || /^\/api\/admin(?:\/|$)/.test(pathname);
@@ -113,6 +121,7 @@ export const PERSONAL_API_PREFIXES = [
   "/api/profile",
   "/api/uploads",
   "/api/goals",
+  "/api/onboarding",
   "/api/documents",
   "/api/opportunities",
   "/api/matches",

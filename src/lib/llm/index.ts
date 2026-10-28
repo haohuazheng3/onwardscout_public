@@ -21,6 +21,7 @@ import {
   type MapFormFieldsInput,
   type NormalizeOpportunityInput,
   type PlanBrowserStepInput,
+  type RecommendDirectionsInput,
   type ProviderName,
   type Purpose,
   type ScoreMatchesInput,
@@ -268,6 +269,9 @@ class TrackedIntelligence implements Intelligence {
   }
   planBrowserStep(input: PlanBrowserStepInput) {
     return this.call("plan_browser_step", (e, ctx) => e.planBrowserStep(input, ctx));
+  }
+  recommendDirections(input: RecommendDirectionsInput) {
+    return this.call("recommend_directions", (e, ctx) => e.recommendDirections(input, ctx));
   }
 }
 

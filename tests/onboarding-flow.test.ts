@@ -25,7 +25,7 @@ function render(q: string, profile: Profile, confirmedPaths: string[] = []): str
     createElement(
       NextIntlClientProvider,
       { locale: "en", timeZone: "UTC", messages: { common, onboarding } } as unknown as ComponentProps<typeof NextIntlClientProvider>,
-      createElement(OnboardingFlow, { mode: "draft", signedIn: false, locale: "en", claim: false, status: STATUS, profile, activeGoals: [], confirmedPaths }),
+      createElement(OnboardingFlow, { mode: "draft", signedIn: false, locale: "en", claim: false, status: STATUS, profile, confirmedPaths }),
     ),
   );
 }
@@ -69,5 +69,17 @@ describe("onboarding presets", () => {
     const html = render("q=situation", emptyProfile());
     expect(pressed(html)).toEqual([]);
     expect(html).not.toContain("From your résumé");
+  });
+
+  it("asks the field in the person's own terms, pre-selected from the files", () => {
+    const p: Profile = { ...withRoles(true), functions: ["data"] };
+    const html = render("q=field&g=S", p);
+    expect(html).toContain("What area is your study in?");
+    expect(pressed(html)).toEqual(["Data From your résumé"]);
+    expect(pressed(render("q=field&g=S", p, ["/functions"]))).toEqual(["Data"]);
+  });
+
+  it("never asks what the person is going for", () => {
+    for (const q of ["q=goal", "q=role", "q=remote"]) expect(render(q, withRoles(false))).not.toMatch(/going for|Which role do you want|remote job/i);
   });
 });

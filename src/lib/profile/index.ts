@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { documents, events, facts, goals, jobs, milestones, profileVersions, profiles } from "@/lib/db/schema";
+import { documents, events, facts, goals, jobs, matches, milestones, profileVersions, profiles } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
 import { deleteObject } from "@/lib/files";
 import { isAnonId } from "./anon-cookie";
@@ -52,6 +52,8 @@ export async function claimAnonymousDraft(anonId: string, userId: string, opts: 
   ]);
   let total = moved.reduce((n, rows) => n + rows.length, 0);
   let rebuild = false;
+  // The draft's picks were scored for the visitor; the account's board is scored again after the claim.
+  await db.delete(matches).where(eq(matches.userId, anonId));
 
   // A profile row the account got just by opening a page (nothing read, nothing chosen) is
   // simply replaced by the draft.
