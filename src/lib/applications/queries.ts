@@ -14,6 +14,7 @@ import { latestHandoff, latestPrepared, latestStepOutput } from "./engine";
 import type { AnswerView, ApplicationView, BoardCard, DocumentVersionView, DocumentView, FactView, OpportunityBrief, RequirementsLike, StepView } from "./types";
 import { isUnlocked } from "./unlock";
 import { maskText, previewReveal } from "./preview";
+import { kickDrain } from "@/lib/jobs/runner";
 
 /*
  * Read models: the board (cards), the room (one application with everything it shows) and the
@@ -159,7 +160,7 @@ export async function applicationView(userId: string, id: string): Promise<Appli
     latestHandoff(app.id),
     latestStepOutput<{ requirements?: RequirementsLike }>(app.id, "analyze"),
     db
-      .select({ kind: jobs.kind, status: jobs.status, error: jobs.error })
+      .select({ kind: jobs.kind, status: jobs.status, error: jobs.error, lockedUntil: jobs.lockedUntil })
       .from(jobs)
       .where(and(eq(jobs.userId, userId), inArray(jobs.dedupeKey, [`application.prepare:${app.id}`, `application.submit:${app.id}`, `application.followup:${app.id}`, `application.upgrade:${app.id}`])))
       .limit(4),
@@ -273,6 +274,9 @@ export async function applicationView(userId: string, id: string): Promise<Appli
   }
 
   const running = job.find((j) => j.status === "queued" || j.status === "running");
+  // A run cut off mid-way (its invocation ended) holds its lease until it expires: the person
+  // looking at the room is the signal to take it up again now instead of at the hourly cron.
+  if (job.some((j) => j.status === "running" && j.lockedUntil && j.lockedUntil.getTime() < Date.now())) kickDrain();
   // After an unlock, Claude reads the profile again and writes everything in full (upgrade → prepare).
   const writing = !locked && Boolean(running && (running.kind === "application.upgrade" || running.kind === "application.prepare"));
   const failedPrepare = job.find((j) => j.kind === "application.prepare" && j.status === "failed");

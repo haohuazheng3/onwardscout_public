@@ -245,9 +245,12 @@ let matcher: ReturnType<typeof createPhraseMatcher> | null = null;
  * Maps free text (an organisation description, a sector line in a deck) to industry codes.
  * Second-level matches are preferred over their parent at equal score.
  */
+/** Funding-stage words are not a sector: "a pre-seed startup" is not agricultural "seeds". */
+const FUNDING_STAGE = /\b(pre[- ]?seed|seed[- ](stage|round|funding|investment|capital|fund(ing)?|startups?)|(at|the|a|our|in) seed\b|series [a-e]\b|angel round)/gi;
+
 export function mapIndustry(text: string, opts: MatchOptions = {}): PhraseMatch[] {
   matcher ??= createPhraseMatcher(INDUSTRIES.map((i) => ({ code: i.code, phrases: [i.label.en, i.label.zh, ...i.keywords] })));
-  const results = matcher(text, { limit: 50, minScore: opts.minScore ?? 0.5 });
+  const results = matcher(text.replace(FUNDING_STAGE, " "), { limit: 50, minScore: opts.minScore ?? 0.5 });
   results.sort((a, b) => b.score - a.score || Number(b.code.includes(".")) - Number(a.code.includes(".")) || a.code.localeCompare(b.code));
   return results.slice(0, opts.limit ?? 5);
 }

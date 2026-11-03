@@ -5,7 +5,7 @@ import { reserveForApplication, settleApplication } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { applications, type ApplicationRow } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
-import { enqueueAndRun } from "@/lib/jobs/runner";
+import { enqueueForDrain } from "@/lib/jobs/runner";
 import { forgetUnlocked } from "@/lib/llm";
 import { recordEvent } from "@/lib/notifications";
 import { CREDIT_COST } from "@/content/plans";
@@ -36,7 +36,8 @@ export function planState<T extends Pick<ApplicationRow, "unlockedAt" | "practic
 
 /** Starts (or re-arms) the Claude run for an unlocked application: profile read again, documents written in full. */
 export async function startFullRun(app: Pick<ApplicationRow, "id" | "userId">): Promise<void> {
-  await enqueueAndRun("application.upgrade", { applicationId: app.id }, { userId: app.userId, dedupeKey: `application.upgrade:${app.id}`, onDuplicate: "rearm" });
+  // Runs in a drain (300 s), never inside the 60-second webhook or the page that settled the payment.
+  await enqueueForDrain("application.upgrade", { applicationId: app.id }, { userId: app.userId, dedupeKey: `application.upgrade:${app.id}`, onDuplicate: "rearm" });
 }
 
 async function markUnlocked(app: ApplicationRow, source: UnlockSource, extra: { paidEmail?: string | null; orderId?: string | null } = {}): Promise<ApplicationRow> {

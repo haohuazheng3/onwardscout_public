@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { applicationSteps, applications, events, goals, milestones, type ApplicationRow, type NewApplicationRow } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
 import { newId } from "@/lib/ids";
-import { enqueueAndRun } from "@/lib/jobs/runner";
+import { enqueueAndRun, enqueueForDrain } from "@/lib/jobs/runner";
 import { notify, recordEvent } from "@/lib/notifications";
 import { getUserLocale } from "@/lib/user";
 import { notificationFor } from "./copy";
@@ -355,8 +355,12 @@ export async function execute(start: ApplicationRow, effects: Effect[], opts: { 
 }
 
 /** Enqueues (and kicks inline) the preparation job for an application. */
-export async function enqueuePrepare(app: Pick<ApplicationRow, "id" | "userId">, payload: Record<string, string | boolean> = {}): Promise<void> {
-  await enqueueAndRun("application.prepare", { applicationId: app.id, ...payload }, { userId: app.userId, dedupeKey: `application.prepare:${app.id}`, onDuplicate: "rearm" });
+export async function enqueuePrepare(app: Pick<ApplicationRow, "id" | "userId"> & { unlockedAt?: Date | null }, payload: Record<string, string | boolean> = {}): Promise<void> {
+  const opts = { userId: app.userId, dedupeKey: `application.prepare:${app.id}`, onDuplicate: "rearm" as const };
+  // A paid application is written by Claude (minutes): in a drain, not inside a 60-second route.
+  // The free preview is local and quick, so it runs inline and shows at once.
+  if (app.unlockedAt) await enqueueForDrain("application.prepare", { applicationId: app.id, ...payload }, opts);
+  else await enqueueAndRun("application.prepare", { applicationId: app.id, ...payload }, opts);
 }
 
 /** Enqueues (and kicks inline) a follow-up run. */

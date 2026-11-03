@@ -179,6 +179,12 @@ describe("industries (plan §3)", () => {
   it("maps free text to industries", () => {
     expect(mapIndustry("We build SaaS for enterprise finance teams").map((m) => m.code)).toContain("software-internet.saas");
     expect(mapIndustry("新能源汽车")[0].code).toBe("advanced-manufacturing.automotive-ev");
+    // A funding stage is not a sector: "pre-seed" never reads as agricultural "seeds".
+    const climate = mapIndustry("A pre-seed climate-tech startup that cuts electricity bills for small manufacturers", { limit: 3 }).map((m) => m.code);
+    expect(climate[0]?.startsWith("energy-environment")).toBe(true);
+    expect(climate.some((c) => c.startsWith("agriculture-food"))).toBe(false);
+    expect(mapIndustry("Seed-stage startup raising a seed round for our fintech app").map((m) => m.code).some((c) => c.startsWith("agriculture-food"))).toBe(false);
+    expect(mapIndustry("Heirloom seeds and precision agriculture")[0]?.code.startsWith("agriculture-food")).toBe(true);
     expect(mapIndustry("医疗器械")[0].code).toBe("life-sciences-healthcare.medical-devices");
   });
 });

@@ -253,6 +253,18 @@ export async function runJobNow(id: string, opts: { maxMs?: number } = {}): Prom
 }
 
 /**
+ * Enqueue and hand the job to a drain (/api/cron/jobs, 300 s) right away, for long work that
+ * must not run inside the caller: a 60-second webhook or route that ran a paid Claude run
+ * inline was cut off mid-way, leaving the job "running" until its lease expired and the hourly
+ * cron came round.
+ */
+export async function enqueueForDrain(kind: JobKind, payload: JsonObject = {}, opts: EnqueueOptions = {}): Promise<EnqueueResult> {
+  const res = await enqueue(kind, payload, opts);
+  if (res.status === "queued" && (!opts.runAfter || opts.runAfter.getTime() <= Date.now())) kickDrain();
+  return res;
+}
+
+/**
  * Enqueue and start immediately in the background of the current request (Vercel
  * `waitUntil`): the common pattern for user-triggered work.
  */
