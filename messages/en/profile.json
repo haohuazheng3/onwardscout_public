@@ -379,7 +379,7 @@
       "picksReady": "{count, plural, one {Look at your first pick below.} other {Look at your # best picks below.}}",
       "picksFinding": "Your first picks are on their way; this page updates itself.",
       "picksNone": "Nothing fits exactly yet; new picks appear here as they open.",
-      "apply": "Tap “Apply for me” on the ones you want. Nothing is sent until you confirm.",
+      "apply": "Tap “Write my application” on the ones you want: the preview is free, and nothing is sent until you confirm.",
       "save": "Save your scout with your email to keep it and apply.",
       "keepGoing": "We look again every day; anything that needs you shows up first."
     },

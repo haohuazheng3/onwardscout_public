@@ -318,3 +318,44 @@ describe("the plan line reads as a sentence for every kind of person", () => {
     expect(line("S2", "zh")).toBe("你是本科生，方向是数据，在London。");
   });
 });
+
+describe("a founder's résumé on a phone (walk 2026-11-03)", () => {
+  const text = readFileSync(path.join(import.meta.dirname, "fixtures", "resume-founder-en.txt"), "utf8");
+  it("reads 'Title — Org, City, ST  dates' as a role at an organisation, not a place", () => {
+    const roles = parseResume(text).experience.map((e) => [e.entry.title, e.entry.organization, e.entry.location]);
+    expect(roles).toEqual([
+      ["Founder & CEO", "Gridwise", "Austin, TX"],
+      ["Senior Energy Analyst", "Lone Star Power & Light", "Austin, TX"],
+      ["Energy Analyst Intern", "Texas Energy Office", "Austin, TX"],
+    ]);
+  });
+  it("keeps the roles in the profile, so the founder reads as a founder", () => {
+    const out = localExtractProfile({ documents: [{ id: "d", kind: "resume", filename: "r.txt", text }], locale: "en", now: "2026-11-03" });
+    expect(out.profile.experience.map((e) => e.organization)).toEqual(["Gridwise", "Lone Star Power & Light", "Texas Energy Office"]);
+    expect(out.identities[0]?.code.startsWith("F")).toBe(true);
+  });
+});
+
+describe("a founder with a résumé and no deck (walk 2026-11-03)", () => {
+  const text = readFileSync(path.join(import.meta.dirname, "fixtures", "resume-founder-en.txt"), "utf8");
+  it("reads the current founder role as their venture, in the summary's own words", () => {
+    const out = localExtractProfile({ documents: [{ id: "d", kind: "resume", filename: "r.txt", text }], locale: "en", now: "2026-11-03" });
+    const v = out.profile.packs.founder?.ventures[0];
+    expect(v?.company).toBe("Gridwise");
+    expect(v?.oneLiner).toMatch(/^A pre-seed climate-tech startup that cuts electricity bills/);
+    expect(v?.stage).toBe("pre_seed");
+    expect(v?.role).toBe("Founder & CEO");
+    // The one-liner is backed by the summary sentence it came from.
+    const quotes = out.facts.filter((f) => f.path.startsWith("/packs/founder/ventures/")).map((f) => f.quote);
+    expect(quotes.some((q) => q.includes("Founder and CEO of Gridwise, a pre-seed climate-tech startup"))).toBe(true);
+  });
+});
+
+describe("awards named by their placing (walk 2026-11-03)", () => {
+  it("keeps 'Winner, <event>' together instead of an award called 'Winner'", () => {
+    const text = readFileSync(path.join(import.meta.dirname, "fixtures", "resume-founder-en.txt"), "utf8");
+    const awards = parseResume(text).achievements.map((a) => a.entry.title);
+    expect(awards).toContain("Winner, Austin Climate Pitch Night");
+    expect(awards).not.toContain("Winner");
+  });
+});

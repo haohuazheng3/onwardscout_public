@@ -2,7 +2,7 @@ import { emptyIR, type ExtractDocument, type ExtractionIR, type Src } from "../t
 import { parseDeck } from "./deck";
 import { ORCID_RE, findHIndex, parseGrants, parsePublications } from "./research";
 import { parseResume, splitSections, type ParsedResume } from "./resume";
-import { collapse, findEmail, findMoney, findUrls, lines as splitLines, stripBullet, uniq } from "./text";
+import { collapse, findEmail, findMoney, findUrls, isQuantified, lines as splitLines, stripBullet, uniq } from "./text";
 
 /*
  * Documents → extraction IR with the local parsers. One function per document family:
@@ -66,6 +66,27 @@ function resumeToIR(doc: ExtractDocument, parsed: ParsedResume, ir: ExtractionIR
       highlights: e.highlights,
       skills: [],
       src: src(id, quote, complete * weight),
+    });
+  }
+  // A current founder role is a venture too, for someone who has a résumé but no deck: the company,
+  // the summary's own words about it ("Founder of Gridwise, a pre-seed startup that…") and its numbers.
+  for (const { entry: e, quote } of parsed.experience) {
+    if (e.type !== "founder" || !e.current || !e.organization) continue;
+    const company = e.organization;
+    const sentence = (parsed.summary?.value ?? "").split(/(?<=[.!?])\s+/).find((x) => x.toLowerCase().includes(company.toLowerCase())) ?? null;
+    const appositive = sentence ? new RegExp(`${company.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")},\\s+(an?\\s[^.;]{12,220})`, "i").exec(sentence)?.[1] ?? null : null;
+    const fields: ExtractionIR["ventures"][number]["fields"] = [];
+    if (e.title) fields.push({ field: "role", value: e.title, src: src(id, quote, 0.8 * weight) });
+    if (sentence && appositive) fields.push({ field: "oneLiner", value: (appositive[0].toUpperCase() + appositive.slice(1)).trim(), src: src(id, sentence, 0.75 * weight) });
+    const stage = sentence && /\bpre-?seed\b/i.test(sentence) ? "pre_seed" : sentence && /\bseed[- ]stage\b|\bat seed\b/i.test(sentence) ? "seed" : null;
+    if (sentence && stage) fields.push({ field: "stage", value: stage, src: src(id, sentence, 0.7 * weight) });
+    if (e.location) fields.push({ field: "location", value: e.location, src: src(id, quote, 0.7 * weight) });
+    ir.ventures.push({
+      company,
+      fields,
+      traction: e.highlights.filter((x) => isQuantified(x)).slice(0, 4).map((x) => ({ text: x, src: src(id, x, 0.75 * weight) })),
+      team: [],
+      src: src(id, quote, 0.75 * weight),
     });
   }
   for (const { entry: e, quote } of parsed.education) {

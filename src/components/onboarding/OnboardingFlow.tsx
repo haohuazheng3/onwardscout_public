@@ -135,11 +135,13 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
 
   const plan = useMemo<Screen[]>(() => {
     const out: Screen[] = ["files", "situation", "detail"];
-    if (fieldKind) out.push("field");
+    // Until the situation is known, count the field question most people get: "1 of 5" that
+    // may become "3 of 4" reads as progress, "2 of 4" that becomes "3 of 5" as the goalposts moving.
+    if (fieldKind || !situation) out.push("field");
     out.push("where");
     if (isMinor(codes) && (!profile.identity.guardianEmail || screen === "guardian")) out.push("guardian");
     return out;
-  }, [fieldKind, codes, profile.identity.guardianEmail, screen]);
+  }, [fieldKind, situation, codes, profile.identity.guardianEmail, screen]);
 
   const index = Math.max(0, plan.indexOf(screen));
 

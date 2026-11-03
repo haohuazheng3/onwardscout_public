@@ -553,7 +553,10 @@ export function toExperience(raw: RawEntry, defaultType: string | null = null): 
   let parts = splitHeaderParts(raw.header, raw.date, raw.single);
   let location: string | null = null;
   parts = parts.filter((p) => {
-    if (!location && looksLikeLocation(p) && !ORG_WORDS.test(p)) {
+    // "Gridwise, Austin, TX" is an organisation followed by its place (split below), not a place.
+    const tokens = p.split(/,\s+|，/);
+    const orgThenPlace = tokens.length >= 3 && !looksLikeLocation(tokens[0]) && looksLikeLocation(tokens.slice(1).join(", "));
+    if (!location && looksLikeLocation(p) && !ORG_WORDS.test(p) && !orgThenPlace) {
       location = p.replace(/^(location|地点)\s*[:：]\s*/i, "");
       return false;
     }
@@ -840,7 +843,9 @@ export function parseAchievements(sectionLines: string[]): Array<{ entry: Achiev
     if (range) rest = rest.replace(range.matched, " ");
     if (single) rest = rest.replace(single.matched, " ");
     rest = collapse(rest.replace(/[(（]\s*[)）]/g, " ")).replace(/[,，\s\-–—]+$/, "");
-    const parts = rest.split(/\s+[-–—|]\s+|\s*[|｜]\s*|,\s+(?=[A-Z一-鿿])/);
+    let parts = rest.split(/\s+[-–—|]\s+|\s*[|｜]\s*|,\s+(?=[A-Z一-鿿])/);
+    // "Winner, Austin Climate Pitch Night": a placing alone is not the award's name.
+    if (parts.length > 1 && /^(winner|finalist|semi-?finalist|runner[- ]up|(1st|2nd|3rd|first|second|third) (place|prize)|honou?rable mention|gold|silver|bronze|champion)$/i.test(parts[0]?.trim() ?? "")) parts = [`${parts[0].trim()}, ${parts[1].trim()}`, ...parts.slice(2)];
     const title = parts[0]?.trim();
     if (!title) continue;
     const issuer = parts.slice(1).join(", ").trim() || null;

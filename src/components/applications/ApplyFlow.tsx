@@ -79,7 +79,9 @@ export function ApplyFlow({
   const started = useRef(false);
   // Came with a profile already (an earlier draft or their account): nothing to drop this time.
   const [returning] = useState(() => hasMaterial && !initialPreview);
-  const target = opportunity.orgName && !opportunity.name.includes(opportunity.orgName) ? `${opportunity.name} · ${opportunity.orgName}` : opportunity.name;
+  // "Cox Enterprises (with gener8tor and the Georgia Cleantech Innovation Hub)": the name is enough for a headline.
+  const org = opportunity.orgName?.replace(/\s*[(（][^)）]*[)）]\s*$/u, "").trim() || null;
+  const target = org && !opportunity.name.includes(org) ? `${opportunity.name} · ${org}` : opportunity.name;
   const msgs = { network: tc("errors.network"), generic: tc("errors.generic") };
 
   const start = useCallback(async () => {
@@ -269,9 +271,14 @@ function DocumentCard({ doc }: { doc: ApplyPreview["documents"][number] }) {
                 ) : b.flags.includes("masked") ? (
                   <div key={i} className="relative">
                     {doc.blocks.findIndex((x) => x.flags.includes("masked")) === i ? (
-                      <p className="pointer-events-none absolute inset-x-0 top-6 z-10 mx-auto flex w-fit items-center gap-1.5 rounded-full bg-pane px-3.5 py-1.5 text-[0.84rem] font-medium text-ink shadow-[0_8px_30px_-10px_rgba(18,22,20,.35),0_0_0_1px_var(--line-2)]">
+                      // Where curiosity peaks: one tap to the unlock below the preview.
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("unlock-pane")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                        className="absolute inset-x-0 top-6 z-10 mx-auto flex w-fit items-center gap-1.5 rounded-full bg-pane px-3.5 py-1.5 text-[0.84rem] font-medium text-ink shadow-[0_8px_30px_-10px_rgba(18,22,20,.35),0_0_0_1px_var(--line-2)] transition-transform active:scale-[.97]"
+                      >
                         <Lock size={13} aria-hidden /> {td("maskedHint")}
-                      </p>
+                      </button>
                     ) : null}
                     <MaskedBlock b={b} kind={doc.kind} />
                   </div>
@@ -302,13 +309,17 @@ function Ready({ preview, saveHref, officialUrl, locale, payment, msgs }: { prev
     <div className="grid min-w-0 gap-4">
       {/* Paid signed out: the application is theirs by email; one sign-in opens it while Claude writes. */}
       {!locked ? <PaidSignIn email={preview.access.paidEmail} signInHref={saveHref} writing={preview.access.writing} /> : null}
-      {locked ? (
-        <UnlockPane applicationId={preview.applicationId} locale={locale} signedIn={false} saveHref={saveHref} pending={payment === "pending"} messages={msgs} compact />
+      {/* Look first, then unlock: the preview comes before the price (a pending payment says so up top). */}
+      {locked && payment === "pending" ? (
+        <UnlockPane applicationId={preview.applicationId} locale={locale} signedIn={false} saveHref={saveHref} pending messages={msgs} compact />
       ) : null}
       {preview.documents.length > 1 ? (
         <Tabs label={t("documentsLabel")} items={preview.documents.map((d) => ({ id: d.id, label: tabLabel(d) }))} value={doc?.id} onChange={setTab} size="sm" />
       ) : null}
       {doc ? <DocumentCard doc={doc} /> : null}
+      {locked && payment !== "pending" ? (
+        <UnlockPane applicationId={preview.applicationId} locale={locale} signedIn={false} saveHref={saveHref} pending={false} messages={msgs} compact />
+      ) : null}
 
       {!locked ? null : (
       <Pane ink pad="lg" className="min-w-0">

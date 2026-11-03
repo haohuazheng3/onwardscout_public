@@ -1,0 +1,30 @@
+Tomás Rivera
+Austin, Texas, United States · tomas.rivera.founder@example.com · +1 512 555 0147 · gridwise-example.com · github.com/trivera-example
+
+Summary
+Founder and CEO of Gridwise, a pre-seed climate-tech startup that cuts electricity bills for small manufacturers by shifting machine loads away from peak-price hours. Former energy analyst with six years at an electric utility. Looking for an accelerator to reach our first 20 paying customers.
+
+Experience
+Founder & CEO — Gridwise, Austin, TX  Jan 2025 – Present
+Built the load-shifting scheduler (Python, TimescaleDB) and signed 3 paid pilots with machine shops in Central Texas.
+Pilots cut peak-demand charges by 18% on average over 4 months ($2,300 a month saved at the largest site).
+Raised $150,000 from angels and a Texas climate grant; team of 3 (CTO + part-time sales).
+Senior Energy Analyst — Lone Star Power & Light, Austin, TX  Jun 2018 – Dec 2024
+Forecast commercial demand for 40,000 business accounts; models cut forecasting error by 22%.
+Designed a demand-response pilot with 120 industrial customers that shaved 14 MW off summer peaks.
+Energy Analyst Intern — Texas Energy Office, Austin, TX  May 2017 – Aug 2017
+Analysed rate structures for small businesses across 12 Texas utilities.
+
+Education
+MS Energy Systems Engineering — The University of Texas at Austin  2016 – 2018
+BS Electrical Engineering — Texas A&M University  2012 – 2016
+
+Awards
+Winner, Austin Climate Pitch Night 2025
+Texas Emerging Technology Climate Grant 2025 ($50,000)
+
+Skills
+Python · SQL · TimescaleDB · energy markets · demand response · load forecasting · customer discovery · fundraising
+
+Languages
+English (native) · Spanish (native)

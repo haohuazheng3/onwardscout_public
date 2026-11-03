@@ -563,12 +563,10 @@ const TEAM_EVENTS = new Set(["hackathon", "competition"]);
 
 /** "What are you building?" as a tap on one of the person's own projects, when the profile has some. */
 function ideaOptions(profile: Profile | undefined): Option[] {
-  return uniqOptions(
-    (profile?.projects ?? [])
-      .filter((p) => p.summary?.trim())
-      .slice(0, 3)
-      .map((p) => `${p.name}: ${p.summary!.trim().replace(/\s+/g, " ").slice(0, 220)}`),
-  );
+  // Their company first (a founder's venture, in their own words), then their projects.
+  const ventures = (profile?.packs.founder?.ventures ?? []).filter((v) => v.oneLiner?.trim()).map((v) => `${v.company}: ${v.oneLiner!.trim().replace(/\s+/g, " ").slice(0, 220)}`);
+  const projects = (profile?.projects ?? []).filter((p) => p.summary?.trim()).map((p) => `${p.name}: ${p.summary!.trim().replace(/\s+/g, " ").slice(0, 220)}`);
+  return uniqOptions([...ventures, ...projects].slice(0, 3));
 }
 
 /**
