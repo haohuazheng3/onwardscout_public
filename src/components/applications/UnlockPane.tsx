@@ -157,11 +157,11 @@ export function PaidSignIn({ email, signInHref, writing = false, className }: { 
       <p className="flex items-center gap-2 text-[0.82rem] font-semibold uppercase tracking-[0.08em] opacity-80">
         <Check size={15} aria-hidden /> {t("paidTag")}
       </p>
-      <h2 className="headline mt-3 text-[1.4rem] sm:text-[1.7rem]">{t("paidSignInTitle")}</h2>
+      <h2 className="headline mt-3 text-[1.4rem] sm:text-[1.7rem]">{t(writing ? "paidSignInTitle" : "paidSignInTitleDone")}</h2>
       <p className="mt-2 text-[0.98rem] leading-relaxed opacity-80">{writing ? (email ? t("paidSignInBody", { email }) : t("paidSignInBodyNoEmail")) : email ? t("paidSignInBodyDone", { email }) : t("paidSignInBodyNoEmailDone")}</p>
       <div className="mt-6">
         <ButtonLink href={signInHref} prefetch={false} iconRight={<ArrowRight size={18} aria-hidden />}>
-          {t("paidSignIn")}
+          {t(writing ? "paidSignIn" : "paidSignInDone")}
         </ButtonLink>
       </div>
       <p className="mt-5 text-[0.84rem] opacity-60">{t("paidNote")}</p>

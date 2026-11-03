@@ -559,6 +559,8 @@
     "pendingTitle": "Your bank is still confirming the payment",
     "pendingBody": "Reload this page in a moment. The application opens on its own the second it clears.",
     "paidSignInBodyDone": "Claude has written your application in full. Sign in with {email} (we send a code, no password) to download the files and submit. It is attached to that email, so you can come back from any device.",
-    "paidSignInBodyNoEmailDone": "Claude has written your application in full. Sign in with the email you used at checkout to download the files and submit."
+    "paidSignInBodyNoEmailDone": "Claude has written your application in full. Sign in with the email you used at checkout to download the files and submit.",
+    "paidSignInTitleDone": "Sign in to download and submit",
+    "paidSignInDone": "Sign in to finish"
   }
 }

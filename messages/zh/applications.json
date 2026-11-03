@@ -559,6 +559,8 @@
     "pendingTitle": "银行仍在确认付款",
     "pendingBody": "稍后刷新本页。款项到账后申请会自动打开。",
     "paidSignInBodyDone": "Claude 已完整写好你的申请。用 {email} 登录（我们发送验证码，无需密码）即可下载文件并提交。申请已绑定到这个邮箱，换设备也能回来。",
-    "paidSignInBodyNoEmailDone": "Claude 已完整写好你的申请。用支付时填写的邮箱登录，即可下载文件并提交。"
+    "paidSignInBodyNoEmailDone": "Claude 已完整写好你的申请。用支付时填写的邮箱登录，即可下载文件并提交。",
+    "paidSignInTitleDone": "登录即可下载并提交",
+    "paidSignInDone": "登录完成申请"
   }
 }
