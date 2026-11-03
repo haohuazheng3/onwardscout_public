@@ -5,6 +5,7 @@ import { ArrowUpRight, BookOpen, Check, CircleAlert, ExternalLink, MapPin } from
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { ListingCard, ListingRow, TIMING_TONE } from "@/components/seo/ListingCard";
+import { ApplyCta, applyPromise } from "@/components/seo/ApplyCta";
 import { ScoutCta } from "@/components/seo/ScoutCta";
 import { englishOnly } from "@/components/seo/english-only";
 import { ButtonLink, Callout, Container, Pane, Section, Tag } from "@/components/ui";
@@ -44,7 +45,7 @@ import {
   renderTime,
 } from "@/lib/programmatic";
 import { absoluteUrl, eventLd, pageMetadata } from "@/lib/seo";
-import { SITE } from "@/lib/site";
+import { applyPath, SITE } from "@/lib/site";
 
 export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
@@ -212,6 +213,7 @@ export default async function ListingPage({ params }: Props) {
             </p>
           ) : null}
           {d.summary ? <p className="lede mt-5 sm:text-[1.12rem]">{d.summary}</p> : null}
+          {!closed ? <ApplyCta opportunityId={d.id} type={d.type} className="mt-7" /> : null}
         </header>
       </Container>
 
@@ -293,7 +295,9 @@ export default async function ListingPage({ params }: Props) {
                 <blockquote className="mt-4 border-l-[3px] border-pine pl-4 text-[0.95rem] leading-relaxed text-ink-2">{shorten(d.apply.instructions, 600)}</blockquote>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-3">
-                {officialUrl ? (
+                {!closed ? (
+                  <ApplyCta opportunityId={d.id} type={d.type} variant="inline" officialUrl={officialUrl} />
+                ) : officialUrl ? (
                   <ButtonLink href={officialUrl} variant="ghost" external icon={<ExternalLink size={16} aria-hidden />}>
                     Official page
                   </ButtonLink>
@@ -379,10 +383,11 @@ export default async function ListingPage({ params }: Props) {
       <Section className="!pt-14 pb-20 sm:!pt-20 sm:pb-28">
         <ScoutCta
           title={closed ? "Be ready when the next round opens" : `Let Onward Scout prepare this application`}
+          primary={closed ? undefined : { href: applyPath(d.id), label: "Write my application" }}
           body={
             closed
               ? "Drop in what you already have. Onward Scout keeps a sourced profile ready and tells you when rounds like this one open, with the application prepared for your tap."
-              : `Drop in your résumé, deck or portfolio. Onward Scout checks whether you fit ${d.name}, prepares every answer from your own documents and waits for your tap.`
+              : `${applyPromise(d.type)} Free to start, no account needed: you look at the draft first, and nothing goes to ${d.orgName ?? d.name} without your tap.`
           }
           secondary={{ href: `/app/scout/${d.id}`, label: "Open it in your Scout board" }}
         />

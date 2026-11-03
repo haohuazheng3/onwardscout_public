@@ -461,9 +461,10 @@
             "ul": [
               "One credit is one application submitted for you (through any channel, including a handoff you confirm) or one outreach email to a new contact. Profile, matching, previews, drafts, follow-ups and practice applications are free.",
               "A credit is reserved when you confirm a submission, spent when it is submitted, and returned if the submission fails, you withdraw it or it expires first.",
-              "New accounts receive {trialCredits} free credits, valid for {trialDays} days. Free credits have no cash value.",
-              "Pro costs {proPrice} per month for {proCredits} credits, billed monthly in advance until you cancel. Its credits stay usable for {proRollover} days after each billing month. You can cancel at any time and keep Pro until the end of the paid period.",
-              "Credit packs are one-time purchases ({pack10Credits} credits for {pack10Price}, {pack40Credits} credits for {pack40Price}); their credits are valid for {packDays} days.",
+              "The preview of an application (documents drafted from your own files, with the first lines readable) is free and needs no account.",
+              "Unlocking one application costs {unlockPrice}, paid once. An unlocked application is written in full with the AI model, can be downloaded, copied answer by answer and submitted or handed over, and can be revised without limit. The unlock is used the moment it starts; withdrawing the application afterwards does not return it.",
+              "A season pass costs {passPrice}, paid once, and lasts {passDays} days. It unlocks applications of one kind only (up to {passReturnships} returnships, or {passStartup} accelerator, incubator, pitch-event or startup-competition applications). Each unlock uses one of its credits.",
+              "Credits bought before November 2026 (Pro months at {proPrice}, packs of {pack10Credits} or {pack40Credits} credits) are no longer sold but keep working: each unlocks one application until it expires ({proRollover} days after its billing month for Pro, {packDays} days after purchase for packs). Free trial credits, where an account still has them, have no cash value.",
               "Prices are in US dollars. We may change prices for future billing periods and will tell you before a change affects your subscription.",
               "Payments are processed by Stripe. Refunds follow our [refund policy](/refund-policy). If a payment is disputed, the credits from it are paused until the dispute is settled."
             ]
@@ -750,50 +751,64 @@
   },
   "refunds": {
     "metaTitle": "Refund policy",
-    "metaDescription": "Cancel Pro any time and keep it until the period ends. Charges and credit packs are refundable within 14 days when none of their credits were used. Failed submissions never use a credit.",
+    "metaDescription": "Every payment is one-off. An unlocked application is refundable within 14 days if its documents were never downloaded and it was never submitted; a season pass within 14 days if nothing was unlocked with it.",
     "title": "Refund policy",
     "summary": [
-      "Pro: cancel any time and keep it until the end of the paid period. A charge is refundable within 14 days if none of its credits were used.",
-      "Packs: refundable within 14 days if unused.",
-      "Used credits aren’t refundable — but failed submissions never use a credit.",
-      "To ask for a refund, write to {email} from the email you sign in with."
+      "One application ({unlockPrice}): refundable within 14 days if its documents were never downloaded and it was never submitted.",
+      "Season pass ({passPrice}): refundable within 14 days if no application was unlocked with it.",
+      "There is no subscription, so there is nothing to cancel.",
+      "To ask for a refund, write to {email} from the email you paid or sign in with."
     ],
     "sections": [
       {
-        "id": "pro",
-        "title": "Pro subscription",
+        "id": "unlock",
+        "title": "One application",
         "body": [
           {
             "ul": [
-              "Cancel any time from Billing in your account. Your subscription stops renewing, and you keep Pro and its credits until the end of the period you have paid for. Credits from that period stay usable for {proRollover} days after it ends.",
-              "Within 14 days of a Pro charge, if none of the credits from that charge have been used, we refund the charge in full.",
-              "After 14 days, or once credits from a charge have been used, that charge isn’t refundable; cancelling stops the next one."
+              "Unlocking an application costs {unlockPrice}, paid once. The moment it is unlocked, the work it pays for starts: your résumé is read again in full and every document is written for that posting.",
+              "Within 14 days of the charge, if the application's documents were never downloaded and it was never submitted or handed over, we refund the charge in full.",
+              "Once a document was downloaded, or the application went out, the work was delivered and the charge isn't refundable. Withdrawing the application afterwards does not refund it.",
+              "A refunded application closes again: its documents stay visible as the preview, downloads and revisions stop."
             ]
           }
         ]
       },
       {
-        "id": "packs",
-        "title": "Credit packs",
+        "id": "pass",
+        "title": "Season pass",
         "body": [
           {
             "ul": [
-              "A pack is refundable in full within 14 days of purchase if none of its credits have been used.",
-              "Once credits from a pack have been used, the pack isn’t refundable. Unused pack credits stay valid for {packDays} days from purchase."
+              "A season pass costs {passPrice}, paid once, and lasts {passDays} days.",
+              "It is refundable in full within 14 days of purchase if no application was unlocked with it.",
+              "Once an application was unlocked with it, the pass isn't refundable; its remaining credits stay usable until it expires."
             ]
           }
         ]
       },
       {
         "id": "never-charged",
-        "title": "Credits that are never charged",
+        "title": "What is never charged",
         "body": [
           {
             "ul": [
-              "A credit is reserved when you confirm a submission and spent only when the application is actually submitted.",
-              "If a submission fails, you withdraw it, or it can’t be completed before its deadline, the reserved credit returns to your balance automatically. A failed submission never needs a refund.",
-              "Building your profile, matching, previews, drafts, follow-ups and practice applications never use credits.",
-              "Free starter credits have no cash value and can’t be refunded or exchanged."
+              "The preview of any application, your profile, matching, follow-ups and practice applications are free and never need a refund.",
+              "A failed submission never costs anything: an unlocked application stays unlocked, so you can submit it again or hand it over.",
+              "Free trial credits, where an account still has them, have no cash value and can't be refunded or exchanged."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "legacy",
+        "title": "Pro and credit packs bought before November 2026",
+        "body": [
+          {
+            "ul": [
+              "They are no longer sold. Credits already bought keep working as unlocks until they expire.",
+              "An older Pro subscription can be cancelled any time from Billing; you keep Pro and its credits until the end of the period you paid for, and credits from that period stay usable for {proRollover} days after it ends.",
+              "A Pro charge or a pack is refundable within 14 days if none of its credits have been used."
             ]
           }
         ]
@@ -802,7 +817,7 @@
         "id": "our-mistake",
         "title": "When something goes wrong on our side",
         "body": [
-          "If we submitted something incorrectly, charged you twice, or a problem on our side cost you a credit, write to us. We will restore the credits or refund the charge, whichever is fairer, regardless of the 14-day window."
+          "If we charged you twice, unlocked the wrong application, or a problem on our side meant the work was not delivered, write to us. We will refund the charge or restore the unlock, whichever is fairer, regardless of the 14-day window."
         ]
       },
       {
@@ -811,9 +826,9 @@
         "body": [
           {
             "ul": [
-              "Write to [{email}](mailto:{email}) from the email address you sign in with, and include the date and amount of the charge (your Stripe receipt has both).",
+              "Write to [{email}](mailto:{email}) from the email address you paid or sign in with, and include the date and amount of the charge (your Stripe receipt has both).",
               "We reply within two business days. Approved refunds go back to the original payment method through Stripe and usually appear within 5–10 business days, depending on your bank.",
-              "When a charge is refunded, the credits from that charge are removed from your balance."
+              "When a charge is refunded, what it paid for is taken back: the application closes again, or the pass's unused credits are removed."
             ]
           }
         ]
@@ -822,14 +837,14 @@
         "id": "your-rights",
         "title": "Your legal rights",
         "body": [
-          "This policy doesn’t limit any rights you have under the consumer law of the country where you live. Our 14-day refund for unused purchases applies in addition to those rights."
+          "This policy doesn't limit any rights you have under the consumer law of the country where you live. Our 14-day refund applies in addition to those rights."
         ]
       },
       {
         "id": "chargebacks",
         "title": "Chargebacks",
         "body": [
-          "Please write to us before disputing a charge with your bank — it’s usually faster for everyone. While a dispute is open, the credits from that charge are paused."
+          "Please write to us before disputing a charge with your bank — it's usually faster for everyone. While a dispute is open, what the charge paid for is paused."
         ]
       }
     ]

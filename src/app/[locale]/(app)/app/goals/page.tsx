@@ -25,7 +25,7 @@ export default async function GoalsPage({ params }: Props) {
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const { userId } = await requireUser({ locale, returnTo: localizePath("/app/goals", locale) });
-  const [t, goals, row] = await Promise.all([getTranslations({ locale, namespace: "profile.goals" }), listGoals(userId), getProfile(userId)]);
+  const [t, goals, row] = await Promise.all([getTranslations({ locale, namespace: "profile.goals" }), listGoals(userId, { locale }), getProfile(userId)]);
   const profile = row ? profileOf(row) : emptyProfile();
 
   return (

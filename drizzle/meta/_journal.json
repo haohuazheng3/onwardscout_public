@@ -15,6 +15,20 @@
       "when": 1792617324844,
       "tag": "0001_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793433727431,
+      "tag": "0002_season_passes",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793691501330,
+      "tag": "0003_paid_runs",
+      "breakpoints": true
     }
   ]
 }

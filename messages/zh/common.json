@@ -165,7 +165,15 @@
     "account": "账户",
     "failedTitle": "登录组件没有加载出来",
     "failedBody": "暂时无法连接登录服务。请检查网络后重试。",
-    "failedRetry": "重试"
+    "failedRetry": "重试",
+    "draftPoint1Title": "你的草稿会保留",
+    "draftPoint1Body": "刚才写好的材料，登录后立刻归到你的账号下。",
+    "draftPoint2Title": "回答只有你能说的几件事",
+    "draftPoint2Body": "几个点一下就能答的问题，材料会按你的回答更新。",
+    "buyPoint1Title": "在 Stripe 的安全页面付款",
+    "buyPoint1Body": "输入验证码后回到原页面，你选的方案已备好，点一下就进入 Stripe 结账。卡号只交给 Stripe，我们看不到。",
+    "buyPoint2Title": "付款后立即到账",
+    "buyPoint2Body": "Stripe 一确认付款，额度或通行证就会出现在你的账号里。"
   },
   "appNav": {
     "home": "主页",

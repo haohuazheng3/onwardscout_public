@@ -121,13 +121,30 @@ export interface ObjectHead {
 }
 
 export async function headObject(key: string): Promise<ObjectHead | null> {
-  const res = await fetch(`${base()}/o/${encodeKey(key)}`, { method: "HEAD", headers: authHeaders(), cache: "no-store" });
+  // `identity`: Cloudflare compresses text/* responses (even to a HEAD) and then drops
+  // Content-Length, which made every .txt/.md upload look empty (0 bytes) and be refused.
+  const res = await fetch(`${base()}/o/${encodeKey(key)}`, { method: "HEAD", headers: { ...authHeaders(), "Accept-Encoding": "identity" }, cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`files worker HEAD ${key} answered ${res.status}`);
+  const length = res.headers.get("content-length");
   return {
-    bytes: Number(res.headers.get("content-length") ?? 0),
+    bytes: length !== null ? Number(length) : await measureObject(key),
     contentType: res.headers.get("content-type") ?? "application/octet-stream",
   };
+}
+
+/** The size of an object by reading it (only when a HEAD came back without a length). */
+async function measureObject(key: string): Promise<number> {
+  const res = await fetch(`${base()}/o/${encodeKey(key)}`, { headers: { ...authHeaders(), "Accept-Encoding": "identity" }, cache: "no-store" });
+  if (!res.ok || !res.body) return 0;
+  let bytes = 0;
+  const reader = res.body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+  }
+  return bytes;
 }
 
 /** Streams an object from the bucket; the caller owns the response body. Null when missing. */

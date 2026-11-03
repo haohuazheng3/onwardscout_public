@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { documentLocked } from "@/lib/applications/access";
 import { signedDocumentUrl } from "@/lib/documents";
 import { jsonError, withErrorCapture } from "@/lib/errors";
 import { rateLimit, tooMany } from "@/lib/ratelimit";
@@ -26,6 +27,10 @@ export const POST = withErrorCapture("/api/documents/render", async (req: Reques
   if (!rl.ok) return tooMany(rl);
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return jsonError("That request isn't valid. Reload the page and try again.", 400);
+  // The free preview is read on the page; files are part of what an unlock buys.
+  if (await documentLocked(session.userId, parsed.data.generatedDocumentId)) {
+    return Response.json({ error: "Unlock this application to download its documents.", code: "unlock_required" }, { status: 402, headers: { "Cache-Control": "no-store" } });
+  }
   const r = await signedDocumentUrl(session.userId, parsed.data.generatedDocumentId, parsed.data.format, parsed.data.disposition ?? "attachment");
   if (!r) return jsonError("We couldn't find that document.", 404);
   return Response.json(r, { headers: { "Cache-Control": "no-store" } });

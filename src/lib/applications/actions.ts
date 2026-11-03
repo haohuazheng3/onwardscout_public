@@ -3,7 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { ApplicationAnswer, ApplicationAnswers } from "@/lib/core/types";
 import { db } from "@/lib/db";
 import { applications, generatedDocuments, type ApplicationRow } from "@/lib/db/schema";
-import { regenerateDocument, saveDocumentEdits, type BlockEdit } from "@/lib/documents";
+import { regenerateDocument, restoreGeneratedDocument, reviseGeneratedDocument, saveDocumentEdits, type BlockEdit } from "@/lib/documents";
 import { readContent } from "@/lib/documents/content";
 import { classifyQuestion, getIntelligence, readProfile } from "@/lib/llm";
 import { getOpportunity } from "@/lib/opportunities";
@@ -11,10 +11,11 @@ import { getFacts, getProfile } from "@/lib/profile";
 import { getUserLocale } from "@/lib/user";
 import { answerStrings, factRefs, opportunityInput } from "@/lib/documents";
 import { appError, enqueuePrepare, enqueueSubmit, execute, patchApplication, requireApplication, transition, type ExecuteResult } from "./engine";
-import { AnswerError, isMotivationQuestion, normalizeAnswer, openRequired, type AnswerInput } from "./gaps";
+import { AnswerError, hasStaleQuestions, isMotivationQuestion, normalizeAnswer, openRequired, type AnswerInput } from "./gaps";
 import { planOutcome, planReply, planWithdraw, type OutcomeChoice, type ReplyClass } from "./plan";
 import { refreshPrepared, resumePreparation } from "./prepare";
 import { answerKeyOf } from "./types";
+import { isUnlocked } from "./unlock";
 
 /*
  * What the person does in the application room: answer a gap question, edit an answer, a
@@ -56,6 +57,15 @@ export async function answerQuestion(userId: string, applicationId: string, ques
     .returning();
   const next = rows[0] ?? app;
   if (next.status === "needs_info" && !openRequired(next.questions ?? [], next.answers ?? {}).length) return resumePreparation(next);
+  if (next.status === "needs_info") {
+    // Still on the questions asked before the drafts' spots were folded: prepare again, folded
+    // (this answer is kept and used), instead of walking the person through the old list.
+    const opp = await getOpportunity(next.opportunityId);
+    if (hasStaleQuestions(next.questions ?? [], opp?.type)) return resumePreparation(next, { refold: true });
+    return next;
+  }
+  // Added while it waits to be confirmed (a file "for later", an optional answer): the package carries it.
+  await refreshPrepared(next);
   return next;
 }
 
@@ -68,6 +78,8 @@ export async function editAnswers(userId: string, applicationId: string, edits: 
     const text = v.trim();
     if (!text) continue;
     const prev = app.answers?.[k];
+    // Saved unchanged from an option's label: the option stays as it was (code + label).
+    if (prev?.label && prev.label === text) continue;
     patch[k] = { value: text, source: prev && String(prev.value) === text ? prev.source : "user", factIds: prev && String(prev.value) === text ? prev.factIds : [], confirmed: true, fileKey: prev?.fileKey ?? null };
   }
   const rows = await db
@@ -94,6 +106,47 @@ export async function editDocument(userId: string, applicationId: string, docume
   await refreshPrepared(next);
 }
 
+async function ownDocument(userId: string, app: ApplicationRow, documentId: string) {
+  const rows = await db
+    .select({ applicationId: generatedDocuments.applicationId, content: generatedDocuments.content })
+    .from(generatedDocuments)
+    .where(and(eq(generatedDocuments.id, documentId), eq(generatedDocuments.userId, userId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row || row.applicationId !== app.id) throw appError("not_found", 404);
+  return row;
+}
+
+/**
+ * "Tell the AI what to change": a new version of one document following the person's note
+ * (the earlier versions stay). The prepared package follows the newest version.
+ */
+export async function reviseDocument(userId: string, applicationId: string, documentId: string, note: string): Promise<{ documentId: string; changes: string[] }> {
+  const app = await requireApplication(applicationId, userId);
+  if (app.submittedAt || app.status === "submitting") throw appError("already_submitted");
+  // Revisions are part of what an unlock buys (the preview is read-only beyond its first lines).
+  if (!isUnlocked(app)) throw appError("unlock_required", 402);
+  const row = await ownDocument(userId, app, documentId);
+  const composer = readContent(row.content).meta.composer ?? "";
+  const material = composer.startsWith("sections:") || composer.startsWith("other:") ? composer.split(":")[1] : null;
+  const r = await reviseGeneratedDocument(userId, documentId, note, { opportunityId: app.opportunityId, answers: answerStrings(app.answers), material });
+  if (!r) throw appError("not_found", 404);
+  if (!r.applied) throw appError("revise_unavailable", 422, r.reason ? { detail: r.reason } : {});
+  await refreshPrepared(app);
+  return { documentId: r.row.id, changes: r.changes };
+}
+
+/** An earlier version comes back as the newest one. */
+export async function restoreDocument(userId: string, applicationId: string, documentId: string): Promise<{ documentId: string }> {
+  const app = await requireApplication(applicationId, userId);
+  if (app.submittedAt || app.status === "submitting") throw appError("already_submitted");
+  await ownDocument(userId, app, documentId);
+  const fresh = await restoreGeneratedDocument(userId, documentId);
+  if (!fresh) throw appError("not_found", 404);
+  await refreshPrepared(app);
+  return { documentId: fresh.id };
+}
+
 /** Email pane edits (CH4): the email document is rewritten with the person's subject/body. */
 export async function editEmail(userId: string, applicationId: string, documentId: string, email: { subject?: string; body?: string }): Promise<void> {
   const rows = await db.select().from(generatedDocuments).where(and(eq(generatedDocuments.id, documentId), eq(generatedDocuments.userId, userId))).limit(1);
@@ -113,6 +166,7 @@ export async function editEmail(userId: string, applicationId: string, documentI
 
 export async function regenerate(userId: string, applicationId: string, input: { documentId?: string; questionId?: string; tone?: string }): Promise<{ documentId?: string; draft?: string }> {
   const app = await requireApplication(applicationId, userId);
+  if ((input.documentId || input.questionId) && !isUnlocked(app)) throw appError("unlock_required", 402);
   if (!input.documentId && !input.questionId && app.status === "submitting") {
     // A submission whose job gave up: run it again (the credit is still reserved for it).
     await enqueueSubmit(app);
@@ -129,7 +183,7 @@ export async function regenerate(userId: string, applicationId: string, input: {
     const q = (app.questions ?? []).find((x) => x.id === input.questionId);
     if (!q || q.kind !== "text") throw appError("not_found", 404);
     const [profile, facts, opp, language] = await Promise.all([getProfile(userId), getFacts(userId), getOpportunity(app.opportunityId), lang(userId, app)]);
-    const ai = getIntelligence({ userId });
+    const ai = getIntelligence({ userId, applicationId: app.id });
     const questionKey = classifyQuestion(q.prompt);
     let draft: string | null = null;
     // "Rewrite" must read differently: walk the tones until the draft changes.

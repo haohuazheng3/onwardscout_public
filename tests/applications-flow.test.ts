@@ -138,6 +138,31 @@ describe("failures", () => {
   });
 });
 
+describe("paying first (2026-11-03)", () => {
+  it("the free preview is never confirmed: unlocking comes first", () => {
+    const preview = prepare(memoryApp({ status: "draft", paid: false, unlockSource: null }), 0);
+    expect(preview.status).toBe("ready");
+    expect(planConfirm(preview, { explicit: true })).toEqual({ ok: false, error: "unlock_required" });
+    expect(planConfirm(preview, { explicit: false, authorized: true })).toEqual({ ok: false, error: "unlock_required" });
+  });
+
+  it("an application paid at the unlock reserves nothing at confirm and settles nothing", async () => {
+    let app = prepare(memoryApp({ status: "draft", paid: true, unlockSource: "credit" }), 0);
+    const effects = must(planConfirm(app, { explicit: true }));
+    expect(effects.some((e) => e.type === "reserve")).toBe(false);
+    app = await confirmAndSubmit(app, fakeChannel([{ status: "submitted", evidence: { ref: "R-9" } }]));
+    expect(app.status).toBe("submitted");
+    expect(app.creditsReserved).toBe(0);
+    expect(app.milestones.applications).toBe(1);
+    expect(app.unlocked).toBe(true);
+  });
+
+  it("a legacy application (paid before the paywall) still reserves its credit at confirm", () => {
+    const legacy = prepare(memoryApp({ status: "draft", paid: true, unlockSource: "legacy" }), 0);
+    expect(must(planConfirm(legacy, { explicit: true }))[0]).toEqual({ type: "reserve", amount: 1 });
+  });
+});
+
 describe("practice runs are free", () => {
   it("no reservation, no milestones, no unlock, no follow-ups", async () => {
     let app = prepare(memoryApp({ status: "draft", practice: true }), 1);
@@ -305,5 +330,31 @@ describe("board presentation", () => {
     expect(list.sort(cardOrder).map((c) => `${c.status}:${c.opportunity.deadline}`)).toEqual(["needs_you:null", "ready:2026-11-01", "ready:2026-11-30", "waiting:null"]);
     expect(daysUntil("2026-10-23T09:00:00Z", NOW)).toBe(2);
     expect(daysUntil(null)).toBeNull();
+  });
+});
+
+describe("the free preview's readable start (walk 2026-11-03)", () => {
+  it("runs on until a line from the person's own documents shows, then masks the rest", async () => {
+    const { previewReveal } = await import("@/lib/applications/preview");
+    const letter = [
+      { type: "paragraph", factIds: [] }, // Dear Goldman Sachs team,
+      { type: "paragraph", factIds: [] }, // I'm writing to apply for…
+      { type: "paragraph", factIds: [] }, // a generic line
+      { type: "paragraph", factIds: ["fct_1"] }, // eight years at Northbridge Bank…
+      { type: "paragraph", factIds: ["fct_2"] },
+      { type: "paragraph", factIds: [], gap: true }, // only you can write this part
+      { type: "paragraph", factIds: ["fct_3"] },
+    ];
+    expect(previewReveal(letter, ["greeting", "opening", "body", "body", "body", "gap", "closing"])).toEqual([true, true, true, true, false, true, false]);
+  });
+  it("keeps the two-line start when the first lines are already the person's", async () => {
+    const { previewReveal } = await import("@/lib/applications/preview");
+    const blocks = [{ type: "heading", factIds: [] }, { type: "paragraph", factIds: ["fct_1"] }, { type: "paragraph", factIds: ["fct_2"] }, { type: "paragraph", factIds: ["fct_3"] }];
+    expect(previewReveal(blocks, [])).toEqual([true, true, true, false]);
+  });
+  it("never shows more than four lines, and an answer of the person's is not proof of reading", async () => {
+    const { previewReveal } = await import("@/lib/applications/preview");
+    const blocks = Array.from({ length: 6 }, () => ({ type: "paragraph", factIds: ["answer:why_this"] }));
+    expect(previewReveal(blocks, [])).toEqual([true, true, true, true, false, false]);
   });
 });

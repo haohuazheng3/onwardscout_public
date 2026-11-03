@@ -33,6 +33,13 @@ export const documentMetaSchema = z.object({
   tone: z.string().nullable().default(null),
   /** Role per block index (body, greeting, gap…), when the composer reported one. */
   roles: z.array(z.string()).default([]),
+  /**
+   * The person's notes that shaped this version, oldest first, each with what changed
+   * (`revise.ts`). A note is their own statement: blocks cite the n-th one as `answer:note_<n>`.
+   */
+  revisions: z.array(z.object({ note: z.string(), changes: z.array(z.string()).default([]), at: z.string(), restore: z.boolean().default(false) })).default([]),
+  /** The version this one was made from (a revision or a restore). */
+  revisedFrom: z.string().nullable().default(null),
 });
 export type DocumentMeta = z.infer<typeof documentMetaSchema>;
 
@@ -59,6 +66,11 @@ export function readContent(raw: unknown): StoredContent {
 export function toStored(content: StoredContent): GeneratedContent {
   const stored: GeneratedContent & { meta: DocumentMeta } = { format: "blocks", blocks: content.blocks, meta: content.meta };
   return stored;
+}
+
+/** The person's notes on a document, oldest first: the n-th is cited as `answer:note_<n>` (restores are not notes). */
+export function personNotes(meta: Pick<DocumentMeta, "revisions">): string[] {
+  return meta.revisions.filter((r) => !r.restore).map((r) => r.note);
 }
 
 /** A spot only the person can fill: flagged, and resting on nothing. */
@@ -163,7 +175,7 @@ const KIND_FILE_WORD: Record<GeneratedDocumentKind, { en: string; zh: string }> 
   proposal: { en: "Proposal", zh: "提案" },
   bio: { en: "Bio", zh: "简介" },
   press_release: { en: "Press release", zh: "新闻稿" },
-  pitch_notes: { en: "Pitch notes", zh: "路演讲稿" },
+  pitch_notes: { en: "Pitch deck", zh: "路演 Deck" },
   other: { en: "Document", zh: "文档" },
 };
 

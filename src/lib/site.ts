@@ -87,11 +87,18 @@ export function isPersonalPagePath(pathname: string): boolean {
 
 /**
  * Pages of the signed-in area that also work signed out: the onboarding wizard `/app/start`
- * (contracts §8 — a visitor's uploads live in an anonymous draft named by the `os_anon` cookie
- * until they sign in and claim it). The proxy lets them through without a session.
+ * and the apply-from-a-listing page `/app/apply/<opportunity id>` (contracts §8 — a visitor's
+ * uploads, and the application drafted from them, live in an anonymous draft named by the
+ * `os_anon` cookie until they sign in and claim it). The proxy lets them through without a session.
  */
 export function isAnonymousStartPath(pathname: string): boolean {
-  return /^\/app\/start\/?$/.test(stripLocale(pathname));
+  const p = stripLocale(pathname);
+  return /^\/app\/start\/?$/.test(p) || /^\/app\/apply\/opp_[0-9a-z]{6,40}\/?$/.test(p);
+}
+
+/** The apply-from-a-listing page of one opportunity (works signed out). */
+export function applyPath(opportunityId: string): string {
+  return `/app/apply/${opportunityId}`;
 }
 
 /**

@@ -140,6 +140,7 @@
     "save": "保存回答",
     "useThese": "使用{count, plural, one {这条理由} other {这些理由}}",
     "pickUpTo": "最多选 3 条符合你情况的",
+    "autoSave": "稍后自动保存。还有符合的，可以再点一条。",
     "writeOwn": "自己写",
     "ownPlaceholder": "用你自己的话写一两句",
     "agree": "我同意",
@@ -149,6 +150,8 @@
     "rewrite": "重写",
     "rewriting": "重写中…",
     "upload": "选择文件",
+    "pasteLink": "改为粘贴链接",
+    "linkLabel": "{name}的链接",
     "uploading": "上传中… {percent}%",
     "uploaded": "已上传：{name}",
     "fileHint": "PDF、Word、PowerPoint、图片、ZIP 或 MP4，不超过 20 MB",
@@ -157,9 +160,18 @@
     "moreLater": "{count, plural, one {之后还有 # 个问题} other {之后还有 # 个问题}}",
     "uploadFailed": "文件没有上传成功，请重试。"
   },
+  "files": {
+    "title": "只有你手上才有的文件",
+    "lede": "它们不会耽误你的草稿。有了再逐个补上。",
+    "needed": "提交前需要",
+    "neededHandoff": "官方表单会要",
+    "later": "之后再加，对方要求时",
+    "optional": "可选",
+    "handoffNote": "这一份由你在官方表单上提交，可以直接在那里上传。也在这里补上的话，它会出现在你的提交清单里。"
+  },
   "documents": {
     "title": "文档",
-    "lede": "每一句话都来自你的文档或你自己的回答。点一下句子，就能看到出处或进行修改。",
+    "lede": "每一句话都来自你的文档、你的回答或你的修改意见。看一遍，告诉 AI 哪里要改，读着满意就可以提交。",
     "tabs": "这份申请中的文档",
     "empty": "这份申请不需要文档：表单只需要你的回答。",
     "labels": {
@@ -189,7 +201,59 @@
     "downloading": "正在准备 {format}…",
     "fallbackDocx": "中文 PDF 字体暂时无法加载，所以先给你 Word 文件。在 Word、WPS 或 Pages 中打开效果一样。",
     "notes": "备注",
-    "quote": "“{quote}”"
+    "quote": "“{quote}”",
+    "fromNote": "来自你的修改意见",
+    "view": {
+      "slides": "幻灯片",
+      "text": "文字与出处",
+      "label": "查看方式"
+    },
+    "slide": "第 {n} 页，共 {total} 页",
+    "revise": {
+      "title": "告诉 AI 哪里要改",
+      "hint": "像跟帮你改稿的朋友说话一样说就行。你在意见里提到的新信息（数字、客户等）会作为你本人的说法使用。",
+      "placeholder": {
+        "deck": "例如：先讲牵引力，加上我们的 3 个试点客户，删掉市场那页",
+        "resume": "例如：把数据项目放前面，控制在一页",
+        "letter": "例如：短一点，开头先讲我最自豪的项目",
+        "general": "例如：更简洁，结果写得更具体"
+      },
+      "submit": "修改",
+      "working": "正在修改你的{kind}…",
+      "workingBody": "通常需要 20–60 秒。新版本好之前，当前版本保持不变。",
+      "changed": "第 {n} 版改了什么",
+      "done": "第 {n} 版已经好了",
+      "failed": "没能完成修改",
+      "suggestions": "快捷建议",
+      "chips": {
+        "shorter": "更精简",
+        "confident": "更自信有力",
+        "specific": "结果写得更具体",
+        "toZh": "改成中文",
+        "toEn": "改成英文",
+        "deckTraction": "先讲牵引力",
+        "deckProblem": "把问题讲得更痛",
+        "deckCompetition": "加一页竞争分析",
+        "deckFewer": "每页字再少一点",
+        "resumeRole": "更贴合这个职位",
+        "resumeNumbers": "用数字体现成果",
+        "resumeOnePage": "控制在一页",
+        "letterProject": "开头先讲我最强的项目",
+        "letterWarm": "语气更亲切"
+      }
+    },
+    "versions": {
+      "title": "版本",
+      "current": "第 {n} 版 · 当前",
+      "older": "第 {n} 版",
+      "viewing": "你正在看第 {n} 版。提交时使用的是当前版本。",
+      "back": "回到当前版本",
+      "restore": "改用这个版本",
+      "restored": "第 {n} 版已恢复为当前版本",
+      "noteLabel": "你的意见：“{note}”"
+    },
+    "maskedHint": "解锁后阅读全文",
+    "lockedDownloads": "解锁后可下载"
   },
   "answers": {
     "title": "回答",
@@ -202,7 +266,8 @@
     "edit": "编辑",
     "save": "保存",
     "cancel": "取消",
-    "saved": "回答已保存"
+    "saved": "回答已保存",
+    "masked": "解锁后可见"
   },
   "email": {
     "title": "邮件",
@@ -229,9 +294,15 @@
     "title": "等你点一下",
     "lede": "检查一下文档和回答。你确认后，我们会原样提交你看到的内容。",
     "practiceLede": "这是一次练习。提交后，它会发到我们的沙盒表单，你会看到确认回执，和真实申请一模一样。",
+    "ledeHandoff": "检查一下文档和回答。开始后会打开一个分步面板，每个回答和文件都按官方表单的顺序排好，复制粘贴即可。",
+    "ledeMailto": "检查一下邮件。你确认后，你的邮件应用会打开这封写好的邮件，点发送即可。",
     "via": "我们将通过{channel}提交。",
-    "cost": "消耗 1 个额度",
+    "viaHandoff": "由你在官方页面亲自提交。那里我们无法代劳：需要你的登录、人机验证，或网站禁止自动提交。",
+    "viaMailto": "由你自己的邮件应用发送；连接 Gmail 后可以由我们代发。",
+    "cost": "已解锁：无需再付费",
     "costFree": "免费：练习从不消耗额度",
+    "costPass": "由你的{name}支付",
+    "passLeft": "{count, plural, one {还可申请 # 个} other {还可申请 # 个}}",
     "balance": "你有 {count, plural, one {# 个可用额度} other {# 个可用额度}}",
     "balanceUnknown": "你的余额显示在顶部栏",
     "short": "提交需要 1 个额度。如果提交失败，或你在发出前撤回，额度会退回。",
@@ -242,13 +313,20 @@
     "buttonEmail": "确认并发送邮件",
     "buttonEmailMailto": "确认并准备邮件",
     "submitting": "提交中…",
+    "starting": "正在准备…",
     "fine": "确认即表示你委托 Onward Scout 用上面的文档和回答代你提交这份申请。只有提交成功后才会消耗额度。",
+    "finePractice": "练习会发到我们自己的沙盒表单，不会到达任何真实机构，也不消耗额度。",
+    "fineHandoff": "这里我们不会替你发出任何内容：你在官方页面亲自提交。额度现在先保留，你告诉我们已提交后才会消耗；撤回则退回。",
+    "fineEmail": "确认即表示你委托 Onward Scout 用你的 Gmail 原样发送上面这封邮件。只有发出后才会消耗额度。",
+    "fineMailto": "我们不会替你发送，由你的邮件应用发出。额度现在先保留，你告诉我们已发送后才会消耗；撤回则退回。",
     "noCredits": "额度不足",
     "waitingQuestions": "请先回答问题，然后就可以确认了。",
     "preparing": "我们还在准备这份申请。",
     "submitted": "已提交。现在没有别的需要做了。",
     "retryFailed": "上一次尝试没有成功。没有发出任何内容，额度也已退回。准备好后请重试。",
-    "unsavedEmail": "邮件有尚未保存的修改：确认时会一并保存。"
+    "unsavedEmail": "邮件有尚未保存的修改：确认时会一并保存。",
+    "filesNeeded": "提交前请先补上主办方需要的文件：{files}。在文件列表里上传（也可以贴链接），然后再确认。",
+    "filesOnForm": "官方表单还会要：{files}。提交时直接在那里上传，或者在文件列表里补上，让它出现在你的提交清单里。"
   },
   "handoff": {
     "title": "交给你来提交",
@@ -355,7 +433,7 @@
     "proposal": "提案",
     "bio": "个人简介",
     "press_release": "新闻稿",
-    "pitch_notes": "路演讲稿",
+    "pitch_notes": "路演 Deck",
     "other": "文档"
   },
   "stalled": {
@@ -383,6 +461,104 @@
       "minor": "高中生不能使用邮件外联。可以请父母或老师用准备好的文字代为联系。",
       "recently_contacted": "你在过去 30 天内已经给对方写过信。我们会等满 30 天再联系同一个人（{date} 起）。",
       "invalid_email": "这不是我们可以发信的邮箱地址。"
-    }
+    },
+    "document_gaps": "还有材料里有只能由你补充的标记位置。请先补上（或让 AI 改出一个不含它的版本），再提交。",
+    "files_missing": "主办方需要一份只有你才有的文件。请在文件列表里补上（或贴链接），再提交。",
+    "revise_unavailable": "这条修改现在无法自动完成。你可以直接点开任意一句修改。",
+    "unlock_required": "请先解锁这份申请：解锁后会完整写成、可下载并可提交。"
+  },
+  "apply": {
+    "metaTitle": "用 Onward Scout 申请",
+    "eyebrow": "用 Onward Scout 申请",
+    "title": "你申请 {target} 的材料",
+    "readyTitle": "{target} 的申请草稿已写好",
+    "lede": {
+      "returnship": "放进你的简历，旧的也行。大约两分钟后，你会看到为这个项目写好的返岗简历、求职信和职业空窗说明，全部来自你自己的经历。免费，开始不需要注册。",
+      "startup": "放进你的 Deck、一页纸或几句公司介绍。大约两分钟后，你会看到为这个项目写好的路演 Deck 和一页纸。免费，开始不需要注册。",
+      "default": "放进你的简历。大约两分钟后，你会看到为这个项目定制的简历和求职信，全部来自你自己的经历。免费，开始不需要注册。",
+      "returning": "这次直接用你之前给过的材料起草，不用再上传。大约两分钟，写好后你先过目，之后才会有下一步。"
+    },
+    "readyLede": "这是免费预览，依据你自己的文件起草（开头几行可读，其余解锁后可见）。高亮处是只有你能回答的内容。",
+    "steps": {
+      "label": "流程",
+      "drop": "放进简历",
+      "draft": "我们来写",
+      "save": "你看一眼，然后保存",
+      "unlock": "你看一眼，再解锁",
+      "written": "Claude 完整写成",
+      "finish": "登录、下载、提交"
+    },
+    "closedTitle": "这一轮已经截止",
+    "closedBody": "你仍然可以先把材料准备好，等下一轮开放。",
+    "dropTitle": "从你手上已有的开始",
+    "dropBody": "简历或 CV（PDF、Word）、LinkedIn 或作品集链接都行，哪个最快用哪个。",
+    "privacy": "你的文件只有你能看到。不会发给任何人，没有你的确认也不会提交任何东西。",
+    "drafting": "正在为 {target} 写你的材料…",
+    "writing": "撰写中",
+    "kinds": {
+      "resume_variant": "简历",
+      "cover_letter": "求职信",
+      "statement": "职业空窗说明",
+      "pitch_notes": "路演 Deck",
+      "one_pager": "一页纸介绍"
+    },
+    "spots": "{n, plural, one {# 处需要你本人来填} other {# 处需要你本人来填}}",
+    "errorTitle": "草稿没能开始",
+    "retry": "重试",
+    "documentsLabel": "你的材料",
+    "saveTitle": "或者先免费保存",
+    "saveBody": "用邮箱登录（我们发送验证码，无需密码）保存这份预览，随时回来。准备好了再解锁。",
+    "saveBodyQuestions": "用邮箱登录（我们发送验证码，无需密码）保存这份预览。然后回答 {n, plural, one {一个小问题} other {# 个小问题}}，准备好了再解锁。",
+    "save": "免费保存",
+    "official": "官方页面",
+    "savingToast": "正在前往登录，你的草稿会保留。",
+    "saveNote": "没有你的确认不会提交任何东西。登录、验证码和面试都由你本人完成。",
+    "paidTitle": "你向 {target} 的申请已付费",
+    "paidLede": "Claude 正在完整写成。用支付时的邮箱登录即可打开、下载文件并提交。",
+    "paymentFailedTitle": "暂时无法确认这笔付款",
+    "paymentFailedBody": "如果已扣款，申请仍会打开：Stripe 会通知我们每一笔付款，我们每天也会复核。十分钟内仍未打开，请写信到 support@onwardscout.com。",
+    "paidLedeDone": "Claude 已完整写好。用支付时的邮箱登录，即可下载文件并提交。"
+  },
+  "unlock": {
+    "title": "解锁这份申请",
+    "once": "一次",
+    "lede": "Claude 依据你的简历和这条招募，把每份材料完整写成。你会得到 Word 和 PDF 下载、每个表单回答一键复制，以及由我们提交或逐步交接。",
+    "includes": {
+      "claude": "每份材料都由 Claude 针对这条招募完整写成",
+      "files": "Word 和 PDF 下载",
+      "answers": "每个表单回答一键复制，附出处",
+      "submit": "表单允许时由我们替你提交；不允许时提供逐步交接"
+    },
+    "previewNote": "你现在看到的是免费预览：由我们的模板引擎依据你的文件起草，开头几行可读。解锁后约两分钟内换成 Claude 写的版本。",
+    "pay": "{price} 解锁",
+    "payInstead": "或一次付 {price}",
+    "useCredit": "用 1 个额度解锁",
+    "usePass": "用我的{name}解锁",
+    "creditsLeft": "{count, plural, one {剩余 # 个额度} other {剩余 # 个额度}}",
+    "passLeft": "{count, plural, one {通行证还剩 # 份申请} other {通行证还剩 # 份申请}}",
+    "saveFirst": "先免费保存",
+    "fine": "Stripe 安全支付。一次付费，无订阅。未经你点击，任何内容都不会提交。",
+    "opening": "正在打开支付…",
+    "working": "解锁中…",
+    "payFailed": "支付页没有打开",
+    "creditFailed": "解锁失败",
+    "creditDone": "已解锁。Claude 正在写你的申请。",
+    "unlockedTitle": "已解锁",
+    "writingTitle": "Claude 正在写你的申请",
+    "writingBody": "正在重新完整读取你的简历，并针对这条招募写好每份材料。大约两分钟，本页会自动更新。",
+    "doneBody": "已完整写好。下载、复制或修改任何内容，然后确认。",
+    "paidTag": "已付款",
+    "paidSignInTitle": "登录即可打开",
+    "paidSignInBody": "Claude 正在写你的申请。用 {email} 登录（我们发送验证码，无需密码）即可打开、下载文件并提交。申请已绑定到这个邮箱，换设备也能回来。",
+    "paidSignInBodyNoEmail": "Claude 正在写你的申请。用支付时填写的邮箱登录即可打开、下载文件并提交。",
+    "paidSignIn": "登录打开",
+    "paidNote": "未经你点击，任何内容都不会提交。登录、验证码和面试都由你本人完成。",
+    "lockedToast": "请先解锁这份申请",
+    "lockedToastBody": "下载、修改和提交都包含在解锁里。",
+    "goUnlock": "去解锁",
+    "pendingTitle": "银行仍在确认付款",
+    "pendingBody": "稍后刷新本页。款项到账后申请会自动打开。",
+    "paidSignInBodyDone": "Claude 已完整写好你的申请。用 {email} 登录（我们发送验证码，无需密码）即可下载文件并提交。申请已绑定到这个邮箱，换设备也能回来。",
+    "paidSignInBodyNoEmailDone": "Claude 已完整写好你的申请。用支付时填写的邮箱登录，即可下载文件并提交。"
   }
 }

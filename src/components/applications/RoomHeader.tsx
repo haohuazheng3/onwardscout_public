@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { daysUntil, statusLine } from "@/lib/applications/present";
 import type { ApplicationView, StepView } from "@/lib/applications/types";
 import { channelLabel, getChannel } from "@/lib/core/channels";
+import { goalLabelFor } from "@/lib/core/goals";
 import { isOpportunityTypeId, opportunityTypeLabel } from "@/lib/core/opportunity-types";
 import { localize } from "@/lib/core/labels";
 import type { RoomApi } from "./useApplication";
@@ -25,7 +26,7 @@ function stageState(v: ApplicationView): Record<Stage, "done" | "current" | "tod
   const s = v.status;
   const out: Record<Stage, "done" | "current" | "todo"> = { read: "todo", answers: "todo", documents: "todo", confirm: "todo", submitted: "todo", reply: "todo" };
   out.read = has("analyze") ? "done" : s === "draft" ? "current" : "todo";
-  out.answers = s === "needs_info" ? "current" : has("gaps") && v.questions.every((q) => q.required === false) ? "done" : "todo";
+  out.answers = s === "needs_info" ? "current" : has("gaps") && v.questions.every((q) => q.required === false || q.kind === "file") ? "done" : "todo";
   out.documents = has("compose") || has("preview") ? "done" : s === "preparing" ? "current" : "todo";
   out.confirm = v.submittedAt || s === "submitting" || (s === "needs_you" && v.creditsReserved > 0) ? "done" : s === "ready" ? "current" : "todo";
   out.submitted = v.submittedAt ? "done" : s === "submitting" || (s === "needs_you" && !v.submittedAt && v.creditsReserved > 0) ? "current" : "todo";
@@ -90,7 +91,7 @@ export function RoomHeader({ room, locale, nowIso }: { room: RoomApi; locale: st
           ) : (
             <Tag>{t("card.checkOfficial")}</Tag>
           )}
-          {v.goal ? <Tag>{t("room.goal", { label: v.goal.label })}</Tag> : null}
+          {v.goal ? <Tag>{t("room.goal", { label: goalLabelFor({ sub: v.goal.sub ?? null, label: v.goal.label }, locale) })}</Tag> : null}
         </div>
         <div className="mt-4 grid gap-1 text-[0.9rem] leading-relaxed">
           <p className="text-ink-2">

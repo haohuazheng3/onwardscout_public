@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TYPE_ICONS } from "@/components/site/TypeIcon";
 import { AUDIENCE_CONTENT, audienceContent } from "@/content/audiences";
 import { FAQS, FAQ_GROUPS, FAQ_GROUP_LABELS, HOME_FAQ_IDS, faqsByGroup, faqsById } from "@/content/faq";
-import { PACKS, PLANS, TRIAL } from "@/content/plans";
+import { formatPrice, PASSES, SINGLE } from "@/content/plans";
 import { ABOUT, BOUNDARY, CHANNEL_PLAIN, DRAFT_LABELS, FREE_INCLUDES, HANDOFF, HOME_TYPES, PRINCIPLES, SAFETY_RULES, STEPS, pick, todoZh } from "@/content/site-copy";
 import { AUDIENCES, audienceKey } from "@/i18n/site-nav";
 import { CHANNEL_IDS, OPPORTUNITY_TYPES, isOpportunityTypeId } from "@/lib/core";
@@ -204,14 +204,15 @@ describe("FAQ", () => {
     for (const f of FAQS) expect(f.a.en, f.id).not.toMatch(/\*\*|\]\(|<[a-z]/);
   });
 
-  it("states credit numbers that match the pricing catalog", () => {
+  it("states prices and counts that match the pricing catalog", () => {
     const byId = new Map(FAQS.map((f) => [f.id, f.a.en]));
-    expect(byId.get("free")).toContain(`${TRIAL.credits} credits, valid for ${TRIAL.expiryDays} days`);
+    expect(byId.get("credit")).toContain(`${formatPrice(SINGLE.priceUsd)} once`);
+    expect(byId.get("free")).toMatch(/preview any application/i);
+    expect(byId.get("cancel")).toContain(`${formatPrice(PASSES.season_returnship.priceUsd)} for a season pass`);
     const expiry = byId.get("expiry") ?? "";
-    expect(expiry).toContain(`${TRIAL.expiryDays} days`);
-    expect(expiry).toContain(`${PLANS.pro.rolloverDays} days`);
-    expect(expiry).toContain(`${PACKS.pack10.rolloverDays} days`);
-    expect(PACKS.pack10.rolloverDays).toBe(PACKS.pack40.rolloverDays);
+    expect(expiry).toContain(`${PASSES.season_returnship.rolloverDays} days`);
+    expect(expiry).toContain(`up to ${PASSES.season_returnship.credits}`);
+    expect(expiry).toContain(`${PASSES.season_startup.credits} applications`);
     expect(byId.get("refund")).toMatch(/14 days/);
   });
 });

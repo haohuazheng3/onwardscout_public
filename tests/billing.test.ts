@@ -95,6 +95,11 @@ describe("validateSession", () => {
   it("accepts paid pack checkouts in payment mode", () => {
     expect(validateSession(packSession(), "production")).toEqual({ ok: true, userId: "user_abc", sku: "pack10", kind: "pack" });
     expect(validateSession(packSession({ sku: "pack40" }), "production")).toEqual({ ok: true, userId: "user_abc", sku: "pack40", kind: "pack" });
+    // One application, paid once: the session names the application; its owner may be a signed-out draft.
+    expect(validateSession(packSession({ sku: "single", applicationId: "app_k3v9q2m8x1d4f6h7" }), "production")).toEqual({ ok: true, userId: "user_abc", sku: "single", kind: "single", applicationId: "app_k3v9q2m8x1d4f6h7" });
+    expect(validateSession(session({ mode: "payment", client_reference_id: "anon_abcdefghijklmnop", metadata: { site: SITE, env: "production", userId: "anon_abcdefghijklmnop", sku: "single", applicationId: "app_k3v9q2m8x1d4f6h7" } }), "production")).toMatchObject({ ok: true, userId: "anon_abcdefghijklmnop", kind: "single" });
+    expect(validateSession(packSession({ sku: "single" }), "production")).toEqual({ ok: false, reason: "no-application" });
+    expect(validateSession(withMeta({ sku: "single", applicationId: "app_k3v9q2m8x1d4f6h7" }), "production")).toEqual({ ok: false, reason: "single-not-payment-mode" });
   });
   it("accepts a 100%-off checkout (no payment required)", () => {
     expect(validateSession(session({ payment_status: "no_payment_required" }), "production").ok).toBe(true);

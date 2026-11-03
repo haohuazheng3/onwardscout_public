@@ -1,5 +1,6 @@
 import { countryOfLocation, looksLikeLocation } from "./geo";
 import {
+  DATE_TOKEN,
   clip,
   collapse,
   detectLanguage,
@@ -108,7 +109,7 @@ export type SectionKey =
 const SECTION_ALIASES: Array<[SectionKey, string[]]> = [
   ["summary", ["summary", "professional summary", "career summary", "profile", "professional profile", "about", "about me", "overview", "personal statement", "executive summary", "bio", "个人简介", "自我评价", "个人总结", "自我介绍", "个人评价", "个人优势", "个人概述", "简介"]],
   ["objective", ["objective", "career objective", "job objective", "求职意向", "求职目标", "期望工作", "职业目标"]],
-  ["experience", ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "career history", "relevant experience", "professional background", "career", "positions", "academic positions", "appointments", "工作经历", "工作经验", "职业经历", "任职经历", "工作履历"]],
+  ["experience", ["experience", "work experience", "professional experience", "employment", "employment history", "work history", "career history", "relevant experience", "professional background", "career", "positions", "academic positions", "appointments", "career break", "career breaks", "career gap", "career pause", "职业空窗", "职业空窗期", "工作经历", "工作经验", "职业经历", "任职经历", "工作履历"]],
   ["internships", ["internships", "internship", "internship experience", "实习经历", "实习经验"]],
   ["education", ["education", "academic background", "education and training", "education & training", "academic qualifications", "qualifications", "academic history", "教育背景", "教育经历", "学历", "教育", "学习经历"]],
   ["skills", ["skills", "top skills", "skills & endorsements", "skills and endorsements", "technical skills", "core skills", "key skills", "skills & tools", "skills and tools", "tools", "technologies", "tech stack", "competencies", "core competencies", "expertise", "areas of expertise", "skills & interests", "专业技能", "技能", "技能特长", "技术栈", "专业能力", "技能证书", "掌握技能"]],
@@ -359,8 +360,79 @@ function isHeaderish(line: string): boolean {
   return true;
 }
 
+const DANGLING_RANGE = /(?:\s[-–—~]|[-–—~]|\bto|\buntil)\s*$/i;
+const STARTS_WITH_DATE = new RegExp(`^(?:${DATE_TOKEN}|present|current|now|today|ongoing|至今|现在)(?!\\d)`, "i");
+/** A line that is only the rest of an institution's name ("…, Anna" + "University"). */
+const LONE_INSTITUTION = /^(?:university|college|institute|school|academy|polytechnic|conservatory)(?:\s+(?:of|for|at)\s+[\p{L}][\p{L} .&'’-]{0,60})?$/iu;
+/** A header line cut after a word that cannot end it ("University of" + "Madras"). */
+const DANGLING_WORD = /\b(?:of|and|&|for|at|in|the|to|with|on|by|from|de|des|du|der|la|le)$/i;
+
+/**
+ * PDF text wraps long header lines where the page ran out: "2023 –" + "2027", "…, Anna" +
+ * "University", "University of" + "Madras", "…, Zoho Corporation," + "Chennai  May 2025 – Jul 2025".
+ * Those pieces are joined back into one line (bullets are never joined to a following bullet).
+ */
+export function joinWrappedLines(lines: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const line of lines) {
+    const prev = out.length ? out[out.length - 1]! : null;
+    if (prev !== null && line && !isBulletLine(line)) {
+      const cont =
+        (DANGLING_RANGE.test(prev) && STARTS_WITH_DATE.test(line) && Boolean(findDateRange(`${prev} ${line}`))) ||
+        (LONE_INSTITUTION.test(line) && /[\p{Lu}][\p{L}'’.-]*$/u.test(prev) && !/[,;:|.。]$/.test(prev) && !findDateRange(prev)) ||
+        (!isBulletLine(prev) && (DANGLING_WORD.test(prev) || /,$/.test(prev)) && !headingOf(line));
+      if (cont) {
+        out[out.length - 1] = `${prev} ${line}`;
+        continue;
+      }
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+const SENTENCE_END = /[.!?。！？]$/;
+const ABBREVIATION_END = /\b(?:inc|ltd|co|corp|llc|plc|jr|sr|st|dept|univ|ph\.?d|e\.g|i\.e|etc)\.$/i;
+
+/**
+ * A description line written as prose (a sentence about the work, not a title, an organisation or
+ * a place): PDFs often drop the bullet glyphs, so "Python + FastAPI service that classifies leaf
+ * photos with…" would otherwise read as one more header line of the entry above it. Prose has
+ * many lowercase words; titles, names and places are mostly capitalised.
+ */
+export function isProseLine(line: string): boolean {
+  if (hasCjk(line)) return false;
+  const words = line.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w));
+  if (words.length < 6) return false;
+  const lower = words.filter((w) => /^[\p{Ll}(]/u.test(w)).length / words.length;
+  if (lower < 0.4) return false;
+  return words.length >= 10 || (SENTENCE_END.test(line) && !ABBREVIATION_END.test(line));
+}
+
+/**
+ * A line that names a degree, a school, a title or an organisation up front ("Bachelor of Science in
+ * Computer Science with a minor in…", "Senior Software Engineer, Payments team responsible for…")
+ * belongs to an entry's header even when it is long.
+ */
+function namesEntry(line: string): boolean {
+  if (DEGREE_TEXT_RE.exec(line)?.index === 0) return true;
+  const lead = line.split(/\s*[,|·•]\s+|\s+[-–—]\s+/)[0] ?? line;
+  if (lead.split(/\s+/).length > 6) return false;
+  return titleScore(lead) > 0 || INSTITUTION_RE.test(lead) || ORG_WORDS.test(lead) || DEGREE_TEXT_RE.test(lead);
+}
+
+/** An entry's header names something besides its dates ("KrishiAlert — crop disease alerts  2025"). */
+function headerNamesSomething(e: RawEntry): boolean {
+  return e.header.some((h) => {
+    let rest = h;
+    if (e.date) rest = rest.replace(e.date.matched, " ");
+    if (e.single) rest = rest.replace(e.single.matched, " ");
+    return /\p{L}{2,}/u.test(rest);
+  });
+}
+
 /** Groups section lines into entries: header lines (title/org/dates) followed by bullets. */
-export function splitEntries(sectionLines: string[], opts: { splitOnInstitution?: boolean } = {}): RawEntry[] {
+export function splitEntries(sectionLines: string[], opts: { splitOnInstitution?: boolean; splitOnSingleDate?: boolean } = {}): RawEntry[] {
   const entries: RawEntry[] = [];
   let cur: RawEntry | null = null;
   const start = (): RawEntry => {
@@ -368,29 +440,37 @@ export function splitEntries(sectionLines: string[], opts: { splitOnInstitution?
     entries.push(e);
     return e;
   };
-  for (const line of sectionLines) {
+  for (const line of joinWrappedLines(sectionLines)) {
     if (!line) continue;
     const bullet = isBulletLine(line);
     const range = findDateRange(line);
-    if (bullet) {
+    // Wrapped bullet: lowercase continuation of the previous bullet.
+    if (!bullet && cur && cur.bullets.length > 0 && /^[a-z(]/.test(line) && !range) {
+      cur.bullets[cur.bullets.length - 1] += ` ${line}`;
+      cur.lines.push(line);
+      continue;
+    }
+    // A dated aside inside a sentence ("Treasurer of the parents' association (2022–2025): ran a
+    // £14,000 budget…") is a description, not the header of a new entry.
+    const tail = range ? line.slice(line.indexOf(range.matched) + range.matched.length) : "";
+    const asideRange = range !== null && tail.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length >= 5;
+    // A bullet, or a description written as prose under a dated header (PDFs drop the bullet glyphs).
+    if (bullet || ((!range || asideRange) && cur && (cur.date || cur.single) && headerNamesSomething(cur) && isProseLine(line) && !namesEntry(line))) {
       cur ??= start();
       cur.bullets.push(stripBullet(line));
       cur.lines.push(line);
       continue;
     }
-    // Wrapped bullet: lowercase continuation of the previous bullet.
-    if (cur && cur.bullets.length > 0 && /^[a-z(]/.test(line) && !range) {
-      cur.bullets[cur.bullets.length - 1] += ` ${line}`;
-      cur.lines.push(line);
-      continue;
-    }
     const headerish = isHeaderish(line);
     const institutionBreak = opts.splitOnInstitution && cur && cur.header.some((h) => INSTITUTION_RE.test(h)) && INSTITUTION_RE.test(line) && !range;
+    // Projects listed one per line with a year ("KrishiAlert — …  2025" then "BusBuddy — …  2024").
+    const singleBreak = opts.splitOnSingleDate && cur && cur.single && !cur.date && !range && /\b(?:19|20)\d{2}\)?$/.test(line);
     const newEntry =
       !cur ||
       (headerish && cur.bullets.length > 0) ||
       (range !== null && cur.date !== null) ||
       Boolean(institutionBreak) ||
+      Boolean(singleBreak) ||
       (headerish && cur.header.length >= 3 && cur.date !== null && !looksLikeLocation(line) && !range);
     if (newEntry && headerish) cur = start();
     cur ??= start();
@@ -452,6 +532,8 @@ function splitHeaderParts(header: string[], date: DateRange | null, single: RawE
 function titleScore(s: string): number {
   let n = 0;
   if (TITLE_WORDS.test(s)) n += 2;
+  // The break named as a role ("Full-time parent and carer", "Career break") is a title, not an employer.
+  if (/career break|full[- ]time (parent|carer|caregiver|mum|mom|mother|father|dad)|stay[- ]at[- ]home|\bcaregiver\b|职业空窗|全职(妈妈|爸爸)/i.test(s)) n += 2;
   if (/^(senior|junior|lead|staff|principal|chief|head of|associate|assistant|sr\.?|jr\.?)\b/i.test(s)) n += 1;
   if (ORG_WORDS.test(s)) n -= 1.5;
   if (INSTITUTION_RE.test(s)) n -= 1;
@@ -554,8 +636,8 @@ const DEGREE_PATTERNS: Array<[RegExp, string]> = [
   [/\b(m\.?d\.?|doctor of medicine|mbbs)\b/i, "md"],
   [/\b(j\.?d\.?|juris doctor)\b/i, "jd"],
   [/\b(mba|m\.b\.a\.?|master of business administration)\b|工商管理硕士/i, "mba"],
-  [/\b(m\.?s\.?c?\.?|m\.?a\.?|m\.?eng\.?|m\.?phil\.?|mres|mfa|mpa|mph|llm|m\.?ed\.?|master'?s?|master of [a-z ]+)\b|硕士|研究生/i, "master"],
-  [/\b(b\.?s\.?c?\.?|b\.?a\.?|b\.?eng\.?|b\.?tech|bba|bfa|llb|b\.?ed\.?|bachelor'?s?|bachelor of [a-z ]+|undergraduate|a\.?b\.?)\b|本科|学士/i, "bachelor"],
+  [/\b(m\.?s\.?c?\.?|m\.?a\.?|m\.?eng\.?|m\.e\.?|m\.?tech|mca|m\.?com|m\.?phil\.?|mres|mfa|mpa|mph|llm|m\.?ed\.?|master'?s?|master of [a-z ]+)\b|硕士|研究生/i, "master"],
+  [/\b(b\.?s\.?c?\.?|b\.?a\.?|b\.?eng\.?|b\.e\.?|b\.?tech|bca|b\.?com|bba|bfa|llb|b\.?ed\.?|bachelor'?s?|bachelor of [a-z ]+|undergraduate|a\.?b\.?)\b|本科|学士/i, "bachelor"],
   [/\b(associate'?s?( degree)?|a\.?a\.?s?\.?|hnd)\b|专科|大专|高职/i, "associate"],
   [/\b(high school( diploma)?|secondary school|ib diploma|a-levels?|gcse)\b|高中|中学/i, "high_school"],
   [/\b(certificate|diploma|bootcamp|nanodegree)\b|结业|培训/i, "certificate"],
@@ -567,12 +649,12 @@ export function degreeLevel(text: string): string | null {
 }
 
 const DEGREE_TEXT_RE =
-  /\b(ph\.?\s?d\.?|d\.?phil|doctor of [a-z ]+|m\.?d\.?|j\.?d\.?|mba|m\.?s\.?c?\.?|m\.?a\.?|m\.?eng\.?|m\.?phil\.?|mfa|mpa|mph|llm|master of [a-z ]+|master'?s( degree)?|b\.?s\.?c?\.?|b\.?a\.?|b\.?eng\.?|bba|bfa|llb|bachelor of [a-z ]+|bachelor'?s( degree)?|associate'?s? degree|associate of [a-z ]+|high school diploma)(?=[\s,;(|]|$)|博士研究生|硕士研究生|博士|硕士|本科|学士|专科|大专|高中/i;
+  /\b(ph\.?\s?d\.?|d\.?phil|doctor of [a-z ]+|m\.?d\.?|j\.?d\.?|mba|m\.?s\.?c?\.?|m\.?a\.?|m\.?eng\.?|m\.e\.|m\.?tech\.?|mca|m\.com\.?|mcom|m\.?phil\.?|mfa|mpa|mph|llm|master of [a-z ]+|master'?s( degree)?|b\.?s\.?c?\.?|b\.?a\.?|b\.?eng\.?|b\.e\.|b\.?tech\.?|bca|b\.com\.?|bcom|bba|bfa|llb|bachelor of [a-z ]+|bachelor'?s( degree)?|associate'?s? degree|associate of [a-z ]+|high school diploma)(?=[\s,;(|]|$)|博士研究生|硕士研究生|博士|硕士|本科|学士|专科|大专|高中/i;
 
 const EDU_NOTE_RE = /^(dissertation|thesis|advisor|adviser|supervisor|committee|honors?|honours|minor|concentration in|coursework|毕业论文|学位论文|导师|辅修)\b\s*[:：]?/i;
 
 export function toEducation(raw: RawEntry): EducationEntry | null {
-  const isNote = (h: string, i: number) => EDU_NOTE_RE.test(h) || (i > 0 && /(scholarship|honou?rs|dean'?s list|award|奖学金|荣誉|排名|\brank|绩点|\bgpa\b)/i.test(h) && !INSTITUTION_RE.test(h) && !DEGREE_TEXT_RE.test(h));
+  const isNote = (h: string, i: number) => EDU_NOTE_RE.test(h) || (i > 0 && /(scholarship|honou?rs|dean'?s list|award|奖学金|荣誉|排名|\brank|绩点|\bc?gpa\b|\bcoursework\b)/i.test(h) && !INSTITUTION_RE.test(h) && !DEGREE_TEXT_RE.test(h));
   const notes = raw.header.filter((h, i) => isNote(h, i));
   const header = raw.header.filter((h, i) => !isNote(h, i));
   const parts = splitHeaderParts(header, raw.date, raw.single).flatMap((p) =>
@@ -580,12 +662,22 @@ export function toEducation(raw: RawEntry): EducationEntry | null {
   );
   const all = header.join(" ");
   let institution: string | null = parts.find((p) => INSTITUTION_RE.test(p)) ?? null;
+  // A college named with its university ("College of Engineering Guindy, Anna University") is one institution.
+  if (institution) {
+    const at = parts.indexOf(institution);
+    let k = at + 1;
+    while (k < parts.length && INSTITUTION_RE.test(parts[k]!) && !DEGREE_TEXT_RE.test(parts[k]!) && !looksLikeLocation(parts[k]!)) k++;
+    if (k > at + 1) {
+      institution = parts.slice(at, k).join(", ");
+      parts.splice(at, k - at, institution);
+    }
+  }
   let degree: string | null = null;
   let field: string | null = null;
   let location: string | null = null;
   let gpa: string | null = null;
 
-  const gpaMatch = /\b(?:gpa|cgpa|grade point average|绩点|GPA)\s*[:：]?\s*(\d(?:\.\d{1,2})?\s*(?:\/\s*\d(?:\.\d{1,2})?)?)/i.exec([all, ...notes, ...raw.bullets].join(" "));
+  const gpaMatch = /\b(?:gpa|cgpa|grade point average|绩点|GPA)\s*[:：]?\s*(\d(?:\.\d{1,2})?\s*(?:\/\s*\d{1,3}(?:\.\d{1,2})?)?)/i.exec([all, ...notes, ...raw.bullets].join(" "));
   if (gpaMatch) gpa = gpaMatch[1].replace(/\s+/g, "");
 
   for (const raw of parts) {
@@ -616,11 +708,13 @@ export function toEducation(raw: RawEntry): EducationEntry | null {
       field = p.replace(/^(major|concentration|专业)\s*[:：]?\s*/i, "").replace(/专业$/, "").trim();
       continue;
     }
-    if (!institution && parts.length > 1 && !/\bgpa\b/i.test(p)) institution = p;
-    else if (!field && !/\bgpa\b|绩点/i.test(p) && p.length < 80 && p !== institution) field = p;
+    if (!institution && parts.length > 1 && !/\bc?gpa\b/i.test(p)) institution = p;
+    else if (!field && !/\bc?gpa\b|绩点/i.test(p) && p.length < 80 && p !== institution) field = p;
   }
   if (!institution) {
     if (!degree && parts.length === 0) return null;
+    // No school word, no degree and no dates: a stray line (the wrapped end of a coursework list), not a school.
+    if (!degree && !raw.date && !raw.single) return null;
     institution = parts.find((p) => p !== degree && p !== field && p !== location) ?? null;
   }
   if (!institution) return null;
@@ -880,10 +974,18 @@ export function parseResume(input: string): ParsedResume {
     } else if (key === "education") {
       for (const raw of splitEntries(section.lines, { splitOnInstitution: true })) {
         const entry = toEducation(raw);
-        if (entry) parsed.education.push({ entry, quote: quoteOf(raw.header.length ? raw.header : raw.lines.slice(0, 2)) });
+        if (entry) {
+          parsed.education.push({ entry, quote: quoteOf(raw.header.length ? raw.header : raw.lines.slice(0, 2)) });
+          continue;
+        }
+        // A stray short line after a school's note ("…, Machine Learning, Database" + "Systems") is the note's wrapped end.
+        const prev = parsed.education[parsed.education.length - 1]?.entry;
+        const last = prev?.highlights[prev.highlights.length - 1];
+        const rest = raw.lines.join(" ").trim();
+        if (prev && last && !/[.;:!?。]$/.test(last) && rest && rest.split(/\s+/).length <= 4) prev.highlights[prev.highlights.length - 1] = `${last} ${rest}`;
       }
     } else if (key === "projects") {
-      for (const raw of splitEntries(section.lines)) {
+      for (const raw of splitEntries(section.lines, { splitOnSingleDate: true })) {
         const entry = toProject(raw);
         if (entry) parsed.projects.push({ entry, quote: quoteOf(raw.header.length ? raw.header : raw.lines.slice(0, 2)) });
       }

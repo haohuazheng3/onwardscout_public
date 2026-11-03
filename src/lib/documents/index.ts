@@ -17,6 +17,7 @@ import { CjkFontUnavailableError, needsExtendedFont } from "./glyphs";
 export { composeDocument, composeDocumentWith, latestDocuments, loadComposeContext, factRefs, opportunityInput, answerStrings, resolveLanguage } from "./compose";
 export type { ComposeContext, ComposeDocumentInput, ComposeOptions, ComposedRow } from "./compose";
 export { CjkFontUnavailableError } from "./glyphs";
+export { documentVersions, restoreGeneratedDocument, reviseGeneratedDocument, type ReviseResult } from "./revise";
 export * from "./content";
 
 export type RenderFormat = "pdf" | "docx" | "pptx";

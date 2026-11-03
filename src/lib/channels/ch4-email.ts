@@ -321,7 +321,7 @@ function followUpTemplate(input: { name: string | null; contactName: string | nu
 
 async function composeFollowUp(ctx: SubmitContext, person: PersonContext, contact: Contact | null, first: Message): Promise<string | null> {
   try {
-    const doc = await getIntelligence({ userId: ctx.userId }).compose({
+    const doc = await getIntelligence({ userId: ctx.userId, applicationId: ctx.application.id }).compose({
       kind: "email_follow_up",
       profile: person.profile,
       facts: person.facts,

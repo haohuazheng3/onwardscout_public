@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { bi, bilingualSchema, type Bilingual } from "./labels";
-import { opportunityTypesOfFamily } from "./goals";
+import { isSubGoalId, opportunityTypesOfFamily } from "./goals";
 import {
   GOAL_FAMILIES,
   goalFamilySchema,
@@ -489,26 +489,118 @@ export interface PlannedMilestone {
 }
 
 /**
+ * How many applications a goal's application milestone may ask for. The family quota (built for
+ * open job postings: 10 a week × 26 weeks × ½ = 130 for six steady months) asks for far more than
+ * a person sends or than exist: "Apply to 130 high-match roles" is off-putting and unrealistic.
+ * A cap is stated for six months at steady intensity and scales with the horizon and intensity
+ * (light ½, intense 1½); programmes that are few and run in cohorts (returnships) have a fixed
+ * cap. A cap with a title also names what the person applies to.
+ */
+export interface ApplicationCap {
+  /** Applications for a six-month goal at steady intensity (scaled by horizon and intensity). */
+  perSixMonths?: number;
+  /** A fixed ceiling whatever the horizon (programmes that are few and run in cohorts). */
+  max?: number;
+  title?: Bilingual;
+}
+
+export const SUB_GOAL_APPLICATION_CAPS: Partial<Record<SubGoalId, ApplicationCap>> = {
+  "G1.1": { perSixMonths: 40 },
+  "G1.2": { perSixMonths: 30, title: bi("Apply to {target} internships that fit you", "投递 {target} 个适合你的实习") },
+  "G1.3": { perSixMonths: 20, title: bi("Apply to {target} graduate programmes that fit you", "申请 {target} 个适合你的校招或管培项目") },
+  "G1.4": { perSixMonths: 40 },
+  "G1.9": { max: 12, title: bi("Apply to {target} returnships that fit you", "申请 {target} 个适合你的重返职场计划") },
+};
+
+/** Families whose application quota is capped when the sub-goal has no cap of its own. */
+const FAMILY_APPLICATION_CAPS: Partial<Record<GoalFamily, ApplicationCap>> = {
+  G1: { perSixMonths: 40 },
+};
+
+const CAP_INTENSITY: Record<Intensity, number> = { light: 0.5, steady: 1, intense: 1.5 };
+
+function capFor(family: GoalFamily, sub: string | null | undefined): ApplicationCap | undefined {
+  return (sub && isSubGoalId(sub) ? SUB_GOAL_APPLICATION_CAPS[sub] : undefined) ?? FAMILY_APPLICATION_CAPS[family];
+}
+
+/** The most applications a goal's application milestone asks for (null = uncapped). */
+export function applicationCap(family: GoalFamily, sub: string | null | undefined, intensity: Intensity, horizonMonths: number): number | null {
+  const cap = capFor(family, sub);
+  if (!cap) return null;
+  const scaled = cap.perSixMonths ? Math.max(1, Math.round((cap.perSixMonths * CAP_INTENSITY[intensity] * Math.max(1, horizonMonths)) / 6)) : Number.POSITIVE_INFINITY;
+  const limit = Math.min(scaled, cap.max ?? Number.POSITIVE_INFINITY);
+  return Number.isFinite(limit) ? limit : null;
+}
+
+/** The title an application milestone carries for a goal (`{target}` not yet rendered). */
+function applicationTitle(template: MilestoneTemplate, family: GoalFamily, sub: string | null | undefined): Bilingual {
+  return capFor(family, sub)?.title ?? template.title;
+}
+
+/**
  * Milestones for a new goal (rows for `milestones`): targets computed for the intensity and
- * horizon, `{target}` rendered into both titles, due dates spread over the horizon.
+ * horizon (application milestones capped, see `applicationCap`), `{target}` rendered into both
+ * titles, due dates spread over the horizon.
  */
 export function buildMilestones(
   family: GoalFamily,
-  opts: { intensity: Intensity; horizonMonths: number; start?: Date },
+  opts: { intensity: Intensity; horizonMonths: number; start?: Date; sub?: SubGoalId | null },
 ): PlannedMilestone[] {
   const start = opts.start ?? new Date();
   const horizonMs = opts.horizonMonths * (365.25 / 12) * 24 * 3600 * 1000;
+  const cap = applicationCap(family, opts.sub, opts.intensity, opts.horizonMonths);
   return getPlaybook(family).milestones.map((m, i) => {
-    const target = computeMilestoneTarget(m, { family, intensity: opts.intensity, horizonMonths: opts.horizonMonths });
+    const computed = computeMilestoneTarget(m, { family, intensity: opts.intensity, horizonMonths: opts.horizonMonths });
+    const isApps = m.metric === "applications";
+    const target = isApps && cap !== null ? Math.min(computed, cap) : computed;
+    const title = isApps ? applicationTitle(m, family, opts.sub) : m.title;
     return {
       key: m.key,
-      title: { en: m.title.en.replaceAll("{target}", String(target)), zh: m.title.zh.replaceAll("{target}", String(target)) },
+      title: { en: title.en.replaceAll("{target}", String(target)), zh: title.zh.replaceAll("{target}", String(target)) },
       metric: m.metric,
       target,
       dueAt: new Date(start.getTime() + Math.round(horizonMs * m.dueAt)),
       position: i,
     };
   });
+}
+
+/**
+ * A stored milestone as it reads now: an application milestone set before the caps ("Apply to 130
+ * high-match roles") shows the capped target and our current title. A title the person wrote, or
+ * any other milestone, is returned unchanged.
+ */
+export function cappedMilestone<M extends { title: string; target: number; position: number; metric: string }>(
+  m: M,
+  goal: { family: GoalFamily; sub: string | null; horizonMonths: number; intensity?: Intensity | null },
+): M {
+  const tpl = getPlaybook(goal.family).milestones[m.position];
+  if (!tpl || tpl.metric !== "applications" || m.metric !== "applications") return m;
+  const cap = applicationCap(goal.family, goal.sub, goal.intensity ?? "steady", goal.horizonMonths);
+  if (cap === null || m.target <= cap) return m;
+  const ours = [tpl.title, applicationTitle(tpl, goal.family, goal.sub)].some((t) => m.title === t.en.replaceAll("{target}", String(m.target)) || m.title === t.zh.replaceAll("{target}", String(m.target)));
+  if (!ours) return m;
+  const title = applicationTitle(tpl, goal.family, goal.sub);
+  const zh = /[一-鿿]/.test(m.title);
+  return { ...m, target: cap, title: (zh ? title.zh : title.en).replaceAll("{target}", String(cap)) };
+}
+
+/** A milestone's title in the reader's language when it is one of ours (else as the person wrote it). */
+export function milestoneTitleFor(
+  m: { title: string; target: number; position: number },
+  goal: { family: GoalFamily; sub: string | null },
+  locale: string,
+): string {
+  const tpl = getPlaybook(goal.family).milestones[m.position];
+  if (!tpl) return m.title;
+  const capped = tpl.metric === "applications" ? capFor(goal.family, goal.sub)?.title : undefined;
+  for (const title of [tpl.title, capped]) {
+    if (!title) continue;
+    const en = title.en.replaceAll("{target}", String(m.target));
+    const zh = title.zh.replaceAll("{target}", String(m.target));
+    if (m.title === en || m.title === zh) return locale === "zh" ? zh : en;
+  }
+  return m.title;
 }
 
 /** Pipeline counts for one goal (or one person), as P2a/P3a aggregate them. */

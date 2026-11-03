@@ -36,7 +36,7 @@ import { getNotificationPrefs, NO_PERKS, planPerks, type NotificationPrefs, type
  * locale-aware Link, emails with the person's locale prefix.
  */
 
-export const NOTIFICATION_KINDS = ["needs_you", "submitted", "reply", "progress", "new_matches", "digest", "billing", "system"] as const;
+export const NOTIFICATION_KINDS = ["needs_you", "submitted", "reply", "progress", "new_matches", "digest", "billing", "deadline", "system"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export function isNotificationKind(v: unknown): v is NotificationKind {

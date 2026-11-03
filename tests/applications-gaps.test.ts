@@ -204,6 +204,9 @@ describe("answering", () => {
 
   it("accepts only offered options (or the person's own words)", () => {
     expect(normalizeAnswer(choice, { value: "1-month" }, "en")).toMatchObject({ value: "1-month", source: "user", confirmed: true });
+    const label = choice.options?.find((o) => o.value === "1-month")?.label;
+    expect(normalizeAnswer(choice, { value: "1-month" }, "en").label).toBe(label);
+    expect(normalizeAnswer(choice, { value: null, custom: "In six weeks" }, "en").label).toBeUndefined();
     expect(() => normalizeAnswer(choice, { value: "tomorrow" }, "en")).toThrow(AnswerError);
     expect(normalizeAnswer(choice, { value: null, custom: "After my notice period (6 weeks)" }, "en").value).toBe("After my notice period (6 weeks)");
     expect(() => normalizeAnswer(choice, { value: null }, "en")).toThrow(AnswerError);

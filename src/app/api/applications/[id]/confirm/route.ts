@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { applicationView, confirmApplication } from "@/lib/applications";
 import { BAD_INPUT, NOT_FOUND, fromError, isAppId, ok, readJson } from "@/lib/applications/http";
-import { getBalance } from "@/lib/credits";
+import { getBalance, roomBalance } from "@/lib/credits";
 import { withErrorCapture } from "@/lib/errors";
 import { rateLimit, tooMany } from "@/lib/ratelimit";
 import { isResponse, requireUserApi } from "@/lib/user";
@@ -23,8 +23,10 @@ export const POST = withErrorCapture("/api/applications/[id]/confirm", async (re
   if (!Body.safeParse(await readJson(req)).success) return BAD_INPUT();
   try {
     await confirmApplication(session.userId, id);
-    const [view, balance] = await Promise.all([applicationView(session.userId, id), getBalance(session.userId).catch(() => null)]);
-    return ok({ application: view, balance: balance ? { available: balance.available, reserved: balance.reserved } : null });
+    const view = await applicationView(session.userId, id);
+    // The room shows what THIS application can use (a matching season pass counts).
+    const balance = await getBalance(session.userId, { opportunityType: view?.opportunity.type ?? null }).catch(() => null);
+    return ok({ application: view, balance: balance ? roomBalance(balance) : null });
   } catch (err) {
     return fromError(err);
   }

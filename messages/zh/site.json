@@ -11,7 +11,7 @@
     "contactUs": "联系我们",
     "browseOpportunities": "浏览机会",
     "learnMore": "了解更多",
-    "freeLine": "档案、匹配和预览都免费。新账户赠送 {credits} 个额度，用来提交你的头几份申请。"
+    "freeLine": "档案、匹配和每份申请的预览都免费。{price} 解锁你想要的那一份，完整写成。"
   },
   "home": {
     "metaTitle": "Onward Scout — 替你争取每一个机会",
@@ -100,17 +100,16 @@
     },
     "pricing": {
       "eyebrow": "价格",
-      "title": "找机会免费，真正发出去才付费。",
-      "lede": "1 个额度 = 替你提交 1 份申请，或向 1 位新联系人发送 1 封外联邮件。",
-      "freeName": "免费版",
+      "title": "预览免费，只为你想要的那份付费。",
+      "lede": "{price} 解锁一份申请：由 Claude 完整写成、可下载、可提交。没有订阅。",
+      "freeName": "免费预览",
       "freePrice": "$0",
-      "freeNote": "另送 {credits} 个起步额度，{days} 天内有效",
-      "proNote": "每月 {credits} 个额度",
-      "packsName": "额度包",
-      "packsNote": "{small} 个额度 {smallPrice} · {large} 个 {largePrice}",
-      "packsValid": "额度 {days} 天内有效",
-      "perMonth": "/ 月",
-      "cta": "对比方案"
+      "freeNote": "任何申请，依据你自己的文件起草",
+      "singleName": "单份申请",
+      "singleNote": "一次 · 完整写成，Word 和 PDF，每个回答一键复制",
+      "passName": "申请季通行证",
+      "passNote": "一次 {price} · {days} 天内一类项目的所有申请",
+      "cta": "查看价格"
     },
     "faq": {
       "eyebrow": "常见问题",
@@ -162,81 +161,100 @@
   },
   "pricing": {
     "metaTitle": "价格",
-    "metaDescription": "档案、匹配、预览、草稿、跟进和练习申请全部免费。Pro 每月 {proPrice}，含 {proCredits} 个额度；额度包 {smallCredits} 个 {smallPrice}、{largeCredits} 个 {largePrice}。1 个额度 = 替你提交 1 份申请。",
+    "metaDescription": "任何申请都可免费预览：依据你自己的简历起草材料，无需注册。解锁一份 {price}——由 Claude 完整写成，Word 和 PDF，每个回答一键复制，由我们提交或交接。或者 {passPrice} 的申请季通行证，包办一整轮返岗或创业项目。",
     "eyebrow": "价格",
-    "title": "找机会免费，<em>真正发出去才付费。</em>",
-    "lede": "1 个额度 = 替你提交 1 份申请，或向 1 位新联系人发送 1 封外联邮件。在此之前的一切——你的档案、匹配、预览、草稿、跟进和练习——全部免费。",
+    "title": "预览免费，<em>只为你想要的那份付费。</em>",
+    "lede": "在任何项目页放入简历，约两分钟就能看到为它起草的申请，免费、无需注册。想要完整版时再花 {price} 解锁——由 Claude 写成、可下载、可提交。永远没有订阅。",
     "free": {
-      "name": "免费版",
+      "name": "免费预览",
       "price": "$0",
       "period": "永久",
-      "blurb": "看看有哪些机会，完整体验一遍流程。",
-      "trial": "{credits} 个起步额度，{days} 天内有效",
-      "cta": "免费开始"
+      "blurb": "付费之前，先看看你的申请会是什么样。",
+      "preview": "每份申请都依据你自己的文件起草，开头几行可读",
+      "cta": "找一个项目"
     },
-    "perMonth": "/ 月",
-    "once": "一次性",
-    "creditsPerMonth": "每月 {credits} 个额度",
-    "credits": "{credits} 个额度",
-    "perCredit": "每个额度 {price}",
-    "recommended": "适合正在积极争取的人",
-    "subscribe": "订阅 {name}",
-    "buy": "购买 {credits} 个额度",
-    "packsTitle": "额度包",
-    "packsLede": "无需订阅。一次购买，180 天内用完即可。",
+    "single": {
+      "recommended": "多数人从这里开始",
+      "period": "一次，每份申请",
+      "cta": "先找项目，再解锁",
+      "note": "解锁在申请页面本身完成：打开一个项目，看预览，点“{price} 解锁”。"
+    },
     "trust1": "由 Stripe 提供安全支付",
-    "trust2": "Pro 可随时取消",
-    "trust3": "提交失败绝不消耗额度",
-    "trust4": "未使用的购买 14 天内可退款",
+    "trust2": "无订阅，不续费",
+    "trust3": "未经你点击，任何内容都不会提交",
+    "trust4": "愿意的话，可以先付款再注册",
+    "how": {
+      "eyebrow": "怎么用",
+      "title": "三步，付一次。",
+      "oneTitle": "在项目页放入简历",
+      "oneBody": "每个项目页都有“帮我写这份申请”。约两分钟后你会看到预览：依据你自己的文件为该项目起草的材料。免费，无需注册。",
+      "twoTitle": "值得时再解锁",
+      "twoBody": "一次 {price}，刷卡支付。随后 Claude 重新完整读取你的简历，针对这条招募写好每份材料和回答，约两分钟。",
+      "threeTitle": "下载、复制、提交",
+      "threeBody": "Word 和 PDF，每个表单回答一键复制；表单允许时由我们提交，不允许时提供逐步交接。想改多少次都可以。"
+    },
     "rules": {
       "eyebrow": "规则",
-      "title": "额度怎么用。"
+      "title": "哪些免费，哪些付费。"
     },
     "compare": {
       "eyebrow": "对比",
-      "title": "免费版、额度包还是 Pro。",
+      "title": "免费预览、单份申请还是申请季通行证。",
       "feature": "你能得到什么",
-      "free": "免费版",
-      "packs": "额度包",
-      "pro": "Pro",
-      "rowCredits": "额度",
-      "rowCore": "档案、匹配、预览和草稿",
+      "free": "免费预览",
+      "single": "单份申请",
+      "pass": "申请季通行证",
+      "rowPrice": "价格",
+      "priceFree": "$0",
+      "priceSingle": "一次 {price}",
+      "pricePass": "{price}，{days} 天",
+      "rowApplications": "申请数量",
+      "applicationsFree": "预览不限份数",
+      "applicationsSingle": "你解锁的那一份",
+      "applicationsPass": "所有适合你的返岗项目（最多 {returnships} 份），或 {startup} 份创业项目",
+      "rowCore": "档案、匹配和排序精选",
+      "rowPreview": "依据你的文件起草的材料，开头几行可读",
+      "rowWritten": "每份材料由 Claude 完整写成",
+      "rowFiles": "Word 和 PDF 下载",
+      "rowAnswers": "每个表单回答一键复制",
+      "rowSubmit": "由我们提交，或逐步交接",
+      "rowRevisions": "修改（“告诉 AI 要改什么”）",
+      "revisionsUnlimited": "不限次数",
+      "rowDeadlines": "站内截止提醒",
       "rowPractice": "练习申请",
-      "rowChannels": "全部通道：表单、Gmail 外联、本人提交交接",
-      "rowFollowUps": "跟进",
-      "rowDigest": "应用内每周简报",
-      "rowRenewal": "续费",
-      "creditsFree": "起步 {credits} 个（{days} 天）",
-      "creditsPacks": "{small} 个或 {large} 个（{days} 天）",
-      "creditsPro": "每月 {credits} 个（+{days} 天）",
-      "followUpsTap": "你点一下才发送",
-      "followUpsAuto": "自动",
-      "renewalNone": "无",
-      "renewalPacks": "无，一次付清",
-      "renewalPro": "按月续费，随时可取消",
+      "rowAccount": "是否需要账户",
+      "accountNone": "付款不需要；之后回来只需一个邮箱验证码",
+      "accountNeeded": "需要：通行证存放在你的账户里",
       "included": "包含",
-      "notIncluded": "不包含",
-      "rowDigestEmail": "每周简报邮件",
-      "comingSoon": "即将推出"
+      "notIncluded": "不包含"
     },
     "billing": {
       "eyebrow": "付款",
       "title": "关于钱的细节。",
       "refundsTitle": "退款",
-      "refundsBody": "扣费后 14 天内，只要这笔费用对应的额度一个都没用过，我们就全额退款。提交失败绝不消耗额度，所以也就不需要退款。",
+      "refundsBody": "扣费后 14 天内，只要这笔费用解锁的申请没有下载或提交过，我们就全额退款。申请季通行证：14 天内未用它解锁任何申请即可退款。",
       "refundsLink": "退款政策",
       "checkoutTitle": "支付与收据",
       "checkoutBody": "付款通过 Stripe 的安全收银台完成，我们看不到你的卡号。收据由 Stripe 发到你的邮箱。价格以美元计。",
-      "changeTitle": "取消与变更",
-      "changeBody": "在账户里打开「账单」，即可通过 Stripe 的管理页面取消或变更方案。你已有的额度保留原来的到期日，取消后不会再产生任何扣费。"
+      "changeTitle": "没有订阅",
+      "changeBody": "每笔付款都是一次性的：一份申请，或一张 90 天的申请季通行证。不会续费，所以也无需取消。账户里的「账单」列出每一笔付款。"
     },
     "faq": {
       "eyebrow": "常见问题",
-      "title": "购买之前。"
+      "title": "付款之前。"
     },
     "cta": {
-      "title": "还没想好？<em>先从免费的开始。</em>",
-      "body": "建好你的档案，看看匹配到的机会，再跑一次练习申请。等第一份真正值得的申请出现时，你的 {credits} 个起步额度就在那里。"
+      "title": "还没想好？<em>预览不花钱。</em>",
+      "body": "打开一个项目，放入简历，看看会得到什么。只有想要完整版时才付 {price}。",
+      "primary": "找一个项目"
+    },
+    "passes": {
+      "eyebrow": "申请季通行证",
+      "title": "一次付费，包办一整轮",
+      "lede": "这一季只专心申请一类项目？付一次钱，90 天内解锁这一类的所有申请，到期自动结束，不用记着取消订阅。",
+      "period": "一次付款 · {days} 天",
+      "buy": "购买{name}",
+      "note": "通行证只用于对应类型的申请，申请这类项目时优先于其他额度使用。"
     }
   },
   "audience": {

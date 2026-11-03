@@ -4,6 +4,7 @@ import { ArrowUpRight, Check, ExternalLink } from "lucide-react";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { ListingCard } from "@/components/seo/ListingCard";
+import { ApplyCta, applyPromise } from "@/components/seo/ApplyCta";
 import { ScoutCta } from "@/components/seo/ScoutCta";
 import { englishOnly } from "@/components/seo/english-only";
 import { ButtonLink, Container, Pane, Section } from "@/components/ui";
@@ -16,6 +17,7 @@ import {
   formatDay,
   getSeoData,
   hubIndexable,
+  isClosed,
   materialChecklist,
   opportunityPath,
   playbookMeta,
@@ -31,6 +33,7 @@ import {
   renderTime,
 } from "@/lib/programmatic";
 import { howToLd, pageMetadata } from "@/lib/seo";
+import { applyPath } from "@/lib/site";
 
 export const revalidate = 86400; // freshness comes from the "opportunities" cache tag (sources run, expiry cron, admin edits)
 
@@ -314,13 +317,15 @@ export default async function GuidePage({ params }: Props) {
         <Pane pad="md" className="mt-4 min-w-0">
           <h2 className="eyebrow eyebrow-accent">How Onward Scout helps</h2>
           <p className="mt-2 text-[0.98rem] leading-relaxed text-ink-2">{g.help}</p>
+          {!isClosed(d, now) ? <ApplyCta opportunityId={d.id} type={d.type} variant="inline" className="mt-4" /> : null}
         </Pane>
       </Section>
 
       <Section className="!pt-14 pb-20 sm:!pt-20 sm:pb-28">
         <ScoutCta
           title={`Let Onward Scout prepare your ${d.name} application`}
-          body="Drop in your résumé, deck or portfolio. Onward Scout checks the fit, drafts every answer from your own documents with sources, and waits for your tap."
+          primary={isClosed(d, now) ? undefined : { href: applyPath(d.id), label: "Write my application" }}
+          body={`${applyPromise(d.type)} Free to start, no account needed. Every answer is drafted from your own documents with sources, and nothing is submitted without your tap.`}
           secondary={{ href: `/app/scout/${d.id}`, label: "Open it in your Scout board" }}
         />
       </Section>

@@ -37,7 +37,11 @@ export type ApplicationErrorCode =
   | "invalid_answer"
   | "invalid_request"
   | "outreach_blocked"
-  | "guardian_required";
+  | "guardian_required"
+  | "document_gaps"
+  | "files_missing"
+  | "revise_unavailable"
+  | "unlock_required";
 
 /** Every code, in the order the client's localized messages list them (applications.errors.*). */
 export const APPLICATION_ERROR_CODES: readonly ApplicationErrorCode[] = [
@@ -55,6 +59,10 @@ export const APPLICATION_ERROR_CODES: readonly ApplicationErrorCode[] = [
   "invalid_request",
   "outreach_blocked",
   "guardian_required",
+  "document_gaps",
+  "files_missing",
+  "revise_unavailable",
+  "unlock_required",
 ];
 
 export class ApplicationError extends Error {
@@ -84,6 +92,10 @@ const HUMAN: Record<ApplicationErrorCode, string> = {
   invalid_request: "That request isn't valid. Reload the page and try again.",
   outreach_blocked: "We can't send this email: the recipient can't be contacted right now.",
   guardian_required: "Add a parent or guardian's email to your profile before your first submission.",
+  document_gaps: "A document still has a highlighted spot only you can fill. Fill it (or ask for a version without it) before submitting.",
+  files_missing: "The organiser needs a file only you have. Add it in the list of files (or paste a link), then submit.",
+  revise_unavailable: "That change can't be made automatically right now. You can edit any sentence directly.",
+  unlock_required: "Unlock this application first: it is then written in full, downloadable and ready to submit.",
 };
 
 export function appError(code: ApplicationErrorCode, status = 409, extra: Record<string, unknown> = {}): ApplicationError {
@@ -273,7 +285,10 @@ export async function execute(start: ApplicationRow, effects: Effect[], opts: { 
   for (const e of effects) {
     switch (e.type) {
       case "reserve": {
-        reserve = await reserveForApplication({ userId: app.userId, applicationId: app.id, amount: e.amount });
+        // The opportunity's type decides whether a season pass can pay for it (it is used first then).
+        const { getOpportunity } = await import("@/lib/opportunities");
+        const opportunityType = (await getOpportunity(app.opportunityId))?.type ?? null;
+        reserve = await reserveForApplication({ userId: app.userId, applicationId: app.id, amount: e.amount, opportunityType });
         if (!reserve.ok) throw appError("insufficient_credits", 402, { available: reserve.available, needed: reserve.needed, reason: reserve.reason });
         app = await patchApplication(app, { creditsReserved: reserve.amount });
         break;
@@ -286,9 +301,10 @@ export async function execute(start: ApplicationRow, effects: Effect[], opts: { 
           "settle",
           async () => {
             const r = await settleApplication(app.id);
-            // A paid submission that debited nothing means the reservation was lost on the way:
-            // flag it so it never passes silently as a free submission.
-            if (r.debited === 0 && !app.practice) {
+            // A legacy submission that debited nothing means the reservation was lost on the way:
+            // flag it so it never passes silently as a free submission. Applications paid at the
+            // unlock have nothing left to settle here.
+            if (r.debited === 0 && !app.practice && app.unlockSource === "legacy") {
               await captureError(new Error("settle debited 0 credits for a paid submission"), { route: "applications/settle", severity: "warn", context: { applicationId: app.id } });
             }
           },

@@ -12,25 +12,78 @@ import {
   PACKS,
   perCreditUsd,
   PLAN_SKUS,
+  PASS_SKUS,
+  PASSES,
   PLANS,
+  PUBLIC_SKUS,
+  LEGACY_SKUS,
+  SINGLE,
   SKUS,
   TRIAL,
+  UNLOCK_PRICE,
+  isPassSku,
+  isPublicSku,
+  isSingleSku,
+  offerFeatures,
+  scopeCovers,
   validityDays,
 } from "@/content/plans";
 
 describe("catalog", () => {
-  it("sells exactly Pro, a 10-credit pack and a 40-credit pack", () => {
-    expect([...SKUS]).toEqual(["pro", "pack10", "pack40"]);
+  it("sells one application and two season passes; Pro and the packs are legacy", () => {
+    expect([...SKUS]).toEqual(["single", "season_returnship", "season_startup", "pro", "pack10", "pack40"]);
+    expect([...PUBLIC_SKUS]).toEqual(["single", "season_returnship", "season_startup"]);
+    expect([...LEGACY_SKUS]).toEqual(["pro", "pack10", "pack40"]);
     expect([...PLAN_SKUS]).toEqual(["pro"]);
     expect([...PACK_SKUS]).toEqual(["pack10", "pack40"]);
+    expect([...PASS_SKUS]).toEqual(["season_returnship", "season_startup"]);
     expect(Object.keys(OFFERS)).toEqual([...SKUS]);
+    expect(isPublicSku("single")).toBe(true);
+    expect(isPublicSku("pack10")).toBe(false);
+    expect(isSingleSku("single")).toBe(true);
+    expect(isSingleSku("pro")).toBe(false);
+  });
+
+  it("unlocks one application for $19, paid once, no validity to track", () => {
+    expect([SINGLE.priceUsd, SINGLE.credits, SINGLE.interval, SINGLE.rolloverDays, SINGLE.priceEnv]).toEqual([19, 1, null, 0, "STRIPE_PRICE_SINGLE"]);
+    expect(UNLOCK_PRICE).toBe("$19");
+    expect(SINGLE.features.en.some((l) => /Claude/.test(l))).toBe(true);
+    expect(SINGLE.features.en.some((l) => /Word and PDF/.test(l))).toBe(true);
+  });
+
+  it("prices the season passes at $49 for 90 days, scoped to their programmes", () => {
+    expect([PASSES.season_returnship.priceUsd, PASSES.season_returnship.credits, PASSES.season_returnship.interval, PASSES.season_returnship.rolloverDays]).toEqual([49, 60, null, 90]);
+    expect([PASSES.season_startup.priceUsd, PASSES.season_startup.credits, PASSES.season_startup.interval, PASSES.season_startup.rolloverDays]).toEqual([49, 10, null, 90]);
+    expect(PASSES.season_returnship.scope).toEqual(["returnship"]);
+    expect([...(PASSES.season_startup.scope ?? [])].sort()).toEqual(["accelerator", "incubator", "pitch_event", "startup_competition"]);
+    expect(isPassSku("season_startup")).toBe(true);
+    expect(isPassSku("pack10")).toBe(false);
+    expect(isPlanSku("season_returnship")).toBe(false);
+  });
+
+  it("never promises email reminders while product email is off", () => {
+    const off = offerFeatures(PASSES.season_returnship, "en", { mailer: false });
+    expect(off.some((l) => /by email/i.test(l))).toBe(false);
+    expect(off).toContain("Deadline reminders in the app for the programmes you saved or started (email reminders coming soon)");
+    expect(offerFeatures(PASSES.season_returnship, "en", { mailer: true })).toEqual([...PASSES.season_returnship.features.en]);
+    expect(offerFeatures(PLANS.pro, "en", { mailer: false })).toEqual([...PLANS.pro.features.en]);
+  });
+
+  it("lets scoped credits pay only for their own programme types", () => {
+    expect(scopeCovers([], "hackathon")).toBe(true);
+    expect(scopeCovers(undefined, null)).toBe(true);
+    expect(scopeCovers(["returnship"], "returnship")).toBe(true);
+    expect(scopeCovers(["returnship"], "job")).toBe(false);
+    expect(scopeCovers(["returnship"], null)).toBe(false);
+    expect(scopeCovers(PASSES.season_startup.scope, "pitch_event")).toBe(true);
+    expect(scopeCovers(PASSES.season_startup.scope, "returnship")).toBe(false);
   });
 
   it("keeps the published prices, credits and validity", () => {
     expect([PLANS.pro.priceUsd, PLANS.pro.credits, PLANS.pro.interval, PLANS.pro.rolloverDays]).toEqual([29, 60, "month", 30]);
     expect([PACKS.pack10.priceUsd, PACKS.pack10.credits, PACKS.pack10.interval, PACKS.pack10.rolloverDays]).toEqual([9, 10, null, 180]);
     expect([PACKS.pack40.priceUsd, PACKS.pack40.credits, PACKS.pack40.interval, PACKS.pack40.rolloverDays]).toEqual([29, 40, null, 180]);
-    expect(TRIAL).toEqual({ credits: 3, expiryDays: 60 });
+    expect(TRIAL).toEqual({ credits: 0, expiryDays: 60 });
     expect(validityDays("pro")).toBe(30);
     expect(validityDays("pack40")).toBe(180);
   });
@@ -98,12 +151,12 @@ describe("formatPrice", () => {
 });
 
 describe("credit rules", () => {
-  it("charges one credit per submission or new outreach contact; follow-ups and practice are free", () => {
-    expect(CREDIT_COST).toEqual({ submitApplication: 1, outreachNewContact: 1, followUp: 0, practice: 0 });
+  it("charges one credit per unlock, submission or new outreach contact; follow-ups and practice are free", () => {
+    expect(CREDIT_COST).toEqual({ unlockApplication: 1, submitApplication: 1, outreachNewContact: 1, followUp: 0, practice: 0 });
   });
-  it("explains the same rules in both languages, with the real trial numbers", () => {
+  it("explains the same rules in both languages, with the real unlock price", () => {
     expect(CREDIT_RULES.lines.zh.length).toBe(CREDIT_RULES.lines.en.length);
-    expect(CREDIT_RULES.lines.en.some((l) => l.includes(`${TRIAL.credits} free credits`) && l.includes(`${TRIAL.expiryDays} days`))).toBe(true);
-    expect(CREDIT_RULES.lines.zh.some((l) => l.includes(String(TRIAL.credits)) && l.includes(String(TRIAL.expiryDays)))).toBe(true);
+    expect(CREDIT_RULES.lines.en.some((l) => l.includes(`Unlocking an application costs ${UNLOCK_PRICE} once`))).toBe(true);
+    expect(CREDIT_RULES.lines.zh.some((l) => l.includes(UNLOCK_PRICE))).toBe(true);
   });
 });

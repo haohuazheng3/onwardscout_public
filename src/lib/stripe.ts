@@ -121,8 +121,10 @@ export const CHECKOUT_BRAND = {
    * Stripe allows 22 characters in total; `statementSuffix()` trims it to fit the prefix.
    */
   statementSuffix: "ONWARDSCOUT",
-  /** Line under the pay button. */
+  /** Line under the pay button (season passes). */
   submitNote: "Credits land in your Onward Scout account the moment payment completes.",
+  /** Line under the pay button when one application is unlocked. */
+  unlockNote: "Your application is written in full the moment payment completes; you are taken straight back to it.",
 } as const;
 
 /** Stripe's limit for the full card statement descriptor ("<prefix>* <suffix>"). */

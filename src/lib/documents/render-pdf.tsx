@@ -1,6 +1,7 @@
 import { Document, Font, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { GeneratedBlock, GeneratedDocumentKind } from "@/lib/core/types";
 import { isGapBlock } from "./content";
+import { deckSlides } from "./deck";
 import type { CjkFontFiles } from "./fonts";
 import { CjkFontUnavailableError, needsExtendedFont } from "./glyphs";
 
@@ -11,7 +12,8 @@ export { CjkFontUnavailableError, needsExtendedFont };
  * document, so no Onward Scout branding on the page):
  *   letter   — cover letters, emails, statements, proposals, bios, answers, checklists;
  *   resume   — name, contact line, ruled sections, entry rows with dates on the right;
- *   onepager — title band and compact sections (one-pagers, pitch notes);
+ *   onepager — title band and compact sections (one-pagers);
+ *   deck     — 16:9 slides from deck.ts (pitch decks): dark title slide, statements, metric tiles;
  * Latin text uses the built-in Helvetica. Chinese (and any glyph outside WinAnsi) falls back per
  * glyph to Noto Sans SC when the caller supplies it (fonts.ts); without it, such a document
  * throws `CjkFontUnavailableError` and the caller serves DOCX instead.
@@ -130,7 +132,7 @@ type Styles = ReturnType<typeof styles>;
 
 function layoutOf(kind: GeneratedDocumentKind): "letter" | "resume" | "onepager" {
   if (kind === "resume_variant") return "resume";
-  if (kind === "one_pager" || kind === "pitch_notes") return "onepager";
+  if (kind === "one_pager") return "onepager";
   return "letter";
 }
 
@@ -296,6 +298,104 @@ function OnePagerBody({ input, s }: { input: PdfInput; s: Styles }) {
   );
 }
 
+const DECK_W = 960;
+const DECK_H = 540;
+
+function deckStyles(family: string[] | string) {
+  return StyleSheet.create({
+    page: { width: DECK_W, height: DECK_H, paddingHorizontal: 58, paddingTop: 44, paddingBottom: 54, fontFamily: family, color: INK, backgroundColor: "#FFFFFF" },
+    titlePage: { width: DECK_W, height: DECK_H, paddingHorizontal: 58, paddingTop: 150, fontFamily: family, color: "#FFFFFF", backgroundColor: INK },
+    bigTitle: { fontSize: 44, fontWeight: 700, lineHeight: 1.1 },
+    titleLine: { fontSize: 20, color: "#C9CFCB", marginTop: 18, lineHeight: 1.35 },
+    titleBar: { width: 100, height: 6, backgroundColor: "#5FC2A0", marginTop: 26 },
+    titlePeople: { fontSize: 14, color: "#A3ABA6", marginTop: 18 },
+    slideTitle: { fontSize: 26, fontWeight: 700, color: INK, lineHeight: 1.2 },
+    bar: { width: 64, height: 5, backgroundColor: PINE, marginTop: 10, marginBottom: 26 },
+    statement: { fontSize: 24, color: INK2, lineHeight: 1.4 },
+    tiles: { flexDirection: "row", gap: 16, marginBottom: 22 },
+    tile: { flex: 1, backgroundColor: "#F5F4F0", borderWidth: 0.75, borderColor: LINE, borderRadius: 10, paddingVertical: 16, paddingHorizontal: 18 },
+    tileValue: { fontSize: 30, fontWeight: 700, color: PINE, lineHeight: 1.1 },
+    tileLabel: { fontSize: 12, color: INK2, marginTop: 8, lineHeight: 1.3 },
+    point: { flexDirection: "row", marginBottom: 12 },
+    pointDot: { width: 20, fontSize: 17, color: PINE },
+    pointText: { flex: 1, fontSize: 17, color: INK2, lineHeight: 1.4 },
+    para: { fontSize: 17, color: INK, lineHeight: 1.45, marginBottom: 12 },
+    gap: { backgroundColor: GAP_BG, borderLeftWidth: 3, borderLeftColor: GAP_LINE, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 12, fontSize: 15, color: INK2 },
+    footer: { position: "absolute", left: 58, right: 58, bottom: 22, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.75, borderTopColor: LINE, paddingTop: 8, fontSize: 9, color: MUTED },
+  });
+}
+
+function DeckPages({ input, family }: { input: PdfInput; family: string[] | string }) {
+  const s = deckStyles(family);
+  const zh = input.language.startsWith("zh");
+  const slides = deckSlides(input.blocks, zh ? "概述" : "Overview");
+  const brand = slides[0]?.title ?? input.title;
+  return (
+    <>
+      {slides.map((slide, n) => {
+        if (slide.layout === "title") {
+          const lines = slide.items.filter((i) => i.kind === "statement" || i.kind === "gap");
+          const people = slide.items.filter((i) => i.kind === "point");
+          return (
+            <Page key={n} size={[DECK_W, DECK_H]} style={s.titlePage}>
+              <Text style={s.bigTitle}>{slide.title}</Text>
+              {lines.map((l) => (
+                <Text key={l.block} style={s.titleLine}>
+                  {l.kind === "gap" && l.label ? `${l.text} — ${l.label}` : l.text}
+                </Text>
+              ))}
+              <View style={s.titleBar} />
+              {people.length ? <Text style={s.titlePeople}>{people.map((p) => p.text).join("   ·   ")}</Text> : null}
+            </Page>
+          );
+        }
+        const metrics = slide.items.filter((i) => i.kind === "metric").slice(0, 4);
+        const rest = slide.items.filter((i) => !metrics.includes(i));
+        return (
+          <Page key={n} size={[DECK_W, DECK_H]} style={s.page}>
+            <Text style={s.slideTitle}>{slide.title}</Text>
+            <View style={s.bar} />
+            {metrics.length ? (
+              <View style={s.tiles}>
+                {metrics.map((m) => (
+                  <View key={m.block} style={s.tile}>
+                    <Text style={s.tileValue}>{m.text}</Text>
+                    {m.label ? <Text style={s.tileLabel}>{m.label}</Text> : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {slide.layout === "statement" && rest.length === 1 ? (
+              <Text style={s.statement}>{rest[0].text}</Text>
+            ) : (
+              rest.slice(0, 6).map((i) =>
+                i.kind === "gap" ? (
+                  <Text key={i.block} style={s.gap}>
+                    {i.label ? `${i.text} — ${i.label}` : i.text}
+                  </Text>
+                ) : i.kind === "point" ? (
+                  <View key={i.block} style={s.point} wrap={false}>
+                    <Text style={s.pointDot}>•</Text>
+                    <Text style={s.pointText}>{i.text}</Text>
+                  </View>
+                ) : (
+                  <Text key={i.block} style={s.para}>
+                    {i.text}
+                  </Text>
+                ),
+              )
+            )}
+            <View style={s.footer} fixed>
+              <Text>{brand}</Text>
+              <Text>{`${n + 1} / ${slides.length}`}</Text>
+            </View>
+          </Page>
+        );
+      })}
+    </>
+  );
+}
+
 /** Renders a document to PDF bytes. Pass `cjk` (from `loadCjkFonts`) when the text needs it. */
 export async function renderPdf(input: PdfInput, opts: { cjk?: CjkFontFiles | null } = {}): Promise<Uint8Array> {
   const texts = [input.title, ...input.blocks.flatMap((b) => [b.text, b.label ?? ""])];
@@ -307,6 +407,15 @@ export async function renderPdf(input: PdfInput, opts: { cjk?: CjkFontFiles | nu
   const s = styles(family);
   const layout = layoutOf(input.kind);
   const zh = input.language.startsWith("zh");
+  if (input.kind === "pitch_notes") {
+    const deck = (
+      <Document title={input.title} author={input.personName ?? undefined} creator="Onward Scout" producer="Onward Scout" language={zh ? "zh-CN" : "en"}>
+        <DeckPages input={input} family={family} />
+      </Document>
+    );
+    const out = await renderToBuffer(deck);
+    return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+  }
   const doc = (
     <Document title={input.title} author={input.personName ?? undefined} creator="Onward Scout" producer="Onward Scout" language={zh ? "zh-CN" : "en"}>
       <Page size="A4" style={layout === "resume" ? s.resumePage : s.page} wrap>

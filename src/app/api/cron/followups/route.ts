@@ -6,6 +6,7 @@ import { appState } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { enqueue } from "@/lib/jobs/queue";
+import { sendDeadlineReminders } from "@/lib/reminders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +49,9 @@ export async function GET(req: Request) {
         else existing++;
       }
     }
-    const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, due: due.length, enqueued, existing, failed, capped: due.length >= LIMIT };
+    // Deadline reminders ride on this hourly run (no extra wake-up of the database).
+    const reminders = await sendDeadlineReminders(now);
+    const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, due: due.length, enqueued, existing, failed, capped: due.length >= LIMIT, reminders };
     await db
       .insert(appState)
       .values({ key: STATE_KEY, value: summary })

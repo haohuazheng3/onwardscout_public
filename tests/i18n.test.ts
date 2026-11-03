@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseAppStatus, sanitizePatch } from "@/components/app-status";
-import { serializeJsonLd } from "@/components/JsonLd";
+import { asGraph, serializeJsonLd } from "@/components/JsonLd";
 import { messageFallback } from "@/i18n/fallback";
 import { loadMessages, loadNamespace, mergeMessages, pickNamespaces } from "@/i18n/messages";
 import { APP_NAMESPACES, COMMON_NAMESPACES, NAMESPACES, isNamespace } from "@/i18n/namespaces";
@@ -318,5 +318,11 @@ describe("JSON-LD serialization", () => {
     expect(out).not.toContain("<");
     expect(out).not.toContain(String.fromCharCode(0x2028));
     expect(JSON.parse(out)).toEqual({ name: "</script><script>alert(1)</script>", amp: "a&b", ls: `x${String.fromCharCode(0x2028)}y` });
+  });
+
+  it("sends several nodes as one @graph object, never a top-level array", () => {
+    const g = asGraph([{ "@context": "https://schema.org", "@type": "Organization" }, { "@context": "https://schema.org", "@type": "WebSite" }]);
+    expect(g).toEqual({ "@context": "https://schema.org", "@graph": [{ "@type": "Organization" }, { "@type": "WebSite" }] });
+    expect(asGraph({ "@type": "WebPage" })).toEqual({ "@type": "WebPage" });
   });
 });

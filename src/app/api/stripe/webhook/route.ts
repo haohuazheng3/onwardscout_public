@@ -7,6 +7,7 @@ import {
   idOf,
   isOurs,
   noteFailedRenewal,
+  ownsPayment,
   reinstateByPaymentIntent,
   revokeByPaymentIntent,
   syncSubscription,
@@ -110,6 +111,7 @@ async function handle(event: Stripe.Event): Promise<Outcome> {
       const pi = idOf(ch.payment_intent as string | { id: string } | null);
       if (!pi) return "ignored";
       if (!ch.refunded) return "ignored"; // partial refund: credits stay
+      if (!(await ownsPayment(pi, idOf(ch.customer as string | { id: string } | null)))) return "ignored";
       const r = await revokeByPaymentIntent(pi, "refunded");
       return r ? "processed" : "ignored";
     }
@@ -118,6 +120,7 @@ async function handle(event: Stripe.Event): Promise<Outcome> {
       const d = event.data.object;
       const pi = idOf(d.payment_intent as string | { id: string } | null);
       if (!pi) return "ignored";
+      if (!(await ownsPayment(pi))) return "ignored";
       const r = await revokeByPaymentIntent(pi, "disputed");
       if (r) {
         await notifyOwner({
@@ -132,6 +135,8 @@ async function handle(event: Stripe.Event): Promise<Outcome> {
       const d = event.data.object;
       const pi = idOf(d.payment_intent as string | { id: string } | null);
       if (!pi) return "ignored";
+      // Another site's dispute on the shared account: not ours to report.
+      if (!(await ownsPayment(pi))) return "ignored";
       // Won, or an inquiry that closed without becoming a chargeback: the buyer keeps what they paid for.
       if (d.status === "won" || d.status === "warning_closed") {
         const r = await reinstateByPaymentIntent(pi);

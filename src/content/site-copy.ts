@@ -536,7 +536,7 @@ export const ABOUT = {
 export const FREE_INCLUDES: readonly Bilingual[] = [
   bi("Your profile, with a source for every fact", "你的档案，每条信息都有出处"),
   bi("Matching and ranked picks for your goals", "针对你目标的匹配和排序精选"),
-  bi("Previews and document drafts", "预览和文档草稿"),
+  bi("Deadline reminders in the app", "站内截止提醒"),
   bi("Follow-up emails on applications you've sent", "对已发出申请的跟进邮件"),
   bi("Practice applications, end to end", "完整流程的练习申请"),
 ];

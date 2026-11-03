@@ -7,7 +7,7 @@ import { EmptyState, cx } from "@/components/ui";
 import { toast } from "@/components/ui-client";
 import { useRouter } from "@/i18n/navigation";
 import { isMinor } from "@/lib/core/identities";
-import { localize } from "@/lib/core/labels";
+import { degreeWithField, localize } from "@/lib/core/labels";
 import { isOccupationCode, occupationLabel } from "@/lib/core/occupations";
 import type { Profile } from "@/lib/core/types";
 import { countryName } from "@/lib/llm/local/geo";
@@ -249,7 +249,7 @@ export function ProfileRecord({ profile: initialProfile, facts: initialFacts, do
           <ul className="divide-y divide-[var(--line)]">
             {profile.education.map((e) => {
               const path = `/education/${e.id}`;
-              return <Row key={e.id} title={e.institution} meta={[[e.degree, e.field].filter(Boolean).join(", "), dateRange(e.startDate, e.endDate, e.current, locale, present)].filter(Boolean).join(" · ")} chip={chipFor(factForPath(facts, path), path)} />;
+              return <Row key={e.id} title={e.institution} meta={[degreeWithField(e.degree, e.field), dateRange(e.startDate, e.endDate, e.current, locale, present)].filter(Boolean).join(" · ")} chip={chipFor(factForPath(facts, path), path)} />;
             })}
           </ul>
         </Section>

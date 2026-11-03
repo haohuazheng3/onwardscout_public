@@ -54,7 +54,8 @@
     "optional": "optional",
     "notePlaceholder": "e.g. Looking for remote product roles in Europe from March",
     "noteAdd": "Add",
-    "noteSaved": "Your note is saved"
+    "noteSaved": "Your note is saved",
+    "assembling": "Read. Putting your profile together…"
   },
   "counts": {
     "found": "Found {list}",
@@ -224,5 +225,16 @@
       "hint": "Pick the closest one; we use it to find what fits you.",
       "more": "{count, plural, one {# more} other {# more}}"
     }
+  },
+  "claimAsk": {
+    "title": "A draft from this browser is waiting",
+    "body": "Before you signed in, {what} was started in this browser. Your account already has a profile, so we haven't added it. Add it only if it's yours: its files and answers will join your profile.",
+    "withName": "a draft for {name}",
+    "withoutName": "a draft",
+    "add": "Add it to my account",
+    "discard": "Delete it",
+    "added": "Added to your account",
+    "deleted": "Draft deleted",
+    "failed": "That didn't go through. Try again."
   }
 }

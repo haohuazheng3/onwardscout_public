@@ -34,6 +34,7 @@ export const JOB_MODULES: Partial<Record<KnownJobKind, Loader>> = {
   "application.prepare": () => import("@/lib/applications/jobs"),
   "application.submit": () => import("@/lib/applications/jobs"),
   "application.followup": () => import("@/lib/applications/jobs"),
+  "application.upgrade": () => import("@/lib/applications/jobs"),
   "sources.run": () => import("@/lib/sources/jobs"),
   "digest.send": () => import("@/lib/digest"),
   "notify.email": () => import("@/lib/notifications"),

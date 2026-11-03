@@ -17,6 +17,7 @@ import { groupOfIdentity, type FunctionId, type IdentityCode, type IdentityGroup
 import { countryOfLocation } from "@/lib/llm/local/geo";
 import { RESEARCH_FIELDS } from "@/lib/profile/gaps";
 import type { ProfilePatch } from "@/lib/profile/patch";
+import { studyCodeFromEducation } from "@/lib/profile/presets";
 import { api, ENDPOINTS, type ApiMode, type DraftStatusView } from "./api";
 import { ParseStatus } from "./ParseStatus";
 import { citySuggestions } from "./ProfileCard";
@@ -109,9 +110,24 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
   const primary = roles[0];
   const answered = (path: string) => props.confirmedPaths.includes(path);
 
-  /** The answer to pre-select for a group: the person's own answer first, else what the files said. */
-  const presetIn = (group: IdentityGroup): Role | undefined => roles.find((r) => groupOfIdentity(r.code) === group) ?? fromFiles.find((r) => groupOfIdentity(r.code) === group);
-  const situationPreset = (primary ?? fromFiles[0]) ? groupOfIdentity((primary ?? fromFiles[0])!.code) : null;
+  /**
+   * The answer to pre-select for a group: the person's own answer first, else what the files said;
+   * for a student whose files read as another situation, the degree still in progress (a B.E. or
+   * BSc under way → Undergraduate).
+   */
+  const presetIn = (group: IdentityGroup): Role | undefined => {
+    const found = roles.find((r) => groupOfIdentity(r.code) === group) ?? fromFiles.find((r) => groupOfIdentity(r.code) === group);
+    if (found || group !== "S") return found;
+    const code = studyCodeFromEducation(profile);
+    return code ? { code, stage: null, since: null, inferred: true } : undefined;
+  };
+  /** The preset came from the files (tagged), not from the person's own earlier answer. */
+  const presetFromFiles = (group: IdentityGroup): boolean => {
+    const preset = presetIn(group);
+    return Boolean(preset && preset.inferred !== false && !roles.some((r) => groupOfIdentity(r.code) === group && !r.inferred));
+  };
+  // No situation guessed from the files, but a degree still in progress: a student.
+  const situationPreset: IdentityGroup | null = (primary ?? fromFiles[0]) ? groupOfIdentity((primary ?? fromFiles[0])!.code) : studyCodeFromEducation(profile) ? "S" : null;
   const situation = readGroup(search.get("g")) ?? situationPreset;
   const fieldKind = situation ? FIELD_KIND[situation] : null;
 
@@ -193,7 +209,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await api<{ moved: number; goals: { id: string; family: string; sub: string | null }[] }>("/api/drafts/claim", { method: "POST", json: { locale } }, msgs);
+        const res = await api<{ moved: number; goals: { id: string; family: string; sub: string | null }[] }>("/api/drafts/claim", { method: "POST", json: { locale, action: "claim" } }, msgs);
         if (cancelled) return;
         if (res.goals.length) {
           track("profile_confirmed", { via: "claim" });
@@ -301,7 +317,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
 
         {screen === "files" ? (
           <Question title={t("drop.title")} hint={t("drop.lede")}>
-            <Uploader mode={mode} locale={locale} docs={docs} onActivity={kick} />
+            <Uploader mode={mode} locale={locale} docs={docs} onActivity={kick} building={status?.phase === "building"} />
             <ParseStatus status={status} />
             <div className="flex flex-col-reverse items-stretch gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <button type="button" className="link self-center text-[0.92rem] sm:self-auto" onClick={() => next("files")}>
@@ -334,7 +350,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
             <Single
               options={identitiesInGroup(situation).map((d) => ({ value: d.code, label: localize(d.label, locale) }))}
               preset={presetIn(situation)?.code ?? null}
-              presetTag={presetIn(situation)?.inferred !== false && fromFiles.some((r) => groupOfIdentity(r.code) === situation) ? fromFilesTag : undefined}
+              presetTag={presetFromFiles(situation) ? fromFilesTag : undefined}
               continueLabel={tf("continue")}
               onPick={(code) => {
                 saveRoles([roleFor(code)]);

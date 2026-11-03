@@ -69,6 +69,14 @@ function resumeToIR(doc: ExtractDocument, parsed: ParsedResume, ir: ExtractionIR
     });
   }
   for (const { entry: e, quote } of parsed.education) {
+    // "CGPA 8.7 / 10 · Coursework: Data Structures, Operating Systems" under the school: courses, not honours.
+    const courseNote = (x: string) => /\b(?:relevant |selected )?coursework\s*[:：]|主修课程|相关课程/i.exec(x);
+    const courses = uniq(
+      e.highlights.flatMap((x) => {
+        const m = courseNote(x);
+        return m ? x.slice((m.index ?? 0) + m[0].length).split(/\s*[,;、，；]\s*/).map((c) => c.replace(/[.。]$/, "").trim()) : [];
+      }),
+    ).filter((c) => c && c.length <= 80);
     ir.education.push({
       institution: e.institution,
       degree: e.degree,
@@ -79,8 +87,8 @@ function resumeToIR(doc: ExtractDocument, parsed: ParsedResume, ir: ExtractionIR
       endDate: e.end,
       current: e.current,
       gpa: e.gpa,
-      honors: e.highlights.filter((x) => !/^(dissertation|thesis|毕业论文|学位论文)/i.test(x)),
-      courses: [],
+      honors: e.highlights.filter((x) => !/^(dissertation|thesis|毕业论文|学位论文)/i.test(x) && !courseNote(x)),
+      courses: courses.slice(0, 30),
       description: e.highlights.find((x) => /^(dissertation|thesis|毕业论文|学位论文)/i.test(x)) ?? null,
       src: src(id, quote, (e.degree || e.level ? 0.85 : 0.65) * weight),
     });

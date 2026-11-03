@@ -8,7 +8,7 @@ import { SITE } from "@/lib/site";
 import { loadHandler } from "./handlers";
 import { checkpoint, claim, claimById, enqueue, settle, sweepExpired, WORKER_ID, type EnqueueOptions, type EnqueueResult } from "./queue";
 import { DEFAULT_LEASE_MS, type JobContext, type JobKind } from "./registry";
-import { decide, type Decision, type JobResult } from "./state";
+import { decide, inlineWaitMs, type Decision, type JobResult } from "./state";
 
 /*
  * Executes jobs. Two entry points:
@@ -35,8 +35,12 @@ export interface JobOutcome {
   kind: string;
   status: Decision["status"] | "lost";
   error?: string;
+  /** For a job queued again: how long until it is due. */
+  delayMs?: number;
   ms: number;
 }
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export interface RunReport {
   claimed: number;
@@ -123,6 +127,7 @@ async function execute(job: JobRow, deadline: number): Promise<JobOutcome> {
     kind: job.kind,
     status: held ? decision.status : "lost",
     ...(decision.status === "failed" ? { error: decision.error } : decision.status === "queued" && decision.error ? { error: decision.error } : {}),
+    ...(decision.status === "queued" ? { delayMs: decision.delayMs } : {}),
     ms: Date.now() - started,
   };
 }
@@ -152,13 +157,28 @@ export async function runDue(opts: RunDueOptions = {}): Promise<RunReport> {
   const maxJobs = opts.maxJobs ?? 100;
   const report: RunReport = { claimed: 0, done: 0, continued: 0, retried: 0, failed: 0, lost: 0, sweptExpired: 0, tookMs: 0, outcomes: [] };
   report.sweptExpired = await sweepExpired();
+  // When the soonest job this drain asked to continue (after a short delay) is due again.
+  let resumeAt = 0;
   while (report.claimed < maxJobs && deadline - Date.now() > SAFETY_MS + 5_000) {
     const batch = await claim({ limit: Math.min(BATCH, maxJobs - report.claimed), kinds: opts.kinds, workerId: WORKER_ID });
-    if (!batch.length) break;
+    if (!batch.length) {
+      // Nothing due: wait for a job of this drain that continues in a few seconds, else stop.
+      const wait = resumeAt ? inlineWaitMs(resumeAt - Date.now(), deadline - Date.now(), SAFETY_MS + 5_000) : null;
+      if (wait === null) break;
+      resumeAt = 0;
+      if (wait > 0) await sleep(wait);
+      continue;
+    }
     report.claimed += batch.length;
     // A small batch runs concurrently: handlers are I/O-bound (model calls, fetches, DB).
     const results = await Promise.all(batch.map((job) => execute(job, deadline - SAFETY_MS)));
-    for (const r of results) tally(report, r);
+    for (const r of results) {
+      tally(report, r);
+      if (continued(r)) {
+        const at = Date.now() + (r.delayMs ?? 0);
+        resumeAt = resumeAt ? Math.min(resumeAt, at) : at;
+      }
+    }
   }
   report.tookMs = Date.now() - started;
   return report;
@@ -209,16 +229,21 @@ export async function runJobNow(id: string, opts: { maxMs?: number } = {}): Prom
   const budgetEnd = Date.now() + (opts.maxMs ?? 240_000);
   let last: JobOutcome | null = null;
   try {
-    for (let round = 0; round < 50; round++) {
+    for (let round = 0; round < 150; round++) {
       const job = await claimById(id, { workerId: WORKER_ID });
       if (!job) return last; // not due yet, already running elsewhere, or finished
       last = await execute(job, budgetEnd);
       if (!continued(last)) return last;
-      if (budgetEnd - Date.now() < SAFETY_MS + 10_000) {
+      // A job that continues after a short delay (polling another job) is resumed here once it
+      // is due; one that does not fit in the budget goes to the next drain right away.
+      const wait = inlineWaitMs(last.delayMs ?? 0, budgetEnd - Date.now(), SAFETY_MS + 10_000);
+      if (wait === null) {
         kickDrain();
         return last;
       }
+      if (wait > 0) await sleep(wait);
     }
+    kickDrain();
     return last;
   } catch (err) {
     // The cron will pick the job up; the person's request must not fail because of a kick.

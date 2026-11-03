@@ -10,6 +10,7 @@ import {
   NormalizeOpportunityInput,
   PlanBrowserStepInput,
   RecommendDirectionsInput,
+  ReviseDocumentInput,
   ScoreMatchesInput,
   emptyIR,
   type BrowserStep,
@@ -23,6 +24,7 @@ import {
   type NormalizedOpportunity,
   type QuestionAnswer,
   type ReplyClassification,
+  type RevisedDocument,
 } from "./types";
 
 /*
@@ -178,6 +180,25 @@ export class MockIntelligence implements Intelligence {
         { title: "Mock stage 2", detail: "", startMonth: 1, endMonth: 6 },
       ],
     });
+  }
+
+  async reviseDocument(raw: ReviseDocumentInput, ctx?: CallContext): Promise<RevisedDocument> {
+    const input = ReviseDocumentInput.parse(raw);
+    this.report(ctx);
+    const note = `answer:note_${input.notes.length + 1}`;
+    return {
+      applied: true,
+      title: input.title,
+      language: input.language,
+      blocks: [
+        ...input.blocks.map((b) => ({ type: b.type, role: b.role === "gap" ? ("gap" as const) : b.role === "heading" ? ("heading" as const) : ("body" as const), ...(b.label ? { label: b.label } : {}), text: b.text, factIds: b.factIds, flags: b.flags })),
+        { type: "paragraph" as const, role: "body" as const, text: `Mock: ${input.feedback}`, factIds: [note], flags: [] },
+      ],
+      gaps: [],
+      changes: ["Mock: added the note as a paragraph"],
+      reason: null,
+      label: "drafted_from_profile",
+    };
   }
 }
 

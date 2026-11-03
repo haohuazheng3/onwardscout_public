@@ -11,7 +11,7 @@
     "contactUs": "Contact us",
     "browseOpportunities": "Browse opportunities",
     "learnMore": "Learn more",
-    "freeLine": "Profile, matching and previews are free. New accounts get {credits} credits to submit their first applications."
+    "freeLine": "Profile, matching and the preview of every application are free. {price} unlocks the one you want, written in full."
   },
   "home": {
     "metaTitle": "Onward Scout — Your scout for every opportunity",
@@ -100,17 +100,16 @@
     },
     "pricing": {
       "eyebrow": "Pricing",
-      "title": "Finding is free. You pay when something is sent.",
-      "lede": "One credit is one application submitted for you, or one outreach email to a new contact.",
-      "freeName": "Free",
+      "title": "The preview is free. Pay for the one you want.",
+      "lede": "{price} unlocks one application: written in full with Claude, downloadable, ready to submit. No subscription.",
+      "freeName": "Free preview",
       "freePrice": "$0",
-      "freeNote": "Plus {credits} credits to start, valid {days} days",
-      "proNote": "{credits} credits every month",
-      "packsName": "Credit packs",
-      "packsNote": "{small} credits for {smallPrice} · {large} for {largePrice}",
-      "packsValid": "Credits valid for {days} days",
-      "perMonth": "/ month",
-      "cta": "Compare plans"
+      "freeNote": "Any application, drafted from your own files",
+      "singleName": "One application",
+      "singleNote": "once · written in full, Word & PDF, every answer ready to copy",
+      "passName": "Season pass",
+      "passNote": "{price} once · every application of one kind for {days} days",
+      "cta": "See pricing"
     },
     "faq": {
       "eyebrow": "Questions",
@@ -162,81 +161,100 @@
   },
   "pricing": {
     "metaTitle": "Pricing",
-    "metaDescription": "Profile, matching, previews, drafts, follow-ups and practice applications are free. Pro is {proPrice} a month for {proCredits} credits; packs of {smallCredits} credits for {smallPrice} and {largeCredits} for {largePrice}. One credit is one application submitted for you.",
+    "metaDescription": "Preview any application free: your documents drafted from your own résumé, no account. Unlock one for {price} — written in full with Claude, Word and PDF, every answer ready to copy, submitted or handed over. Or a {passPrice} season pass for a whole round of returnships or startup programmes.",
     "eyebrow": "Pricing",
-    "title": "Finding is free. <em>You pay when something is sent.</em>",
-    "lede": "One credit is one application submitted for you, or one outreach email to a new contact. Everything before that — your profile, matching, previews, drafts, follow-ups and practice runs — costs nothing.",
+    "title": "The preview is free. <em>Pay for the one you want.</em>",
+    "lede": "Drop your résumé on any programme and see your application drafted in about two minutes, free, no account. Unlock it for {price} when you want the full version — written with Claude, downloadable, ready to submit. No subscription, ever.",
     "free": {
-      "name": "Free",
+      "name": "Free preview",
       "price": "$0",
-      "period": "forever",
-      "blurb": "For finding out what’s out there and trying the whole flow.",
-      "trial": "{credits} credits to start, valid {days} days",
-      "cta": "Start free"
+      "period": "always",
+      "blurb": "See what your application would look like before you pay a cent.",
+      "preview": "Every application drafted from your own files, first lines readable",
+      "cta": "Find a programme"
     },
-    "perMonth": "/ month",
-    "once": "once",
-    "creditsPerMonth": "{credits} credits a month",
-    "credits": "{credits} credits",
-    "perCredit": "{price} per credit",
-    "recommended": "For an active search",
-    "subscribe": "Subscribe to {name}",
-    "buy": "Buy {credits} credits",
-    "packsTitle": "Credit packs",
-    "packsLede": "No subscription. Buy credits once and use them within 180 days.",
+    "single": {
+      "recommended": "Most people start here",
+      "period": "once, per application",
+      "cta": "Find the programme, then unlock",
+      "note": "You unlock from the application itself: open a programme, see the preview, press Unlock for {price}."
+    },
     "trust1": "Secure checkout by Stripe",
-    "trust2": "Cancel Pro any time",
-    "trust3": "Failed submissions never use a credit",
-    "trust4": "14-day refunds on unused purchases",
+    "trust2": "No subscription, no renewal",
+    "trust3": "Nothing is submitted without your tap",
+    "trust4": "Pay before signing up, if you like",
+    "how": {
+      "eyebrow": "How it works",
+      "title": "Three moments, one payment.",
+      "oneTitle": "Drop your résumé on a programme",
+      "oneBody": "Any listing has “Write my application”. In about two minutes you see the preview: your documents for that programme, drafted from your own files. Free, no account.",
+      "twoTitle": "Unlock when it is worth it",
+      "twoBody": "{price} once, by card. Claude then reads your résumé again in full and writes every document and answer for that posting, in about two minutes.",
+      "threeTitle": "Download, copy, submit",
+      "threeBody": "Word and PDF, every form answer ready to copy, and the submission by us where the form allows it or a step-by-step handoff where it doesn’t. Change anything as often as you like."
+    },
     "rules": {
       "eyebrow": "The rules",
-      "title": "How credits behave."
+      "title": "What is free, what is paid."
     },
     "compare": {
       "eyebrow": "Compare",
-      "title": "Free, packs or Pro.",
+      "title": "Free preview, one application or a season pass.",
       "feature": "What you get",
-      "free": "Free",
-      "packs": "Packs",
-      "pro": "Pro",
-      "rowCredits": "Credits",
-      "rowCore": "Profile, matching, previews and drafts",
+      "free": "Free preview",
+      "single": "One application",
+      "pass": "Season pass",
+      "rowPrice": "Price",
+      "priceFree": "$0",
+      "priceSingle": "{price} once",
+      "pricePass": "{price} for {days} days",
+      "rowApplications": "Applications",
+      "applicationsFree": "Previews of as many as you like",
+      "applicationsSingle": "The one you unlock",
+      "applicationsPass": "Every returnship that fits (up to {returnships}), or {startup} startup programmes",
+      "rowCore": "Profile, matching and ranked picks",
+      "rowPreview": "Documents drafted from your files, first lines readable",
+      "rowWritten": "Every document written in full with Claude",
+      "rowFiles": "Word and PDF downloads",
+      "rowAnswers": "Every form answer ready to copy",
+      "rowSubmit": "Submitted for you, or a step-by-step handoff",
+      "rowRevisions": "Revisions (“tell the AI what to change”)",
+      "revisionsUnlimited": "Unlimited",
+      "rowDeadlines": "Deadline reminders in the app",
       "rowPractice": "Practice applications",
-      "rowChannels": "Every channel: forms, Gmail outreach, handoffs",
-      "rowFollowUps": "Follow-ups",
-      "rowDigest": "Weekly brief in the app",
-      "rowRenewal": "Renewal",
-      "creditsFree": "{credits} to start ({days} days)",
-      "creditsPacks": "{small} or {large} ({days} days)",
-      "creditsPro": "{credits} a month (+{days} days)",
-      "followUpsTap": "Sent when you tap",
-      "followUpsAuto": "Automatic",
-      "renewalNone": "None",
-      "renewalPacks": "None, pay once",
-      "renewalPro": "Monthly, cancel any time",
+      "rowAccount": "Account needed",
+      "accountNone": "Not to pay; one email code to come back later",
+      "accountNeeded": "Yes: the pass lives on your account",
       "included": "Included",
-      "notIncluded": "Not included",
-      "rowDigestEmail": "Weekly brief by email",
-      "comingSoon": "Coming soon"
+      "notIncluded": "Not included"
     },
     "billing": {
       "eyebrow": "Paying",
       "title": "The money details.",
       "refundsTitle": "Refunds",
-      "refundsBody": "Within 14 days of a charge, if none of its credits were used, we refund it in full. Failed submissions never use a credit, so they need no refund.",
+      "refundsBody": "Within 14 days of a charge, if the application it unlocked was never downloaded or submitted, we refund it in full. Season passes: within 14 days if no application was unlocked with it.",
       "refundsLink": "Refund policy",
       "checkoutTitle": "Checkout and receipts",
       "checkoutBody": "Payments run on Stripe’s secure checkout; we never see your card number. Stripe emails your receipt. Prices are in US dollars.",
-      "changeTitle": "Cancelling and changing",
-      "changeBody": "Open Billing in your account to cancel or change your plan through Stripe’s portal. Credits you already have keep their expiry date, and nothing is charged after you cancel."
+      "changeTitle": "No subscription",
+      "changeBody": "Every payment is one-off: one application, or one 90-day season pass. Nothing renews, so there is nothing to cancel. Billing in your account lists every payment."
     },
     "faq": {
       "eyebrow": "Questions",
-      "title": "Before you buy."
+      "title": "Before you pay."
     },
     "cta": {
-      "title": "Not sure yet? <em>Start with what’s free.</em>",
-      "body": "Build your profile, see your matches and run a practice application. Your {credits} starter credits are there when the first real one is worth it."
+      "title": "Not sure yet? <em>The preview costs nothing.</em>",
+      "body": "Open a programme, drop your résumé and look at what comes back. {price} only when you want it written in full.",
+      "primary": "Find a programme"
+    },
+    "passes": {
+      "eyebrow": "Season pass",
+      "title": "One payment for a whole round",
+      "lede": "Going after one kind of programme this season? Pay once, unlock every application of that kind for 90 days, and it simply ends. No subscription to remember.",
+      "period": "once · {days} days",
+      "buy": "Get the {name}",
+      "note": "A pass only pays for applications of its own kind and is used before any other credit for them."
     }
   },
   "audience": {

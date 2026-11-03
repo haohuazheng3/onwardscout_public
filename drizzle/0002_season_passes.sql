@@ -1,0 +1,1 @@
+ALTER TABLE "credit_lots" ADD COLUMN "scope" text[] DEFAULT '{}'::text[] NOT NULL;

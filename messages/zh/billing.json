@@ -14,7 +14,7 @@
       "nonprod": "结账只在 onwardscout.com 上开放，不在这个测试站点上开放。",
       "has_plan": "你已经开通了 Pro。可以在「账单」中管理或取消。",
       "stale": "这次结账已过期。请再按一次按钮重新开始。",
-      "invalid": "请选择 Pro 或一个额度包后继续。",
+      "invalid": "请选择申请季通行证。单份申请在其申请页面内解锁。",
       "rate_limited": "连续结账次数太多。请等几分钟再试。",
       "failed": "没能打开结账页。请稍后再试。",
       "network": "无法连接服务器。请检查网络后重试。",
@@ -45,22 +45,25 @@
     "metaTitle": "账单",
     "loading": "账单加载中",
     "eyebrow": "账单",
-    "title": "额度与方案",
-    "description": "Stripe 会把收据发送到 {email}。付款一完成，额度就会立即出现在这里。",
+    "title": "账单",
+    "description": "Stripe 会把收据发到 {email}。付款完成的一刻，解锁和通行证就会显示在这里。",
     "stats": {
       "available": "可用",
-      "availableHintIdle": "你确认申请时保留额度，只有提交成功后才会消耗。",
+      "availableHintIdle": "额度用于解锁申请（每份 1 个），优先于刷卡付款。",
       "availableHintHeld": "{count, plural, one {# 个额度} other {# 个额度}}已为进行中的申请保留。",
+      "availablePlusPass": "任何申请都能用。另有{name}剩余 {count} 个。",
       "expiring": "即将到期",
       "expiringHint": "{count, plural, one {# 个额度} other {# 个额度}}将于 {date, date, long} 到期。",
       "expiringNone": "未来 {days} 天内没有额度到期。",
       "plan": "方案",
-      "planNone": "按需付费",
+      "planNone": "按申请付费",
       "planHintPro": "{price}/月 · 每月 {credits} 个额度",
-      "planHintNone": "试用额度和额度包。开通 Pro 每月再加 {credits} 个额度。"
+      "planHintNone": "{price} 解锁一份申请；申请季通行证覆盖一整轮。",
+      "planHintPass": "{types}剩余 {count} 个 · {date, date, long} 前有效",
+      "planHintPassOpen": "{types}剩余 {count} 个"
     },
-    "trialNote": "你正在使用免费试用额度，可用到 {date, date, long}；之后开通 Pro 或购买额度包，Scout 就能继续为你工作。",
-    "emptyNote": "你目前没有额度。档案、匹配、预览和草稿依然免费；购买额度包或开通 Pro 后，Onward Scout 就能替你提交。",
+    "trialNote": "你还有免费试用额度。每个可解锁一份申请，{date, date, long} 前有效。",
+    "emptyNote": "目前没有额度，也不需要：打开任何一份申请，一次 {price} 解锁，或购买申请季通行证包办一整轮。",
     "plan": {
       "titleActive": "Pro 已开通",
       "titleNone": "开通 Pro",
@@ -79,7 +82,7 @@
     },
     "lots": {
       "title": "你的额度",
-      "body": "每次赠送或购买都是一批独立的额度，有各自的到期日。申请会优先使用最早到期的那一批。",
+      "body": "每笔购买或赠送都是一个有独立到期日的额度批次；每个额度解锁一份申请。覆盖该申请的通行证优先使用，其次是最早到期的批次。",
       "empty": "还没有额度。",
       "added": "{date, date, medium} 添加",
       "expires": "{date, date, medium} 到期",
@@ -89,7 +92,7 @@
       "kind": {
         "trial": "免费试用",
         "subscription": "Pro 月度额度",
-        "pack": "额度包",
+        "pack": "额度包（已停售）",
         "adjust": "调整"
       },
       "state": {
@@ -97,11 +100,12 @@
         "revoked": "已撤销",
         "expired": "已过期",
         "usedUp": "已用完"
-      }
+      },
+      "pass": "申请季通行证 · {types}"
     },
     "activity": {
       "title": "最近的额度变动",
-      "empty": "还没有变动。你确认申请时，额度才会变动。",
+      "empty": "还没有记录。用额度解锁申请时，这里会出现变动。",
       "forApplication": "用于 {name}",
       "anApplication": "一份申请",
       "kind": {
@@ -114,9 +118,10 @@
     },
     "orders": {
       "title": "订单记录",
-      "empty": "还没有订单。免费试用额度是赠送的，不算订单。",
+      "empty": "还没有订单。",
       "ref": "编号 {ref}",
       "code": "优惠码 {code}",
+      "promo": "已使用优惠码",
       "monthly": "{name}，按月",
       "status": {
         "paid": "已付款",
@@ -127,6 +132,16 @@
     },
     "rules": {
       "title": "额度如何运作"
+    },
+    "passes": {
+      "title": "申请季通行证",
+      "body": "一次付费，包办一类项目的一整轮申请，90 天内有效。这一类的每份申请用通行证的 1 个额度解锁。"
+    },
+    "unlock": {
+      "title": "每份申请 {price} 解锁",
+      "body": "每份申请都从免费预览开始。打开一份，点“{price} 解锁”：Claude 完整写成，开放下载和一键复制的回答，并可提交。通行证覆盖时优先用通行证额度。",
+      "ctaApplications": "打开我的申请",
+      "ctaScout": "找一个项目"
     }
   },
   "success": {
@@ -139,6 +154,8 @@
     "paidTag": "已付款 · 编号 {ref}",
     "titlePlan": "Pro 已开通。",
     "titlePack": "额度已到账。",
+    "titlePass": "你的{name}已生效。",
+    "bodyPass": "可申请 {credits} 个{types}，{date, date, long} 前有效。申请这类项目时优先用通行证，其他额度留给别的申请。",
     "bodyPlan": "{credits} 个额度现在就能用，之后每个计费月开始时还会再到账 {credits} 个。自动跟进和每周简报已开启。",
     "bodyPack": "{name}{credits, plural, one {已} other {已}}到账，可用于你的下一份申请。",
     "added": "已添加的额度",
@@ -146,7 +163,12 @@
     "balance": "当前余额",
     "balanceHintIdle": "可用于你的下一份申请。",
     "balanceHintHeld": "{count, plural, one {# 个额度} other {# 个额度}}已为进行中的申请保留。",
+    "passLeft": "通行证额度",
+    "passLeftHint": "仅限{types} · {date, date, long} 前有效",
+    "general": "其他额度",
+    "generalHint": "任何申请都能用。",
     "ctaScout": "寻找机会",
+    "ctaPass": "查看开放中的{types}",
     "ctaHome": "前往主页",
     "ctaBilling": "查看账单",
     "paid": "已支付 {amount}。",
@@ -180,6 +202,10 @@
     "reinstatedTitle": "额度已恢复",
     "reinstatedBody": "争议已按有利于你的结果结束：{count, plural, =0 {你的购买已结清} one {# 个额度已回到你的余额} other {# 个额度已回到你的余额}}。",
     "paymentFailedTitle": "你的 Pro 付款没有成功",
-    "paymentFailedBody": "Stripe 会在接下来几天重试扣款。请在「账单」中更新银行卡，以便继续按月获得额度。"
+    "paymentFailedBody": "Stripe 会在接下来几天重试扣款。请在「账单」中更新银行卡，以便继续按月获得额度。",
+    "passTitle": "{name}已生效",
+    "passBody": "你的申请季通行证已到账，{date, date, long} 前可用于对应类型的申请，并优先于其他额度使用。",
+    "singleTitle": "你的申请已解锁",
+    "singleBody": "已收到付款。Claude 正在完整写成；打开即可下载、复制并提交。"
   }
 }

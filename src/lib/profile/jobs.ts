@@ -194,9 +194,10 @@ async function extractProfileJob(ctx: JobContext): Promise<JobResult> {
   try {
     const docs = await db.select().from(documents).where(eq(documents.userId, ownerId));
     const parsed = docs.filter((d) => d.status === "parsed" && !d.extraction?.meta?.skipped);
-    // Anonymous drafts are budgeted under their own id (a small per-draft and a global daily
-    // allowance, see llm/index.ts); a draft past its daily extraction count runs locally.
-    const ai = getIntelligence({ userId: ownerId, ...(ctx.payload.local === true ? { provider: "local" as const } : {}) });
+    // Claude only when this read is the one an unlocked application paid for (its id travels in
+    // the payload, see llm/index.ts); every other read runs on the local engine.
+    const applicationId = typeof ctx.payload.applicationId === "string" ? ctx.payload.applicationId : null;
+    const ai = getIntelligence({ userId: ownerId, applicationId, ...(ctx.payload.local === true ? { provider: "local" as const } : {}) });
     const input: ExtractDocument[] = [];
     for (const d of parsed) {
       const item: ExtractDocument = { id: d.id, kind: d.kind, filename: d.filename ?? "document", text: d.extractedText ?? "", sourceUrl: d.sourceUrl };

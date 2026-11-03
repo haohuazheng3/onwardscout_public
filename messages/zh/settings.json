@@ -98,7 +98,8 @@
       "new_matches": "新精选",
       "digest": "每周简报",
       "billing": "账单",
-      "system": "Onward Scout"
+      "system": "Onward Scout",
+      "deadline": "截止提醒"
     }
   },
   "digest": {

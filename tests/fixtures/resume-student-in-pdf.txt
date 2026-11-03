@@ -1,0 +1,36 @@
+Priya Raman
+Chennai, India · priya.raman.dev@example.com · +91 98400 12345 · github.com/priyaraman-dev ·
+linkedin.com/in/priyaraman-dev
+SUMMARY
+Third-year computer science student who builds full-stack web apps and small machine-learning
+tools. Two hackathon builds shipped, one top-3 finish. Looking for hackathons and summer
+internships in software engineering.
+EDUCATION
+B.E. Computer Science and Engineering, College of Engineering Guindy, Anna
+University
+2023 –
+2027
+CGPA 8.7 / 10 · Coursework: Data Structures, Operating Systems, Machine Learning, Database
+Systems
+EXPERIENCE
+Software Engineering Intern, Zoho Corporation, Chennai  May 2025 – Jul 2025
+Built a React dashboard for internal ticket analytics used by a 40-person support team.
+Wrote REST endpoints in Java and cut the report load time from 9 s to 2 s by adding caching.
+Teaching Assistant, Programming in Python, CEG  Jan 2025 – Apr 2025
+Ran weekly lab sessions for 60 first-year students and graded assignments.
+PROJECTS
+KrishiAlert — crop disease alerts over WhatsApp  2025
+Python + FastAPI service that classifies leaf photos with a fine-tuned MobileNet (91% accuracy
+on PlantVillage) and replies in Tamil.
+Built in 36 hours at Smart India Hackathon 2025 internal round with a team of four; I led the
+backend.
+BusBuddy — live bus arrival tracker  2024
+Next.js and Firebase app showing crowd-reported arrival times for MTC buses; 300 weekly
+users on campus.
+AWARDS
+2nd place, CEG Tech Forum Code Sprint 2024
+Smart India Hackathon 2025 — internal round winner
+SKILLS
+Python, JavaScript, TypeScript, Java, React, Next.js, FastAPI, PostgreSQL, Firebase, PyTorch, Git,
+Docker
+Languages: English (fluent), Tamil (native), Hindi (conversational)

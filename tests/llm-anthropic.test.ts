@@ -1,7 +1,8 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { AnthropicIntelligence, stableJson, type AnthropicLike } from "@/lib/llm/provider-anthropic";
+import { AnthropicIntelligence, jsonText, stableJson, type AnthropicLike } from "@/lib/llm/provider-anthropic";
 import { localExtractProfile } from "@/lib/llm/local/extract";
 import { LlmError, emptyIR, type UsageReport } from "@/lib/llm/types";
 
@@ -108,10 +109,43 @@ describe("request shape", () => {
     expect(content.some((b) => b.type === "document" && b.source?.media_type === "application/pdf")).toBe(true);
     expect(content.some((b) => b.type === "text" && String(b.text).startsWith('<document id="doc_en"'))).toBe(true);
     expect(req(calls[0]).output_config.effort).toBe("medium");
+    // The IR is too large for a compiled grammar: its schema rides in the system prompt instead.
+    expect((req(calls[0]).output_config as { format?: unknown }).format).toBeUndefined();
+    expect(String((req(calls[0]) as unknown as { system: Array<{ text: string }> }).system[0].text)).toContain("<json_schema>");
     expect(out.profile.identity.name).toBe("Avery Quinn");
     expect(out.facts[0]).toMatchObject({ path: "/identity/name", sourceDocId: "doc_en", confidence: 0.9 });
     expect(out.profile.roles[0]).toMatchObject({ code: "E3", inferred: true });
     expect(out.gaps).toEqual(["Where do you want to work?"]);
+  });
+
+  it("economy tier: the profile is read on Haiku 5.5 and drafts are written at medium effort", async () => {
+    const ir = emptyIR();
+    const { client, calls } = fakeClient((params) =>
+      params.model === "claude-haiku-5-5"
+        ? { ...message({ ir, identities: [], gaps: [] }), model: "claude-haiku-5-5" }
+        : message({ title: "t", blocks: [{ type: "paragraph", role: "body", label: null, text: "I build things.", factIds: ["fct_1"] }], gaps: [], notes: [] }),
+    );
+    const intel = new AnthropicIntelligence(client);
+    await intel.extractProfile({ documents: [{ id: "doc_en", kind: "resume", filename: "r.txt", text: fx("resume-en.txt") }], locale: "en" }, { tier: "economy" });
+    await intel.compose({ kind: "bio", profile: {}, facts: [{ id: "fct_1", path: "/identity/name", claim: "Name: Kai" }], language: "en" }, { tier: "economy" });
+    expect(req(calls[0]).model).toBe("claude-haiku-5-5");
+    expect(req(calls[0]).fallbacks).toBeUndefined();
+    expect(req(calls[1]).model).toBe("claude-opus-5-5");
+    expect(req(calls[1]).output_config.effort).toBe("medium");
+  });
+
+  it("an account that cannot be used (credit balance spent) is reported as unavailable, other API errors as api", async () => {
+    const credit = Anthropic.APIError.generate(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, undefined, new Headers());
+    const other = Anthropic.APIError.generate(400, { type: "error", error: { type: "invalid_request_error", message: "messages: field required" } }, undefined, new Headers());
+    const throwing = (err: unknown): AnthropicLike => ({ beta: { messages: { stream: () => ({ finalMessage: async () => Promise.reject(err) }) } } });
+    await expect(new AnthropicIntelligence(throwing(credit)).classifyReply({ text: "hi" })).rejects.toMatchObject({ code: "unavailable" });
+    await expect(new AnthropicIntelligence(throwing(other)).classifyReply({ text: "hi" })).rejects.toMatchObject({ code: "api" });
+  });
+
+  it("reads the JSON of a prompt-format reply even inside a fence or a sentence", () => {
+    expect(jsonText('{"a":1}')).toBe('{"a":1}');
+    expect(jsonText('```json\n{"a":1}\n```')).toBe('{"a":1}');
+    expect(jsonText('Here it is:\n{"a":{"b":2}}\nDone.')).toBe('{"a":{"b":2}}');
   });
 
   it("stable JSON sorts keys so the cached prefix is byte-identical", () => {

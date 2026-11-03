@@ -13,13 +13,16 @@ import { routing, type Locale } from "@/i18n/routing";
 import { orderOwner } from "@/lib/account";
 import { checkoutRef, grantFromCheckoutSession, isCheckoutSessionId } from "@/lib/billing";
 import { getBalance } from "@/lib/credits";
+import { countryOfLocation } from "@/lib/llm/local/geo";
+import { countOpenInCountry } from "@/lib/opportunities/queries";
+import { getProfile } from "@/lib/profile";
 import { captureError } from "@/lib/errors";
 import { shortRef } from "@/lib/ids";
 import { rateLimit } from "@/lib/ratelimit";
 import { SITE } from "@/lib/site";
 import { stripe } from "@/lib/stripe";
 import { requireUser } from "@/lib/user";
-import { isPlanSku, OFFERS, offerName } from "@/content/plans";
+import { isPassSku, isPlanSku, OFFERS, offerName, passForScope } from "@/content/plans";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -69,6 +72,19 @@ const mailTag = (chunks: ReactNode) => (
     {chunks}
   </a>
 );
+
+/** The pass's programmes in the person's own country first, when there are any there. */
+async function nearbyFirst(userId: string, path: string, types: readonly string[]): Promise<string> {
+  try {
+    const profile = await getProfile(userId);
+    const id = profile?.identity;
+    const country = id?.countryCode ?? (id?.location ? countryOfLocation(id.location) : null);
+    if (country && (await countOpenInCountry(types, country.toUpperCase())) > 0) return `${path}&country=${country.toUpperCase()}`;
+  } catch (err) {
+    await captureError(err, { route: "/checkout/success (nearby)", severity: "warn" });
+  }
+  return path;
+}
 
 /**
  * Primary grant path: verify the Checkout Session with Stripe right here, add the credits on the
@@ -205,7 +221,12 @@ export default async function CheckoutSuccessPage({
   const balance = await getBalance(userId);
   const offer = OFFERS[grant.sku];
   const plan = isPlanSku(grant.sku);
+  const pass = isPassSku(grant.sku);
   const name = offerName(grant.sku, locale);
+  const types = offer.scopeLabel?.[locale] ?? "";
+  // This pass's credits (every lot of it, a second purchase included), apart from the general ones.
+  const passLeft = pass ? (balance.passes.find((p) => passForScope(p.scope) === grant.sku)?.remaining ?? grant.credits) : 0;
+  const browse = pass && offer.browsePath ? await nearbyFirst(userId, offer.browsePath, offer.scope ?? []) : "/app/scout";
   const paid =
     grant.amountTotal > 0
       ? t("paid", { amount: format.number(grant.amountTotal / 100, { style: "currency", currency: grant.currency.toUpperCase() }) })
@@ -218,24 +239,40 @@ export default async function CheckoutSuccessPage({
         <Tag tone="ok" dot>
           {t("paidTag", { ref: grant.orderId ? shortRef(grant.orderId) : ref })}
         </Tag>
-        <h1 className="display mt-4 text-[2.2rem] text-ink sm:text-[2.7rem]">{plan ? t("titlePlan") : t("titlePack")}</h1>
+        <h1 className="display mt-4 text-[2.2rem] text-ink sm:text-[2.7rem]">{plan ? t("titlePlan") : pass ? t("titlePass", { name }) : t("titlePack")}</h1>
         <p className="mt-3 max-w-xl text-[1.02rem] leading-relaxed text-ink-3">
-          {plan ? t("bodyPlan", { credits: offer.credits }) : t("bodyPack", { name, credits: offer.credits })}
+          {plan
+            ? t("bodyPlan", { credits: offer.credits })
+            : pass
+              ? t("bodyPass", { credits: offer.credits, types, date: grant.expiresAt })
+              : t("bodyPack", { name, credits: offer.credits })}
         </p>
 
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-          <StatPane label={t("added")} value={grant.credits} tone="accent" hint={t("addedHint", { date: grant.expiresAt })} />
-          <StatPane
-            label={t("balance")}
-            value={balance.available}
-            tone="pine"
-            hint={balance.reserved > 0 ? t("balanceHintHeld", { count: balance.reserved }) : t("balanceHintIdle")}
-          />
-        </div>
+        {pass ? (
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+            <StatPane label={t("passLeft")} value={passLeft} tone="accent" hint={t("passLeftHint", { types, date: grant.expiresAt })} />
+            <StatPane
+              label={t("general")}
+              value={balance.general}
+              tone="pine"
+              hint={balance.reserved > 0 ? t("balanceHintHeld", { count: balance.reserved }) : t("generalHint")}
+            />
+          </div>
+        ) : (
+          <div className="mt-7 grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
+            <StatPane label={t("added")} value={grant.credits} tone="accent" hint={t("addedHint", { date: grant.expiresAt })} />
+            <StatPane
+              label={t("balance")}
+              value={balance.general}
+              tone="pine"
+              hint={balance.reserved > 0 ? t("balanceHintHeld", { count: balance.reserved }) : t("balanceHintIdle")}
+            />
+          </div>
+        )}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/app/scout" variant="primary" size="lg" prefetch={false}>
-            {t("ctaScout")}
+          <ButtonLink href={browse} variant="primary" size="lg" prefetch={false}>
+            {pass ? t("ctaPass", { types }) : t("ctaScout")}
           </ButtonLink>
           {homeLink()}
         </div>

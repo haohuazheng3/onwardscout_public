@@ -1,19 +1,17 @@
 "use client";
 
-import { Check, FileUp, PenLine, RefreshCw } from "lucide-react";
+import { Check, PenLine, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
-import { Button, Chip, Pane, Progress, Tag, Textarea, Input, cx } from "@/components/ui";
-import { toast } from "@/components/ui-client";
+import { useEffect, useRef, useState } from "react";
+import { Button, Chip, Pane, Tag, Textarea, Input, cx } from "@/components/ui";
 import type { ApplicationQuestion } from "@/lib/core/types";
-import { call, putFile, RequestError, uploadType } from "./api";
 import type { RoomApi } from "./useApplication";
 
 /*
  * "Needs you": the gap questions, at most three at a time (plan §1 principle 2). Choices are
  * chips that answer on press; motivation is a pick of reasons (or one sentence of their own);
- * text appears only when unavoidable, with the draft from the profile to keep, edit or rewrite;
- * files upload straight to storage with a signed link.
+ * text appears only when unavoidable, with the draft from the profile to keep, edit or rewrite.
+ * Files are not questions: they wait in the files pane (FilesPane) and never hold the drafts back.
  */
 
 const PAGE = 3;
@@ -26,8 +24,6 @@ function WrapChip({ selected, onClick, children, busy }: { selected: boolean; on
     </button>
   );
 }
-
-const MATERIAL_KIND: Record<string, string> = { transcript: "transcript", license: "license", certificate: "certificate", paper: "paper", portfolio: "portfolio", work_samples: "portfolio", pitch_deck: "deck", business_plan: "business_plan", resume: "resume", cv: "cv" };
 
 function ChoiceQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
   const t = useTranslations("applications.questions");
@@ -70,15 +66,42 @@ function ChoiceQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) 
   );
 }
 
+/** How long picked reasons wait for a second or third tap before they save by themselves. */
+const MULTI_AUTOSAVE_MS = 3000;
+
 function MultiQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
   const t = useTranslations("applications.questions");
   const [picked, setPicked] = useState<string[]>([]);
   const [own, setOwn] = useState<string | null>(null);
+  const sending = useRef(false);
   const toggle = (v: string) => setPicked((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : cur.length >= 3 ? cur : [...cur, v]));
   const submit = async () => {
+    if (sending.current) return;
+    sending.current = true;
     const r = await room.answer(q, { value: picked, custom: own?.trim() || null });
-    if (!r) return;
+    if (!r) sending.current = false;
   };
+  // The room re-renders while it polls; the timer below must not restart with every render.
+  const latest = useRef(submit);
+  useEffect(() => {
+    latest.current = submit;
+  });
+  // A tap is an answer, as with the one-choice questions: picks save by themselves a moment after
+  // the last one, and at once when the person leaves the page (2026-11-03: a returner tapped a
+  // reason twice, never pressed "Use this reason", went to the official site and the question
+  // stayed open). Writing their own sentence waits for the button.
+  useEffect(() => {
+    if (!picked.length || own !== null) return;
+    const timer = setTimeout(() => void latest.current(), MULTI_AUTOSAVE_MS);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") void latest.current();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [picked, own]);
   return (
     <div className="grid gap-3">
       <p className="text-[0.86rem] text-ink-3">{t("pickUpTo")}</p>
@@ -93,8 +116,13 @@ function MultiQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
         </Chip>
       </div>
       {own !== null ? <Textarea autoFocus rows={3} value={own} onChange={(e) => setOwn(e.target.value)} placeholder={t("ownPlaceholder")} aria-label={q.prompt} /> : null}
+      {picked.length && own === null ? (
+        <p className="text-[0.86rem] text-ink-3" aria-live="polite">
+          {t("autoSave")}
+        </p>
+      ) : null}
       <div>
-        <Button size="sm" onClick={submit} loading={room.busy === `answer:${q.id}`} disabled={!picked.length && !own?.trim()} icon={<Check size={15} aria-hidden />}>
+        <Button size="sm" onClick={() => void submit()} loading={room.busy === `answer:${q.id}`} disabled={!picked.length && !own?.trim()} icon={<Check size={15} aria-hidden />}>
           {t("useThese", { count: Math.max(1, picked.length) })}
         </Button>
       </div>
@@ -162,59 +190,6 @@ function TextQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
   );
 }
 
-function FileQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
-  const t = useTranslations("applications.questions");
-  const input = useRef<HTMLInputElement>(null);
-  const [progress, setProgress] = useState<number | null>(null);
-  const [name, setName] = useState<string | null>(null);
-  const material = (q.fieldName ?? q.id).replace(/^material:/, "");
-  const pick = async (file: File) => {
-    const contentType = uploadType(file);
-    if (!contentType) {
-      toast.error(t("fileHint"));
-      return;
-    }
-    setName(file.name);
-    setProgress(0);
-    try {
-      const signed = await call<{ key: string; uploadUrl: string }>(`/api/applications/${room.view.id}/upload`, { json: { purpose: "answer", filename: file.name, contentType, bytes: file.size } }, room.msgs);
-      await putFile(signed.uploadUrl, file, contentType, setProgress);
-      setProgress(1);
-      const r = await room.answer(q, { file: { key: signed.key, filename: file.name, contentType, kind: MATERIAL_KIND[material] ?? "other" } });
-      if (!r) setProgress(null);
-    } catch (err) {
-      setProgress(null);
-      setName(null);
-      toast.error(t("uploadFailed"), { body: err instanceof RequestError && err.status >= 400 && err.status < 500 && !err.message.startsWith("upload ") ? err.message : undefined });
-    }
-  };
-  return (
-    <div className="grid gap-2">
-      <input
-        ref={input}
-        type="file"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        accept=".pdf,.doc,.docx,.pptx,.png,.jpg,.jpeg,.txt,.zip,.mp4"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void pick(f);
-          e.target.value = "";
-        }}
-      />
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" variant="ghost" icon={<FileUp size={15} aria-hidden />} onClick={() => input.current?.click()} loading={progress !== null && progress < 1}>
-          {t("upload")}
-        </Button>
-        <span className="text-[0.84rem] text-ink-4">{t("fileHint")}</span>
-      </div>
-      {progress !== null ? <Progress value={Math.round(progress * 100)} label={progress < 1 ? t("uploading", { percent: Math.round(progress * 100) }) : t("uploaded", { name: name ?? "" })} showValue={false} /> : null}
-      {progress !== null ? <p className="text-[0.84rem] text-ink-3">{progress < 1 ? t("uploading", { percent: Math.round(progress * 100) }) : t("uploaded", { name: name ?? "" })}</p> : null}
-    </div>
-  );
-}
-
 function ConfirmQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi }) {
   const t = useTranslations("applications.questions");
   const [on, setOn] = useState(false);
@@ -236,8 +211,9 @@ function ConfirmQuestion({ q, room }: { q: ApplicationQuestion; room: RoomApi })
 export function NeedsYouPane({ room }: { room: RoomApi }) {
   const t = useTranslations("applications.questions");
   const [skipped, setSkipped] = useState<string[]>([]);
-  const all = room.view.questions;
-  const open = all.filter((q) => !skipped.includes(q.id));
+  const all = room.view.questions.filter((q) => q.kind !== "file");
+  // What the drafts need first; optional questions after them.
+  const open = all.filter((q) => !skipped.includes(q.id)).sort((a, b) => Number(a.required === false) - Number(b.required === false));
   const [initialTotal] = useState(() => Math.max(all.length, 1));
   const total = Math.max(initialTotal, all.length);
   if (!open.length) {
@@ -275,7 +251,6 @@ export function NeedsYouPane({ room }: { room: RoomApi }) {
               {q.kind === "choice" ? <ChoiceQuestion q={q} room={room} /> : null}
               {q.kind === "multi" ? <MultiQuestion q={q} room={room} /> : null}
               {q.kind === "text" ? <TextQuestion q={q} room={room} /> : null}
-              {q.kind === "file" ? <FileQuestion q={q} room={room} /> : null}
               {q.kind === "confirm" ? <ConfirmQuestion q={q} room={room} /> : null}
             </div>
             {q.required === false ? (

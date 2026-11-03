@@ -13,8 +13,8 @@ import { signInPath, withLocale } from "@/lib/site";
  * "Apply for me": pressed state at once, POST /api/applications, then straight to the
  * application page (its skeleton renders while it loads). Failure rolls back with a toast;
  * when credits run out the toast offers the billing page. An existing application opens instead.
- * A visitor without an account (the dashboard works signed out) is taken to save their scout
- * with their email first; back on the dashboard the draft is claimed and they apply from there.
+ * A visitor without an account (the dashboard works signed out) goes to /app/apply/<id>: the
+ * materials are drafted from their draft profile at once, and sign-in comes when they save.
  */
 export function ApplyButton({
   opportunityId,
@@ -67,8 +67,10 @@ export function ApplyButton({
       });
       status = res.status;
       if (status === 401) {
-        window.location.assign(signInPath(locale, withLocale(locale, "/app")));
-        return; // stays pressed while the sign-in page loads
+        // A visitor without an account gets this opportunity drafted at once (sign-in comes when they
+        // save); the practice run is for accounts only.
+        window.location.assign(practice ? signInPath(locale, withLocale(locale, "/app")) : withLocale(locale, `/app/apply/${opportunityId}`));
+        return; // stays pressed while the next page loads
       }
       const data = (await res.json().catch(() => null)) as { applicationId?: string; error?: string; code?: string } | null;
       if (!res.ok || !data?.applicationId) {

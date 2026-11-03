@@ -64,3 +64,28 @@ describe("object keys", () => {
     expect(() => userPrefixes("")).toThrow();
   });
 });
+
+describe("headObject (server-to-server object size)", () => {
+  it("asks for an uncompressed answer and measures the object when the length is missing", async () => {
+    process.env.FILES_API_TOKEN = "test-token";
+    const { headObject } = await import("@/lib/files");
+    const calls: { method: string; encoding: string | null }[] = [];
+    const realFetch = globalThis.fetch;
+    // Cloudflare compresses a text/* answer (even to a HEAD) and drops Content-Length.
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      calls.push({ method: init?.method ?? "GET", encoding: headers.get("accept-encoding") });
+      if ((init?.method ?? "GET") === "HEAD") return new Response(null, { status: 200, headers: { "content-type": "text/plain" } });
+      return new Response("x".repeat(680), { status: 200, headers: { "content-type": "text/plain" } });
+    }) as typeof fetch;
+    try {
+      expect(await headObject("docs/anon_x/doc_1.txt")).toEqual({ bytes: 680, contentType: "text/plain" });
+      expect(calls).toEqual([
+        { method: "HEAD", encoding: "identity" },
+        { method: "GET", encoding: "identity" },
+      ]);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+});

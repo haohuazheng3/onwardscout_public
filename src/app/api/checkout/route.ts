@@ -9,7 +9,7 @@ import { CHECKOUT_BRAND, checkoutMetadata, paymentsEnabled, priceIdFor, statemen
 import { ensureUser, isResponse, requireUserApi } from "@/lib/user";
 import { isAdminEmail } from "@/lib/env";
 import { localizePath } from "@/i18n/paths";
-import { OFFERS, SKUS } from "@/content/plans";
+import { isPublicSku, OFFERS, SKUS } from "@/content/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,9 +50,11 @@ export async function POST(req: Request) {
     if (!byIp.ok) return tooMany(byIp);
 
     const parsed = Body.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) return fail("invalid", "Pick Pro or a credit pack to continue.", 400);
+    if (!parsed.success) return fail("invalid", "Pick a season pass to continue.", 400);
     const { nonce, locale, from } = parsed.data;
     const sku = parsed.data.sku as (typeof SKUS)[number];
+    // Pro and the packs are no longer sold (2026-11-03); one application is unlocked from its own page.
+    if (!isPublicSku(sku) || sku === "single") return fail("invalid", sku === "single" ? "Unlock an application from its own page." : "That option is no longer sold. A season pass covers a whole round.", 400);
     const offer = OFFERS[sku];
 
     const payments = paymentsEnabled(sku, { adminTester: isAdminEmail(session.email) });

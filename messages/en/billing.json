@@ -14,7 +14,7 @@
       "nonprod": "Checkout only opens on onwardscout.com, not on this test site.",
       "has_plan": "You already have Pro. Manage or cancel it from Billing.",
       "stale": "That checkout attempt expired. Press the button again to start a fresh one.",
-      "invalid": "Pick Pro or a credit pack to continue.",
+      "invalid": "Pick a season pass to continue. One application is unlocked from its own page.",
       "rate_limited": "Too many checkout attempts in a row. Wait a few minutes, then try again.",
       "failed": "We couldn’t open checkout. Please try again in a moment.",
       "network": "We couldn’t reach the server. Check your connection and try again.",
@@ -45,22 +45,25 @@
     "metaTitle": "Billing",
     "loading": "Loading billing",
     "eyebrow": "Billing",
-    "title": "Credits and plan",
-    "description": "Stripe emails receipts to {email}. Credits show up here the moment a payment completes.",
+    "title": "Billing",
+    "description": "Stripe emails receipts to {email}. Unlocks and passes show up here the moment a payment completes.",
     "stats": {
       "available": "Available",
-      "availableHintIdle": "Reserved when you confirm an application, spent only once it is submitted.",
+      "availableHintIdle": "Credits unlock applications (one each) before any card payment.",
       "availableHintHeld": "{count, plural, one {# credit held} other {# credits held}} for applications in progress.",
+      "availablePlusPass": "For any application. Plus {count} on your {name}.",
       "expiring": "Expiring soon",
       "expiringHint": "{count, plural, one {# credit expires} other {# credits expire}} on {date, date, long}.",
       "expiringNone": "Nothing expires in the next {days} days.",
       "plan": "Plan",
-      "planNone": "Pay as you go",
+      "planNone": "Pay per application",
       "planHintPro": "{price}/month · {credits} credits each month",
-      "planHintNone": "Trial and pack credits. Pro adds {credits} credits every month."
+      "planHintNone": "{price} unlocks one application; a season pass covers a whole round.",
+      "planHintPass": "{count} left for {types} · until {date, date, long}",
+      "planHintPassOpen": "{count} left for {types}"
     },
-    "trialNote": "You’re using your free trial credits. They stay usable until {date, date, long}; Pro or a pack keeps your scout going after that.",
-    "emptyNote": "You have no credits right now. Profile, matching, previews and drafts stay free; a pack or Pro lets Onward Scout submit for you.",
+    "trialNote": "You still have free trial credits. Each one unlocks an application; they stay usable until {date, date, long}.",
+    "emptyNote": "No credits right now, and none are needed: open any application and unlock it for {price} once, or get a season pass for a whole round.",
     "plan": {
       "titleActive": "Pro is active",
       "titleNone": "Go Pro",
@@ -79,7 +82,7 @@
     },
     "lots": {
       "title": "Your credits",
-      "body": "Each grant or purchase is a lot with its own expiry. Applications draw from the lot that expires first.",
+      "body": "Each purchase or grant is a lot with its own expiry; each credit unlocks one application. A season pass that covers an application is used first, then the lot that expires first.",
       "empty": "No credits yet.",
       "added": "Added {date, date, medium}",
       "expires": "expires {date, date, medium}",
@@ -89,7 +92,7 @@
       "kind": {
         "trial": "Free trial",
         "subscription": "Pro month",
-        "pack": "Credit pack",
+        "pack": "Credit pack (no longer sold)",
         "adjust": "Adjustment"
       },
       "state": {
@@ -97,11 +100,12 @@
         "revoked": "Revoked",
         "expired": "Expired",
         "usedUp": "Used up"
-      }
+      },
+      "pass": "Season pass · {types}"
     },
     "activity": {
       "title": "Recent credit activity",
-      "empty": "No activity yet. Credits move when you confirm an application.",
+      "empty": "No activity yet. Credits move when you unlock an application with one.",
       "forApplication": "for {name}",
       "anApplication": "an application",
       "kind": {
@@ -114,9 +118,10 @@
     },
     "orders": {
       "title": "Order history",
-      "empty": "No orders yet. Your free trial credits are a gift, not an order.",
+      "empty": "No orders yet.",
       "ref": "Ref {ref}",
       "code": "code {code}",
+      "promo": "promo code applied",
       "monthly": "{name}, monthly",
       "status": {
         "paid": "Paid",
@@ -127,6 +132,16 @@
     },
     "rules": {
       "title": "How credits work"
+    },
+    "passes": {
+      "title": "Season passes",
+      "body": "One payment for a whole round of one kind of programme, valid 90 days. Each application of that kind is unlocked with one of its credits."
+    },
+    "unlock": {
+      "title": "Unlock applications for {price} each",
+      "body": "Every application starts as a free preview. Open one and press “Unlock for {price}”: Claude writes it in full, downloads and copy-ready answers open, and you can submit. Credits from a pass pay first when they cover it.",
+      "ctaApplications": "Open your applications",
+      "ctaScout": "Find a programme"
     }
   },
   "success": {
@@ -139,6 +154,8 @@
     "paidTag": "Paid · ref {ref}",
     "titlePlan": "Pro is live.",
     "titlePack": "Credits are in.",
+    "titlePass": "Your {name} is active.",
+    "bodyPass": "{credits} applications to {types}, usable until {date, date, long}. Whenever you apply to one, the pass pays first, so your other credits stay free for everything else.",
     "bodyPlan": "{credits} credits are ready now, and {credits} more arrive at the start of every billing month. Automatic follow-ups and the weekly brief are on.",
     "bodyPack": "{name} {credits, plural, one {is} other {are}} in your account, ready for your next application.",
     "added": "Credits added",
@@ -146,7 +163,12 @@
     "balance": "Balance now",
     "balanceHintIdle": "Ready for your next application.",
     "balanceHintHeld": "{count, plural, one {# credit held} other {# credits held}} for applications in progress.",
+    "passLeft": "Pass credits",
+    "passLeftHint": "For {types} only · until {date, date, long}",
+    "general": "Other credits",
+    "generalHint": "For any application.",
     "ctaScout": "Find opportunities",
+    "ctaPass": "See open {types}",
     "ctaHome": "Go to your home",
     "ctaBilling": "See billing",
     "paid": "{amount} paid.",
@@ -180,6 +202,10 @@
     "reinstatedTitle": "Credits restored",
     "reinstatedBody": "The dispute closed in your favour: {count, plural, =0 {your purchase is settled} one {# credit is back in your balance} other {# credits are back in your balance}}.",
     "paymentFailedTitle": "Your Pro payment didn’t go through",
-    "paymentFailedBody": "Stripe will retry the card over the next few days. Update it from Billing to keep your monthly credits coming."
+    "paymentFailedBody": "Stripe will retry the card over the next few days. Update it from Billing to keep your monthly credits coming.",
+    "passTitle": "{name} is active",
+    "passBody": "Your season pass is in. It pays for applications of its kind until {date, date, long}, and is used before your other credits for them.",
+    "singleTitle": "Your application is unlocked",
+    "singleBody": "Payment received. Claude is writing it in full now; open it to download, copy and submit."
   }
 }

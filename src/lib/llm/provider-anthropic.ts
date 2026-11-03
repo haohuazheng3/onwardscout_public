@@ -5,7 +5,8 @@ import { z } from "zod";
 import { buildProfile } from "./build";
 import { localExtractProfile, profileGaps } from "./local/extract";
 import { fieldKey, localPlanBrowserStep } from "./local/forms";
-import { inferIdentities, rolesFromGuesses } from "./local/identity";
+import { IDENTITIES } from "@/lib/core/identities";
+import { inferIdentities, preferExplicitCues, rolesFromGuesses } from "./local/identity";
 import { localScoreMatches } from "./local/match";
 import { finishPlan, personFacts } from "./local/directions";
 import { countWords } from "./local/text";
@@ -21,6 +22,7 @@ import {
   FieldMapping,
   GapAction,
   IdentityGuess,
+  Language,
   LifePath,
   LlmError,
   MapFormFieldsInput,
@@ -31,7 +33,9 @@ import {
   QuestionAnswer,
   RecommendDirectionsInput,
   ReplyClassification,
+  ReviseDocumentInput,
   ScoreMatchesInput,
+  noteId,
   readProfile,
   type CallContext,
   type ComposedDocument,
@@ -39,6 +43,7 @@ import {
   type ExtractProfileOutput,
   type Intelligence,
   type Purpose,
+  type RevisedDocument,
 } from "./types";
 import { GENERATED_BLOCK_TYPES } from "@/lib/core/types";
 
@@ -50,7 +55,9 @@ import { GENERATED_BLOCK_TYPES } from "@/lib/core/types";
  *  - Thinking is adaptive (Opus 5.5 can't disable it); depth is set with an explicit
  *    `output_config.effort` per purpose: high for compose/agent steps, low for classify.
  *  - Structured outputs via `output_config.format` (JSON schema from zod); no prefill, no
- *    forced tool_choice. The response is validated again with zod after parsing.
+ *    forced tool_choice. The response is validated again with zod after parsing. The profile
+ *    extraction IR is too large for a compiled grammar, so that one call carries its JSON
+ *    Schema in the system prompt (`format: "prompt"`) and relies on the zod validation.
  *  - `stop_reason` is checked before reading content: refusal and max_tokens become
  *    LlmError, so the caller falls back to the local engine.
  *  - Server-side fallbacks (`fallbacks: "default"`, beta server-side-fallback-2026-07-01)
@@ -85,6 +92,24 @@ interface Spec<T> {
   context?: string;
   content: Array<Record<string, unknown>>;
   schema: z.ZodType<T>;
+  /**
+   * "schema" (default): structured outputs (`output_config.format`, a compiled grammar).
+   * "prompt": the JSON Schema goes into the system prompt and the reply is validated with zod —
+   * for schemas too large for the grammar compiler ("The compiled grammar is too large"), which
+   * is what the profile extraction IR hits.
+   */
+  format?: "schema" | "prompt";
+}
+
+/** The reply's JSON text: tolerant of a Markdown fence or a sentence around the object. */
+export function jsonText(text: string): string {
+  const fenced = /^```(?:json)?\s*\n([\s\S]*?)\n?```\s*$/i.exec(text.trim());
+  if (fenced) return fenced[1].trim();
+  const t = text.trim();
+  if (t.startsWith("{") || t.startsWith("[")) return t;
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  return start >= 0 && end > start ? t.slice(start, end + 1) : t;
 }
 
 const SHARED_RULES = `You work inside Onward Scout, a service that finds real opportunities for a person and prepares their applications. Rules that always apply:
@@ -93,6 +118,11 @@ const SHARED_RULES = `You work inside Onward Scout, a service that finds real op
 - When something needed is missing, say so through the output's gap fields instead of filling it in.
 - Never name the AI model or the company that makes it anywhere in your output.
 - Output must match the JSON schema exactly.`;
+
+/** Every identity code with its English label, for the extraction prompt (T8 is never inferred). */
+const IDENTITY_LIST = IDENTITIES.filter((d) => d.code !== "T8")
+  .map((d) => `${d.code} ${d.label.en}`)
+  .join("; ");
 
 const SYSTEM: Record<Purpose, string> = {
   extract_profile: `${SHARED_RULES}
@@ -104,7 +134,7 @@ Task: read a person's documents (résumé, CV, pitch deck, business plan, portfo
 - Keep the person's own wording for highlights (bullet points), in the original language.
 - Ventures (from decks/business plans): company name, then fields such as oneLiner, website, stage (idea, mvp, pre_seed, seed, series_a, series_b_plus, bootstrapped, profitable), round, raising (amount as written), teamSize, product, problem, market, businessModel, useOfFunds, role (the person's role, only when it is clear which founder the person is), each with its own src; traction lines and team members separately.
 - A deck describes a company, not necessarily the uploader: do not assume the person's name is a founder's name unless the documents make that clear.
-- identities: codes from the identity taxonomy (S1–S7 students, E1–E8 professionals by seniority and sector, F1–F8 founders, R1–R6 researchers, C1–C9 freelancers and creators, P1–P7 licensed professionals, T1–T7 people in transition). Never infer T8 (disability) or anything about health, religion, ethnicity or politics. Give a short "why" quoting the cue and a stage only when evident.
+- identities: codes from the identity taxonomy, most fitting first: ${IDENTITY_LIST}. Someone on a career break for caregiving or parental leave who wants to return is T6 (not T2, which is moving into a different field). Never infer T8 (disability) or anything about health, religion, ethnicity or politics. Give a short "why" quoting the cue and a stage only when evident.
 - gaps: up to 8 short, choice-friendly questions in the requested language about what matters next for this person (target role and location, graduation date, round size…).`,
   normalize_opportunity: `${SHARED_RULES}
 
@@ -126,12 +156,23 @@ Task: score how well each opportunity fits the person and their goals.
 - Return one entry per opportunity id given, nothing else.`,
   compose: `${SHARED_RULES}
 
-Task: write the requested document (cover letter, outreach email, application answer, bio or one-pager) for the person, in the requested language and tone.
+Task: write the requested document (cover letter, outreach email, application answer, bio, one-pager or pitch deck) for the person, in the requested language and tone.
 - Output blocks. Each block has a type (heading, paragraph, bullet, field) and a role: subject (email subject, type field), greeting, context (refers only to the opportunity or the conversation), body (any claim about the person), closing, signature, heading, gap.
 - Every body block lists in factIds the ids of the facts it states (from <facts>), or "answer:<key>" when it uses the person's own answer. A body block without valid fact ids is not allowed.
 - Motivation, opinions about the organisation, a pitch idea or anything only the person can say: never write it for them. Use the person's answer when given; otherwise add a gap block (role gap) with a bracketed placeholder and list the question in gaps.
+- Each gap asks one thing, briefly. The person's reasons for applying use the gap key why_this and why they stepped away from work uses career_break (both are asked once for the whole application); do not ask them again in other words, and do not fold eligibility checks into them.
 - Use the person's own bullet points faithfully; you may tighten wording but not change facts or numbers. No gendered pronouns in third person: use the first name.
-- Respect maxWords. No clichés, no flattery, no exclamation marks.`,
+- Respect maxWords. No clichés, no flattery, no exclamation marks.
+- For kind pitch_deck, write slides: every slide starts with a heading block (role heading) holding the slide title. Slide 1 is the title slide: the company name as its heading, the one-line description as a paragraph, the presenter as a bullet ("Name · Role"). Then, in this order and only when facts or answers support them: the problem, the solution, market, business model, traction, team, the ask, contact. At most 4 points per slide, each under 15 words. A figure goes in a field block (label = what is measured, text = the figure exactly as the source gives it). If the problem or the product is unknown, use a gap block for it. Never estimate a market size, a figure or a competitor.`,
+  revise_document: `${SHARED_RULES}
+
+Task: revise the document in <document> following the person's note in <note>, and return the whole revised document.
+- Do what the note asks and keep everything else: same structure, order, block types and roles unless the note asks to change them. Keep the document's language unless the note asks for another one; then translate every block and keep every fact.
+- Every body block lists in factIds what it rests on: fact ids from <facts>, "answer:<key>" for the person's answers in <task>, their earlier notes ("answer:note_<n>"), or this note's id (given in <task>). A fact the person states in the note (a figure, a customer, a result) may be used, citing this note's id. Anything else the note asks for without a fact behind it becomes a gap block (role gap) whose label is the question to ask the person, also listed in gaps.
+- Blocks whose factIds contain "user:confirmed" are the person's own words: keep them verbatim unless the note is about them, and keep "user:confirmed" in their factIds.
+- A pitch deck stays a deck: each heading block starts a slide, figures go in field blocks (label = what is measured), at most 4 points per slide.
+- changes: one to five short lines, in the language of the note, saying what you changed ("Slide 3 now leads with the pilot results"). When part of the note needs a fact you don't have, say so in changes.
+- No clichés, no flattery, no exclamation marks.`,
   answer_questions: `${SHARED_RULES}
 
 Task: answer an application form's questions for the person.
@@ -223,6 +264,14 @@ const ComposeOut = z.object({
   notes: z.array(z.string()),
 });
 
+const ReviseOut = z.object({
+  title: z.string(),
+  language: Language,
+  blocks: ComposeOut.shape.blocks,
+  gaps: z.array(z.object({ key: z.string(), question: z.string() })),
+  changes: z.array(z.string()),
+});
+
 const ScoreOut = z.object({ matches: z.array(MatchScore) });
 /** The plan as the model writes it (every field required; finishPlan validates and clips). */
 const PlanOut = z.object({
@@ -252,12 +301,16 @@ export class AnthropicIntelligence implements Intelligence {
   buildRequest<T>(spec: Spec<T>): Record<string, unknown> {
     const { type, schema } = betaZodOutputFormat(spec.schema as unknown as z.ZodType);
     const opus = spec.model === MODEL_OPUS;
+    const byPrompt = spec.format === "prompt";
+    const system = byPrompt
+      ? `${spec.system}\n\nOutput format: reply with exactly one JSON object and nothing else (no prose, no Markdown fence). It must validate against this JSON Schema: every property listed in "required" is present, null where the schema allows it for an unknown value, [] for an empty list.\n<json_schema>\n${JSON.stringify(schema)}\n</json_schema>`
+      : spec.system;
     return {
       model: spec.model,
       max_tokens: spec.maxTokens,
       thinking: { type: "adaptive" },
-      output_config: { effort: spec.effort, format: { type, schema } },
-      system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }],
+      output_config: byPrompt ? { effort: spec.effort } : { effort: spec.effort, format: { type, schema } },
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [
         {
           role: "user",
@@ -281,6 +334,9 @@ export class AnthropicIntelligence implements Intelligence {
       message = (await this.client.beta.messages.stream(params, { timeout: spec.timeoutMs, maxRetries: spec.maxRetries ?? 2, ...(ctx.signal ? { signal: ctx.signal } : {}) }).finalMessage()) as typeof message;
     } catch (err) {
       if (err instanceof Anthropic.APIConnectionTimeoutError) throw new LlmError("timeout", `Claude timed out (${spec.purpose})`);
+      if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError || (err instanceof Anthropic.BadRequestError && /credit balance/i.test(err.message))) {
+        throw new LlmError("unavailable", `Claude API unavailable ${err.status ?? ""} (${spec.purpose})`, err.message.slice(0, 300));
+      }
       if (err instanceof Anthropic.APIError) throw new LlmError("api", `Claude API error ${err.status ?? ""} (${spec.purpose})`, err.message.slice(0, 300));
       throw err;
     }
@@ -305,7 +361,7 @@ export class AnthropicIntelligence implements Intelligence {
       .trim();
     let json: unknown;
     try {
-      json = JSON.parse(text);
+      json = JSON.parse(spec.format === "prompt" ? jsonText(text) : text);
     } catch {
       throw new LlmError("invalid_output", `Claude returned no parsable JSON (${spec.purpose})`, text.slice(0, 200));
     }
@@ -332,9 +388,15 @@ export class AnthropicIntelligence implements Intelligence {
     }
     if (input.links.length) content.push({ type: "text", text: wrap("links", {}, input.links.map((l) => l.url).join("\n")) });
     content.push({ type: "text", text: `Today is ${now.toISOString().slice(0, 10)}. Write claims, "why" sentences and gaps in ${input.locale === "zh" ? "Simplified Chinese" : "English"}. Extract everything about the person now.` });
-    const out = await this.run({ purpose: "extract_profile", model: MODEL_OPUS, effort: "medium", maxTokens: 32_000, timeoutMs: 240_000, system: SYSTEM.extract_profile, content, schema: ExtractOut }, ctx);
+    // The extraction IR is too large for a compiled grammar (Claude answers 400 "The compiled
+    // grammar is too large"): it is described in the prompt and validated with zod instead.
+    // Economy (signed-out drafts, accounts that never bought credits): Haiku reads the documents.
+    const out = await this.run({ purpose: "extract_profile", model: ctx?.tier === "economy" ? MODEL_HAIKU : MODEL_OPUS, effort: "medium", maxTokens: 32_000, timeoutMs: 240_000, system: SYSTEM.extract_profile, content, schema: ExtractOut, format: "prompt" }, ctx);
     const { profile, facts } = buildProfile(out.ir, { locale: input.locale, documents: input.documents, links: input.links, now });
-    const identities = out.identities.filter((g) => g.code !== "T8").length ? out.identities.filter((g) => g.code !== "T8") : inferIdentities(profile, input.documents.map((d) => d.text), { now, locale: input.locale });
+    const local = inferIdentities(profile, input.documents.map((d) => d.text), { now, locale: input.locale });
+    const modelGuesses = out.identities.filter((g) => g.code !== "T8");
+    // What the documents state outright (a career break, military service) leads, whatever the model ranked first.
+    const identities = modelGuesses.length ? preferExplicitCues(modelGuesses, local, profile) : local;
     profile.roles = rolesFromGuesses(identities);
     const gaps = out.gaps.length ? out.gaps.slice(0, 8) : profileGaps(profile, identities, input.locale);
     // A model that returned nothing usable (e.g. an empty IR) falls back to the local parsers.
@@ -402,7 +464,7 @@ export class AnthropicIntelligence implements Intelligence {
       answers: input.answers,
     };
     const content = [{ type: "text", text: wrap("task", {}, stableJson(task)) }];
-    const out = await this.run({ purpose: "compose", model: MODEL_OPUS, effort: "high", maxTokens: 16_000, timeoutMs: 180_000, system: SYSTEM.compose, context: profileContext(input.profile, input.facts), content, schema: ComposeOut }, ctx);
+    const out = await this.run({ purpose: "compose", model: MODEL_OPUS, effort: ctx?.tier === "economy" ? "medium" : "high", maxTokens: 16_000, timeoutMs: 180_000, system: SYSTEM.compose, context: profileContext(input.profile, input.facts), content, schema: ComposeOut }, ctx);
     const blocks = out.blocks.map((b) => {
       const factIds = b.factIds.filter((id) => known.has(id));
       const unsourced = b.role === "body" && factIds.length === 0;
@@ -430,6 +492,42 @@ export class AnthropicIntelligence implements Intelligence {
     };
   }
 
+  async reviseDocument(raw: ReviseDocumentInput, ctx?: CallContext): Promise<RevisedDocument> {
+    const input = ReviseDocumentInput.parse(raw);
+    const answers: Record<string, string> = { ...input.answers };
+    input.notes.forEach((n, i) => {
+      answers[`note_${i + 1}`] = n;
+    });
+    const thisNote = noteId(input.notes.length + 1);
+    const known = new Set([...input.facts.map((f) => f.id), ...Object.keys(answers).map((k) => `answer:${k}`), thisNote, "user:confirmed"]);
+    const doc = { kind: input.kind, composer: input.composer, title: input.title, blocks: input.blocks.map((b) => ({ type: b.type, role: b.role, label: b.label ?? null, text: b.text, factIds: b.factIds })) };
+    const task = {
+      thisNoteId: thisNote,
+      language: input.language === "zh" ? "Simplified Chinese" : "English",
+      opportunity: input.opportunity ? { ...input.opportunity, description: input.opportunity.description?.slice(0, 6000) ?? null } : null,
+      answers,
+    };
+    const content = [
+      { type: "text", text: wrap("document", {}, stableJson(doc)) },
+      { type: "text", text: wrap("note", {}, input.feedback) },
+      { type: "text", text: wrap("task", {}, stableJson(task)) },
+    ];
+    const out = await this.run({ purpose: "revise_document", model: MODEL_OPUS, effort: "medium", maxTokens: 16_000, timeoutMs: 150_000, maxRetries: 1, system: SYSTEM.revise_document, context: profileContext(input.profile, input.facts), content, schema: ReviseOut }, ctx);
+    const blocks = out.blocks.map((b) => {
+      const factIds = b.factIds.filter((id) => known.has(id));
+      const unsourced = b.role === "body" && factIds.length === 0;
+      return {
+        type: b.type,
+        role: b.role,
+        ...(b.label ? { label: b.label } : {}),
+        text: b.text,
+        factIds,
+        flags: [...(unsourced ? (["unsourced"] as const) : []), ...(b.role === "gap" ? (["needs_confirmation"] as const) : [])],
+      };
+    });
+    return { applied: true, title: out.title.trim() || input.title, language: out.language, blocks, gaps: out.gaps, changes: out.changes.slice(0, 5), reason: null, label: "written_with_ai" };
+  }
+
   async answerQuestions(raw: AnswerQuestionsInput, ctx?: CallContext) {
     const input = AnswerQuestionsInput.parse(raw);
     const known = new Set(input.facts.map((f) => f.id));
@@ -438,7 +536,7 @@ export class AnthropicIntelligence implements Intelligence {
       { type: "text", text: wrap("questions", {}, stableJson(input.questions)) },
       { type: "text", text: wrap("task", {}, stableJson({ language: input.language === "zh" ? "Simplified Chinese" : "English", opportunity: input.opportunity ?? null, answers: input.answers })) },
     ];
-    const out = await this.run({ purpose: "answer_questions", model: MODEL_OPUS, effort: "high", maxTokens: 16_000, timeoutMs: 180_000, system: SYSTEM.answer_questions, context: profileContext(input.profile, input.facts), content, schema: AnswersOut }, ctx);
+    const out = await this.run({ purpose: "answer_questions", model: MODEL_OPUS, effort: ctx?.tier === "economy" ? "medium" : "high", maxTokens: 16_000, timeoutMs: 180_000, system: SYSTEM.answer_questions, context: profileContext(input.profile, input.facts), content, schema: AnswersOut }, ctx);
     const byId = new Map(out.answers.map((a) => [a.questionId, a]));
     return input.questions.map((q) => {
       const a = byId.get(q.id);

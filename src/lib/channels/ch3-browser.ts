@@ -393,7 +393,7 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
     const person = await (input.deps?.loadPerson ?? loadPersonContext)(input.userId);
     const fields = await domFields(page);
     const docs = input.files.map((f) => ({ id: f.field, kind: /resume|cv|简历/i.test(f.field + f.filename) ? "resume" : /cover/i.test(f.field + f.filename) ? "cover_letter" : "other", filename: f.filename }));
-    const mapping = await getIntelligence({ userId: input.userId }).mapFormFields({
+    const mapping = await getIntelligence({ userId: input.userId, applicationId: input.applicationId ?? null }).mapFormFields({
       fields: fields.map((f) => ({ name: f.name, label: f.label, type: f.type, options: f.options, required: f.required })),
       profile: person.profile,
       facts: person.facts,
@@ -429,7 +429,7 @@ export async function runBrowserAgent(input: BrowserRunInput): Promise<BrowserRu
       }
     }
 
-    const ai = getIntelligence({ userId: input.userId });
+    const ai = getIntelligence({ userId: input.userId, applicationId: input.applicationId ?? null });
     const history: { action: string; target: string | null; value: string | null; ok: boolean; note: string | null }[] = [];
     for (let step = 0; step < MAX_STEPS; step++) {
       if (Date.now() > deadline) {

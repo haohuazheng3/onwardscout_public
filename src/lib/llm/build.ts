@@ -1,6 +1,8 @@
 import { mapFunction } from "@/lib/core/functions";
+import { degreeWithField } from "@/lib/core/labels";
 import { mapIndustry } from "@/lib/core/industries";
 import { mapOccupation } from "@/lib/core/occupations";
+import { isBreakRole, roleNoun } from "./local/roles";
 import {
   ACHIEVEMENT_KINDS,
   EMPLOYMENT_TYPES,
@@ -178,9 +180,18 @@ const LEVEL_MAP: Record<string, DegreeLevel> = {
   none: "none",
 };
 
-function gpa(text: string | null | undefined): { value: number; scale: number } | null {
+/** The occupation a job title stands for: as written, else read as its role ("Software Engineering Intern" → Software Engineer). */
+export function occupationOfTitle(title: string): ReturnType<typeof mapOccupation>[number] | undefined {
+  const direct = mapOccupation(title, { limit: 1, minScore: 0.7 })[0];
+  if (direct) return direct;
+  const role = roleNoun(title);
+  return role && role !== title ? mapOccupation(role, { limit: 1, minScore: 0.7 })[0] : undefined;
+}
+
+export function gpa(text: string | null | undefined): { value: number; scale: number } | null {
   if (!text) return null;
-  const m = /(\d(?:\.\d{1,2})?|\d{2}(?:\.\d)?)\s*(?:\/\s*(\d(?:\.\d{1,2})?|100))?/.exec(text);
+  // Longest scale first: "8.7 / 10" is out of 10, not out of 1.
+  const m = /(\d{2}(?:\.\d)?|\d(?:\.\d{1,2})?)\s*(?:\/\s*(100|10|\d(?:\.\d{1,2})?))?/.exec(text);
   if (!m) return null;
   const value = Number(m[1]);
   let scale = m[2] ? Number(m[2]) : value <= 4.3 ? 4 : value <= 5 ? 5 : value <= 10 ? 10 : 100;
@@ -415,8 +426,10 @@ export function buildProfile(ir: ExtractionIR, opts: BuildOptions): BuildResult 
   /* experience */
   const expIndex = new Map<string, number>();
   for (const e of ir.experience) {
-    const organization = e.organization?.trim();
     const title = e.title?.trim();
+    // A career break written as a role ("Full-time parent and carer", under a "Career break"
+    // heading) has no employer: it keeps its place on the timeline under the résumé's own heading.
+    const organization = e.organization?.trim() || (title && isBreakRole({ title }) ? (opts.locale === "zh" ? "职业空窗" : "Career break") : undefined);
     if (!organization || !title) continue; // both are required; gaps ask for the rest
     const startDate = date(e.startDate);
     const key = `${normKey(organization)}|${normKey(title)}|${startDate ?? ""}`;
@@ -427,7 +440,7 @@ export function buildProfile(ir: ExtractionIR, opts: BuildOptions): BuildResult 
       continue;
     }
     const id = itemId("exp", organization, title, startDate);
-    const occ = mapOccupation(title, { limit: 1, minScore: 0.7 })[0];
+    const occ = occupationOfTitle(title);
     const item: Profile["experience"][number] = {
       id,
       organization,
@@ -477,7 +490,7 @@ export function buildProfile(ir: ExtractionIR, opts: BuildOptions): BuildResult 
     };
     p.education.push(item);
     eduIndex.set(key, p.education.length - 1);
-    const what = [item.degree, item.field].filter(Boolean).join(lang === "zh" ? " " : ", ");
+    const what = degreeWithField(item.degree, item.field, lang === "zh" ? " " : ", ");
     const claim = lang === "zh" ? `${institution}${what ? ` ${what}` : ""}${span(item.startDate, item.endDate, item.current, lang)}` : `${what ? `${what}, ` : "Studied at "}${institution}${span(item.startDate, item.endDate, item.current, lang)}`;
     fact(`/education/${id}`, claim, item, e.src);
   }
@@ -718,7 +731,7 @@ export function buildProfile(ir: ExtractionIR, opts: BuildOptions): BuildResult 
 
   /* professional years (for E stages and matching) */
   const workYears = totalYears(
-    p.experience.filter((e) => e.employmentType !== "internship" && e.employmentType !== "volunteer").map((e) => ({ start: e.startDate, end: e.endDate, current: e.current })),
+    p.experience.filter((e) => e.employmentType !== "internship" && e.employmentType !== "volunteer" && !isBreakRole(e)).map((e) => ({ start: e.startDate, end: e.endDate, current: e.current })),
     opts.now,
   );
   if (p.packs.professional && workYears > 0) p.packs.professional.yearsInPractice = workYears;
@@ -732,10 +745,10 @@ export function buildProfile(ir: ExtractionIR, opts: BuildOptions): BuildResult 
   return { profile: parsed.data, facts };
 }
 
-/** Years of professional experience (internships and volunteering excluded, overlaps merged). */
+/** Years of professional experience (internships, volunteering and the career break excluded, overlaps merged). */
 export function professionalYears(profile: Profile, now?: Date): number {
   return totalYears(
-    profile.experience.filter((e) => e.employmentType !== "internship" && e.employmentType !== "volunteer").map((e) => ({ start: e.startDate, end: e.endDate, current: e.current })),
+    profile.experience.filter((e) => e.employmentType !== "internship" && e.employmentType !== "volunteer" && !isBreakRole(e)).map((e) => ({ start: e.startDate, end: e.endDate, current: e.current })),
     now,
   );
 }

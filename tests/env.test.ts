@@ -20,6 +20,7 @@ describe("required environment", () => {
       "STRIPE_SECRET_KEY",
       "STRIPE_CONTEXT",
       "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_PRICE_SINGLE",
       "STRIPE_PRICE_PRO",
       "STRIPE_PRICE_PACK_10",
       "STRIPE_PRICE_PACK_40",

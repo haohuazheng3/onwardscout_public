@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { documentLocked } from "@/lib/applications/access";
 import { db } from "@/lib/db";
 import { documents, generatedDocuments } from "@/lib/db/schema";
 import { jsonError, withErrorCapture } from "@/lib/errors";
@@ -35,6 +36,7 @@ export const GET = withErrorCapture("/api/documents/[id]/download", async (req: 
   if (id.startsWith("gen_")) {
     const row = (await db.select({ objectKey: generatedDocuments.objectKey, title: generatedDocuments.title, mime: generatedDocuments.mime }).from(generatedDocuments).where(and(eq(generatedDocuments.id, id), eq(generatedDocuments.userId, session.userId))).limit(1))[0];
     if (!row) return jsonError("We couldn't find that document.", 404);
+    if (await documentLocked(session.userId, id)) return Response.json({ error: "Unlock this application to download its documents.", code: "unlock_required" }, { status: 402, headers: { "Cache-Control": "no-store" } });
     if (!row.objectKey) return jsonError("This document hasn't been rendered to a file yet. Open its application to render it.", 409);
     const ext = row.objectKey.split(".").pop() ?? "pdf";
     return ok({ url: signedReadUrl(row.objectKey, { disposition, filename: `${slug(row.title)}.${ext}`.replace(new RegExp(`\\.${ext}\\.${ext}$`), `.${ext}`), ttlSeconds: 300 }) });

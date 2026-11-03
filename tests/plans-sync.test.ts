@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
-import { OFFERS, PACKS, PLANS, SKUS } from "@/content/plans";
+import { OFFERS, PACKS, PASSES, PLANS, SKUS } from "@/content/plans";
 import { CHECKOUT_BRAND, STATEMENT_DESCRIPTOR_MAX as APP_MAX } from "@/lib/stripe";
 
 // scripts/ops/ stays in the private repository; the public mirror skips this lock test.
@@ -36,18 +36,23 @@ describe.skipIf(!hasMirror)("Stripe catalog mirror", () => {
     }
   });
 
-  it("has one monthly plan and two one-time packs", () => {
+  it("has the single unlock, two season passes, then the legacy monthly plan and packs", () => {
     expect(STRIPE_OFFERS.filter((o) => o.interval === "month").map((o) => o.sku)).toEqual(Object.keys(PLANS));
-    expect(STRIPE_OFFERS.filter((o) => o.interval === null).map((o) => o.sku)).toEqual(Object.keys(PACKS));
+    expect(STRIPE_OFFERS.filter((o) => o.interval === null).map((o) => o.sku)).toEqual(["single", ...Object.keys(PASSES), ...Object.keys(PACKS)]);
   });
 
-  it("names every Stripe product after the brand and states the credits, validity and what a credit buys", () => {
+  it("names every Stripe product after the brand and states what is bought", () => {
     for (const mirror of STRIPE_OFFERS) {
       const copy = stripeProductCopy(mirror);
       expect(copy.name.startsWith("Onward Scout ")).toBe(true);
-      expect(copy.description).toContain(`${mirror.credits} credits`);
-      expect(copy.description).toContain(mirror.interval === "month" ? "every month" : `valid ${mirror.rolloverDays} days`);
-      expect(copy.description).toContain("one application submitted for you");
+      if (mirror.sku === "single") {
+        expect(copy.description).toContain("One application unlocked");
+        expect(copy.description).toContain("no subscription");
+      } else {
+        expect(copy.description).toContain(`${mirror.credits} credits`);
+        expect(copy.description).toContain(mirror.interval === "month" ? "every month" : `valid ${mirror.rolloverDays} days`);
+        expect(copy.description).toMatch(/unlocks one application|one application submitted for you/);
+      }
       expect(copy.description.length).toBeLessThanOrEqual(300);
     }
   });

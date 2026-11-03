@@ -1,4 +1,4 @@
-import { PACKS, PLANS, TRIAL, formatPrice } from "@/content/plans";
+import { PASSES, SINGLE, formatPrice } from "@/content/plans";
 import { categoriesWithCounts, postUrl, publishedPosts } from "@/lib/blog";
 import { CHANNELS } from "@/lib/core/channels";
 import { opportunityTypeBySlug } from "@/lib/core/opportunity-types";
@@ -19,8 +19,6 @@ export async function GET() {
   const posts = publishedPosts();
   const indexableTypes = new Set(targets.types.map((t) => t.slug));
   const url = (p: string) => absoluteUrl(p);
-  const pro = PLANS.pro;
-  const packs = [PACKS.pack10, PACKS.pack40];
 
   const lines: string[] = [
     `# ${SITE.name}`,
@@ -41,10 +39,10 @@ export async function GET() {
     ...CHANNELS.filter((c) => c.id !== "CH7").map((c) => `- ${c.label.en}: ${c.description.en}`),
     "",
     "## Pricing (USD)",
-    `- Free: profile, discovery, matching, previews, document drafts, follow-ups and practice applications. New accounts get ${TRIAL.credits} credits, valid ${TRIAL.expiryDays} days.`,
-    `- ${pro.name.en}: ${formatPrice(pro.priceUsd)}/month for ${pro.credits} credits a month. ${pro.features.en.join("; ")}.`,
-    ...packs.map((p) => `- ${p.name.en}: ${formatPrice(p.priceUsd)} one-time.`),
-    "- 1 credit = one application submitted (any channel, including a confirmed handoff) or one outreach email to a new contact.",
+    "- Free: profile, discovery, matching, follow-ups, practice applications, and the preview of any application (its documents drafted from the person's own files, the first lines readable; no account needed).",
+    `- ${SINGLE.name.en}: ${formatPrice(SINGLE.priceUsd)} once, no subscription. ${SINGLE.features.en.join("; ")}.`,
+    ...Object.values(PASSES).map((p) => `- ${p.name.en}: ${formatPrice(p.priceUsd)} once for ${p.rolloverDays} days. ${p.blurb.en}`),
+    "- Claude writes only unlocked (paid) applications; previews are produced by a deterministic local engine.",
     "",
     "## Key pages",
     `- [How it works](${url("/how-it-works")})`,

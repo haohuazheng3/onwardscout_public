@@ -2,10 +2,13 @@ import { functionLabel, isFunctionId } from "@/lib/core/functions";
 import { industryLabel, isIndustryCode } from "@/lib/core/industries";
 import { getMaterial, isMaterialId } from "@/lib/core/materials";
 import type { ApplicationAnswer, ApplicationAnswers, ApplicationQuestion, GeneratedDocumentKind, Option, Profile } from "@/lib/core/types";
-import { kindForMaterial, OPTIONAL_GAP_KEYS } from "@/lib/documents/build";
+import { isOptionalGapQuestion, kindForMaterial, OPTIONAL_GAP_KEYS } from "@/lib/documents/build";
+import { CAREER_BREAK_KEY, CAREER_BREAK_REASONS, careerBreakFromProfile } from "@/lib/documents/career-break";
+import { classifySpot, IDEA_KEY, IDEA_TYPES, listedOptions, PROFILE_SPOT_KEYS, TEAM_KEY, TRACK_KEY } from "@/lib/documents/spots";
 import { classifyQuestion } from "@/lib/llm/local/compose";
 import { fieldKey } from "@/lib/llm/local/forms";
 import type { FieldMapping, QuestionAnswer } from "@/lib/llm/types";
+import { isLinkAnswer, laterMaterial } from "./materials";
 import type { FieldRequirement, RequirementsLike } from "./types";
 
 /*
@@ -86,9 +89,26 @@ const T = {
     draftAi: { en: "Written with AI from your profile's facts. Keep it, edit it, or ask for a rewrite.", zh: "由 AI 根据你档案中的事实撰写。可以保留、修改或重写。" },
     file: { en: "Only you hold this file. Upload it once; it stays on your profile for later applications.", zh: "这份文件只有你有。上传一次，之后的申请会自动复用。" },
     fileOptional: { en: "Optional, but it strengthens the application.", zh: "可选，但能让申请更有说服力。" },
+    fileLater: { en: "Not needed to start: organisers ask for this at the end or if you're shortlisted. Add it (or a link) whenever it's ready; nothing waits on it.", zh: "现在不需要：主办方通常在最后阶段或入围后才要。做好后再上传（或贴链接），不影响其他步骤。" },
     ownWords: { en: "Only you can write this part. One or two sentences are enough.", zh: "这一部分只能由你来写，一两句话就够了。" },
+    profileMissing: { en: "Your documents need this and your profile doesn't say it yet. You answer once; we reuse it next time.", zh: "文书里需要这一项，档案里还没有。只需回答一次，下次自动带上。" },
+    idea: { en: "Only you know what you'll build. Your sentences become the deck's title, one-liner, problem and solution; nothing is made up.", zh: "要做什么只有你知道。我们用你的这一两句话写出 Deck 的标题、一句话介绍、问题和方案，不会编造任何内容。" },
+    team: { en: "So the deck and the form say who's taking part. Going solo is fine.", zh: "让 Deck 和报名表写清楚谁参加。一个人参赛也完全可以。" },
+    founders: { en: "So the deck and the form say who's building it. A solo founder is fine.", zh: "让 Deck 和申请表写清楚谁在做这件事。独立创始人也完全可以。" },
+    track: { en: "The organiser sorts entries by track. One tap.", zh: "主办方按赛道分组，点一下即可。" },
   },
   motivationPrompt: { en: "Why are you applying to {target}?", zh: "你为什么申请{target}？" },
+  idea: { en: "What are you building, and what problem does it solve? One or two sentences (add its name if it has one).", zh: "你要做什么、解决什么问题？一两句话就够（有名字的话也写上）。" },
+  team: { en: "Who's on your team?", zh: "你的团队有谁？" },
+  teamOptions: {
+    en: ["Just me — I'm going solo", "Me and my teammates", "I'm still looking for teammates"],
+    zh: ["就我一个人（单人参赛）", "我和队友一起", "还在找队友"],
+  },
+  founderOptions: {
+    en: ["I'm a solo founder", "Me and my co-founders", "I'm still looking for a co-founder"],
+    zh: ["我是独立创始人", "我和联合创始人一起", "还在找联合创始人"],
+  },
+  later: { en: "Your {material}, when it's ready", zh: "你的{material}（做好后再加）" },
   ownSection: {
     talk_abstract: { en: "What is your talk called, and what will the audience take away?", zh: "你的演讲题目是什么？听众会收获什么？" },
     book_idea: { en: "What is the book about, and who is it for?", zh: "这本书讲什么、写给谁？" },
@@ -101,6 +121,22 @@ const t = (x: { en: string; zh: string }, lang: Lang, vars: Record<string, strin
 
 const opt = (value: string, label = value): Option => ({ value, label });
 
+/**
+ * Materials prepared for every opportunity of a type, on top of what the organiser lists: a
+ * returnship always gets the returner résumé, a cover letter and the career-break note (most
+ * returner portals ask for them, and the break is what the reader wonders about first); a
+ * startup programme gets the deck and the one-pager (what the Startup season pass promises,
+ * and what its form's answers are copied from); a hackathon gets the deck its judges see.
+ */
+export const ALWAYS_PREPARED: Partial<Record<string, string[]>> = {
+  returnship: ["resume_variant", "cover_letter", "career_break_statement"],
+  accelerator: ["pitch_deck", "one_pager"],
+  incubator: ["pitch_deck", "one_pager"],
+  startup_competition: ["pitch_deck", "one_pager"],
+  pitch_event: ["pitch_deck", "one_pager"],
+  hackathon: ["pitch_deck"],
+};
+
 /* ------------------------------------------------------------------ presets (common answers) */
 
 const PRESETS: Record<string, { en: string[]; zh: string[] }> = {
@@ -111,6 +147,12 @@ const PRESETS: Record<string, { en: string[]; zh: string[] }> = {
   referral_source: { en: ["Onward Scout", "The organiser's website", "LinkedIn", "A job board or listing site", "A friend or colleague"], zh: ["Onward Scout", "官方网站", "领英", "招聘或活动平台", "朋友或同事推荐"] },
   salary: { en: ["Open to discussion"], zh: ["面议"] },
 };
+
+/** The tapped reason's label, for showing it (own words need none). */
+function careerBreakLabel(value: string, lang: Lang): { label?: string } {
+  const hit = CAREER_BREAK_REASONS.find((r) => r.value === value);
+  return hit ? { label: hit.label[lang] } : {};
+}
 
 /** Keys whose answers are about the person, not the opportunity: safe to reuse on the next form. */
 const REUSABLE = new Set([
@@ -332,7 +374,7 @@ export function computeGaps(input: GapInput): GapResult {
   };
 
   // 1. Materials → documents we compose, or files only the person holds.
-  const materials = [...new Set([...(req.materials ?? []), ...(input.opportunity.requiredMaterials ?? [])])];
+  const materials = [...new Set([...(req.materials ?? []), ...(input.opportunity.requiredMaterials ?? []), ...(ALWAYS_PREPARED[input.opportunity.type] ?? [])])];
   for (const m of materials) {
     const kind = kindForMaterial(m);
     if (kind === "email" && !input.outreach) continue;
@@ -350,8 +392,15 @@ export function computeGaps(input: GapInput): GapResult {
       continue;
     }
     const label = getMaterial(m).label[lang];
+    const material = zh ? label : label.toLowerCase();
+    // A file never holds the drafts back (materials.ts): one needed to accept the application
+    // waits at confirm; a deliverable made later (a hackathon's demo video) waits for nothing.
+    if (laterMaterial(m, input.opportunity.type)) {
+      ask({ id: key, fieldName: key, prompt: t(T.later, lang, { material }), kind: "file", why: t(T.why.fileLater, lang), required: false });
+      continue;
+    }
     const required = HARD_MATERIALS.has(m) || (input.opportunity.requiredMaterials ?? []).includes(m);
-    ask({ id: key, fieldName: key, prompt: t(T.upload, lang, { material: zh ? label : label.toLowerCase() }), kind: "file", why: t(required ? T.why.file : T.why.fileOptional, lang), required });
+    ask({ id: key, fieldName: key, prompt: t(T.upload, lang, { material }), kind: "file", why: t(required ? T.why.file : T.why.fileOptional, lang), required });
   }
   if (input.outreach && !compose.some((c) => c.kind === "email")) addCompose("email", "outreach_email");
 
@@ -469,6 +518,25 @@ export function computeGaps(input: GapInput): GapResult {
     const target = input.opportunity.orgName?.trim() || input.opportunity.name;
     ask({ id: "gap:why_this", fieldName: "why_this", prompt: t(T.motivationPrompt, lang, { target }), kind: "multi", options: motivationOptions(input.opportunity, input.profile, lang), why: t(T.why.motivation, lang), required: true });
   }
+  // The career break is the person's to explain: one tap on a plain choice, or their own words —
+  // unless their own résumé already says it outright, which is then their answer (from the profile).
+  // Said once on another application, it is reused as theirs (the reason is about the person).
+  const needsBreak = compose.some((c) => c.material === "career_break_statement") && !answered(answers, CAREER_BREAK_KEY);
+  const statedReason = needsBreak ? careerBreakFromProfile(input.profile) : null;
+  const givenBefore = needsBreak ? previous[CAREER_BREAK_KEY]?.trim() : undefined;
+  if (givenBefore) autoAnswers[CAREER_BREAK_KEY] = { ...auto(givenBefore, "user", [], true), ...careerBreakLabel(givenBefore, lang) };
+  else if (statedReason) autoAnswers[CAREER_BREAK_KEY] = auto(statedReason, "profile");
+  else if (compose.some((c) => c.material === "career_break_statement") && !answered(answers, CAREER_BREAK_KEY)) {
+    ask({
+      id: `gap:${CAREER_BREAK_KEY}`,
+      fieldName: CAREER_BREAK_KEY,
+      prompt: zh ? "你当时为什么离开职场？" : "What was your career break for?",
+      kind: "choice",
+      options: CAREER_BREAK_REASONS.map((r) => opt(r.value, r.label[lang])),
+      why: zh ? "空窗期说明和简历会如实写上你选的原因（也可以写你自己的话）。我们从不替你猜。" : "Your career-break note and résumé say it the way you choose (or in your own words). We never guess it.",
+      required: true,
+    });
+  }
   for (const c of compose) {
     const own = c.material === "talk_proposal" ? "talk_abstract" : c.material === "book_proposal" ? "book_idea" : c.kind === "press_release" ? "announcement" : null;
     if (own && !answered(answers, own)) ask({ id: `gap:${own}`, fieldName: own, prompt: t(T.ownSection[own], lang), kind: "text", why: t(T.why.ownWords, lang), required: true });
@@ -477,19 +545,101 @@ export function computeGaps(input: GapInput): GapResult {
   return { questions, autoAnswers, compose, attach };
 }
 
-/** Questions raised by composed documents' gaps that the analysis did not foresee (name, research plan…). */
-export function questionsFromDocumentGaps(gaps: { key: string; question: string }[], answers: ApplicationAnswers, lang: Lang): ApplicationQuestion[] {
+/** "Was your career break for caregiving…?", "Why did you step away from work?" (not "what did you do during it"). */
+export function isCareerBreakReasonQuestion(question: string): boolean {
+  return /\b(why did you|what was|was) (your|the) (career )?break\b|\bcareer break\b[^?]{0,40}\b(for|because|reason)\b|\bwhy (did )?you (step|stepped|took|take) (away|time off|a break)|空窗(期)?(的)?原因|为什么离开职场/i.test(question);
+}
+
+/** What the canonical questions can offer from the person's own record (all optional: tests pass none). */
+export interface DocumentGapContext {
+  profile?: Profile;
+  accountEmail?: string | null;
+  /** The opportunity's type: a hackathon has teammates, a startup programme co-founders. */
+  oppType?: string | null;
+}
+
+/** Events entered as a team (teammates), as opposed to companies (co-founders). */
+const TEAM_EVENTS = new Set(["hackathon", "competition"]);
+
+/** "What are you building?" as a tap on one of the person's own projects, when the profile has some. */
+function ideaOptions(profile: Profile | undefined): Option[] {
+  return uniqOptions(
+    (profile?.projects ?? [])
+      .filter((p) => p.summary?.trim())
+      .slice(0, 3)
+      .map((p) => `${p.name}: ${p.summary!.trim().replace(/\s+/g, " ").slice(0, 220)}`),
+  );
+}
+
+/**
+ * Questions raised by composed documents' gaps that the analysis did not foresee. Keys arrive
+ * canonical (documents/spots.ts settled them), so one question stands for every spot it fills:
+ * the idea once (a tap on one of their projects, or one or two sentences), the team as one tap,
+ * the track as one tap among the organiser's options, a profile value as a tap on what the
+ * profile holds; a writer's own wording of "why are you applying" is the application's one
+ * motivation question and its "why did you step away" the one career-break question.
+ */
+export function questionsFromDocumentGaps(gaps: { key: string; question: string }[], answers: ApplicationAnswers, lang: Lang, ctx: DocumentGapContext = {}): ApplicationQuestion[] {
   const out: ApplicationQuestion[] = [];
   for (const g of gaps) {
-    if (OPTIONAL_GAP_KEYS.has(g.key) || answered(answers, g.key) || out.some((q) => q.fieldName === g.key)) continue;
-    out.push({ id: `gap:${g.key}`, fieldName: g.key, prompt: g.question, kind: "text", why: t(g.key === "why_this" ? T.why.motivation : T.why.ownWords, lang), required: true });
+    if (OPTIONAL_GAP_KEYS.has(g.key) || isOptionalGapQuestion(g.question)) continue;
+    const key = g.key !== "why_this" && classifyQuestion(g.question) === "why_this" ? "why_this" : g.key !== CAREER_BREAK_KEY && isCareerBreakReasonQuestion(g.question) ? CAREER_BREAK_KEY : g.key;
+    if (answered(answers, key) || out.some((q) => q.fieldName === key)) continue;
+    const base = { id: `gap:${key}`, fieldName: key, required: true } as const;
+    if (key === IDEA_KEY) {
+      const options = ideaOptions(ctx.profile);
+      out.push({ ...base, prompt: t(T.idea, lang), kind: options.length ? "choice" : "text", ...(options.length ? { options } : {}), why: t(T.why.idea, lang) });
+      continue;
+    }
+    if (key === TEAM_KEY) {
+      const founders = Boolean(ctx.oppType) && !TEAM_EVENTS.has(ctx.oppType ?? "");
+      out.push({ ...base, prompt: t(T.team, lang), kind: "choice", options: (founders ? T.founderOptions : T.teamOptions)[lang].map((v) => opt(v)), why: t(founders ? T.why.founders : T.why.team, lang) });
+      continue;
+    }
+    if (key === TRACK_KEY) {
+      const options = listedOptions(g.question);
+      // Without the organiser's own list there is nothing to tap: it is picked on the official form.
+      if (!options.length) continue;
+      out.push({ ...base, prompt: g.question, kind: "choice", options: options.map((v) => opt(v)), why: t(T.why.track, lang) });
+      continue;
+    }
+    if (PROFILE_SPOT_KEYS.has(key)) {
+      const options = ctx.profile ? profileOptions(key, ctx.profile, ctx.accountEmail) : [];
+      out.push({ ...base, prompt: g.question, kind: options.length ? "choice" : "text", ...(options.length ? { options } : {}), why: t(options.length ? T.why.confirmProfile : T.why.profileMissing, lang) });
+      continue;
+    }
+    out.push({ ...base, prompt: g.question, kind: "text", why: t(key === "why_this" ? T.why.motivation : T.why.ownWords, lang) });
   }
   return out;
 }
 
-/** Required questions still open. */
+/**
+ * Required questions still open — the ones that keep an application in `needs_info`. Files are
+ * not among them: they never hold the drafts back (see `missingFiles`).
+ */
 export function openRequired(questions: ApplicationQuestion[], answers: ApplicationAnswers): ApplicationQuestion[] {
-  return questions.filter((q) => q.required !== false && !answered(answers, q.fieldName ?? q.id));
+  return questions.filter((q) => q.kind !== "file" && q.required !== false && !answered(answers, q.fieldName ?? q.id));
+}
+
+/**
+ * Questions stored before the drafts' spots were settled (spots.ts, 2026-11-02): a writer's own
+ * key the fold now answers another way (presenter_name → the profile, project_name / one_liner /
+ * problem → the one idea question…). Such an application is prepared again, so the person is
+ * asked the few folded questions instead of the old wall.
+ */
+export function hasStaleQuestions(questions: ApplicationQuestion[], oppType: string | null | undefined): boolean {
+  const idea = IDEA_TYPES.has(oppType ?? "");
+  return questions.some((q) => {
+    if (!q.id.startsWith("gap:")) return false;
+    const key = q.fieldName ?? q.id.slice(4);
+    // Judged like the settler judges a document of any kind (a deck's slide spots are never asked).
+    return classifySpot({ key, question: q.prompt }, { idea }).key !== key;
+  });
+}
+
+/** Files the organiser needs to accept the application that are still missing (confirm waits for them where we submit). */
+export function missingFiles(questions: ApplicationQuestion[], answers: ApplicationAnswers): ApplicationQuestion[] {
+  return questions.filter((q) => q.kind === "file" && q.required !== false && !answered(answers, q.fieldName ?? q.id));
 }
 
 export { answered as isAnswered };
@@ -519,13 +669,17 @@ export class AnswerError extends Error {
 export function normalizeAnswer(q: ApplicationQuestion, input: AnswerInput & { custom?: string | null }, lang: Lang): ApplicationAnswer {
   const own = input.custom?.trim();
   if (q.kind === "file") {
+    // A link stands in for the file (a demo video on YouTube, a repository on GitHub).
+    const link = own || (typeof input.value === "string" ? input.value.trim() : "");
+    if (!input.fileKey && !input.documentId && isLinkAnswer(link)) return { value: link, source: "user", factIds: [], confirmed: true, fileKey: null };
     if (!input.fileKey && !input.documentId) throw new AnswerError("needs_file");
     return { value: input.documentId ?? null, source: "user", factIds: [], confirmed: true, fileKey: input.fileKey ?? null };
   }
   if (q.kind === "confirm") {
     const yes = input.value === true || input.value === "yes" || input.value === "true";
     if (!yes) throw new AnswerError("empty");
-    return { value: q.options?.[0]?.value ?? "yes", source: "user", factIds: [], confirmed: true, fileKey: null };
+    const agreed = q.options?.[0];
+    return { value: agreed?.value ?? "yes", source: "user", factIds: [], confirmed: true, fileKey: null, ...(agreed?.label ? { label: agreed.label } : {}) };
   }
   if (q.kind === "choice" || q.kind === "multi") {
     const values = (Array.isArray(input.value) ? input.value : input.value === null || input.value === undefined ? [] : [String(input.value)]).map((v) => String(v).trim()).filter(Boolean);
@@ -536,8 +690,12 @@ export function normalizeAnswer(q: ApplicationQuestion, input: AnswerInput & { c
       const text = [composeMotivation(values.slice(0, 3), lang), own].filter(Boolean).join(lang === "zh" ? "" : " ");
       return { value: text, source: "user", factIds: [], confirmed: true, fileKey: null };
     }
-    if (q.kind === "multi") return { value: own ? [...values, own] : values, source: "user", factIds: [], confirmed: true, fileKey: null };
-    return { value: own || values[0], source: "user", factIds: [], confirmed: true, fileKey: null };
+    const labelOf = (v: string) => q.options?.find((o) => o.value === v)?.label ?? v;
+    if (q.kind === "multi") {
+      const label = [...values.map(labelOf), ...(own ? [own] : [])].join(", ");
+      return { value: own ? [...values, own] : values, source: "user", factIds: [], confirmed: true, fileKey: null, label };
+    }
+    return { value: own || values[0], source: "user", factIds: [], confirmed: true, fileKey: null, ...(own ? {} : { label: labelOf(values[0]) }) };
   }
   const text = (own ?? (typeof input.value === "string" ? input.value : "")).trim();
   if (!text) throw new AnswerError("empty");

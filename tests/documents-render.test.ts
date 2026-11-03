@@ -5,7 +5,8 @@ import { buildDocument } from "@/lib/documents/build";
 import { looksLikeFont, setCjkFontFiles, ttfUrlsFromCss, type CjkFontFiles } from "@/lib/documents/fonts";
 import { renderDocx } from "@/lib/documents/render-docx";
 import { CjkFontUnavailableError, cjkSyllables, needsExtendedFont, renderPdf } from "@/lib/documents/render-pdf";
-import { renderPptx, slidesFrom } from "@/lib/documents/render-pptx";
+import { deckSlides } from "@/lib/documents/deck";
+import { renderPptx } from "@/lib/documents/render-pptx";
 import { localExtractProfile } from "@/lib/llm/local/extract";
 import { localIntelligence } from "@/lib/llm/provider-local";
 import type { FactRef } from "@/lib/llm/types";
@@ -70,12 +71,18 @@ describe("render — English", async () => {
     expect(xml).toContain("Microsoft YaHei");
   });
 
-  it("produces pitch notes as PPTX", async () => {
+  it("produces the pitch deck as slides, PPTX and a 16:9 PDF", async () => {
     const founder = person("deck-founder.txt", "deck", "en");
-    const notes = await buildDocument({ ai: localIntelligence, kind: "pitch_notes", profile: founder.profile, facts: founder.facts, opportunity: { id: "o", type: "investor", name: "Harbor Seed Fund", orgName: "Harbor Seed Fund" }, language: "en", now: NOW });
-    const pptx = await renderPptx({ title: notes.title, language: "en", blocks: notes.content.blocks, personName: "Founder" });
+    const deck = await buildDocument({ ai: localIntelligence, kind: "pitch_notes", profile: founder.profile, facts: founder.facts, opportunity: { id: "o", type: "investor", name: "Harbor Seed Fund", orgName: "Harbor Seed Fund" }, language: "en", now: NOW });
+    expect(deck.content.meta.composer).toBe("pitch_deck");
+    const slides = deckSlides(deck.content.blocks, "Overview");
+    expect(slides[0].layout).toBe("title");
+    expect(slides.length).toBeGreaterThanOrEqual(4);
+    const pptx = await renderPptx({ title: deck.title, language: "en", blocks: deck.content.blocks, personName: "Founder" });
     expect(isZip(pptx)).toBe(true);
-    expect(slidesFrom(notes.content.blocks, "Overview").length).toBeGreaterThan(0);
+    const pdf = await renderPdf({ kind: "pitch_notes", title: deck.title, language: "en", blocks: deck.content.blocks });
+    expect(isPdf(pdf)).toBe(true);
+    expect((await pdfText(pdf)).replace(/\s+/g, " ")).toContain(slides[0].title);
   });
 });
 

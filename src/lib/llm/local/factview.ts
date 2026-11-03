@@ -1,4 +1,5 @@
 import type { Profile } from "@/lib/core/types";
+import { isBreakRole } from "./roles";
 import type { FactRef } from "../types";
 import { totalYears } from "./text";
 
@@ -166,7 +167,7 @@ export class FactView {
 
   /** Years of professional experience over the backed roles (internships/volunteering excluded). */
   years(now?: Date): Backed<number> | null {
-    const roles = this.experiences().filter((e) => e.value.employmentType !== "internship" && e.value.employmentType !== "volunteer" && e.value.startDate);
+    const roles = this.experiences().filter((e) => e.value.employmentType !== "internship" && e.value.employmentType !== "volunteer" && !isBreakRole(e.value) && e.value.startDate);
     if (!roles.length) return null;
     const y = totalYears(
       roles.map((r) => ({ start: r.value.startDate, end: r.value.endDate, current: r.value.current })),

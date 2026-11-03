@@ -3,8 +3,18 @@
  * rejections to the self-hosted error inbox (POST /api/errors). Each distinct error is sent
  * once per page load and at most six per load. The server re-derives severity from the stack
  * (src/lib/errors.ts clientSeverity), so what we label here is only a hint: errors from our
- * own bundle are "error", noise from extensions or third-party scripts is "warn".
+ * own bundle are "error", noise from extensions or third-party scripts is "warn". First of all,
+ * the DOM is guarded against page translators (src/lib/dom-guard.ts), which otherwise crash the
+ * page on the next update.
  */
+
+import { guardDomAgainstTranslators } from "@/lib/dom-guard";
+
+try {
+  guardDomAgainstTranslators();
+} catch (e) {
+  console.warn("[dom] guard not installed", e);
+}
 
 const sent = new Set<string>();
 let budget = 6;

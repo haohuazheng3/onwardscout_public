@@ -48,7 +48,7 @@ export function EmailPane({ room, editable }: { room: RoomApi; editable: boolean
           <Input id="email-subject" value={subject} onChange={(e) => setSubject(e.target.value)} readOnly={!editable} />
         </Field>
         <Field id="email-body" label={t("body")}>
-          <Textarea id="email-body" rows={Math.min(16, Math.max(8, body.split("\n").length + 2))} value={body} onChange={(e) => setBody(e.target.value)} readOnly={!editable} />
+          <Textarea id="email-body" rows={Math.min(16, Math.max(8, body.split("\n").length + 2))} value={body} onChange={(e) => setBody(e.target.value)} readOnly={!editable} className={room.view.access.locked ? "select-none blur-[5px]" : undefined} aria-hidden={room.view.access.locked || undefined} />
         </Field>
         <div className="flex flex-wrap gap-2">
           {editable && dirty && email.documentId ? (

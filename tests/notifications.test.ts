@@ -65,7 +65,7 @@ afterEach(() => {
 
 describe("notification kinds", () => {
   it("are exactly the contract's kinds", () => {
-    expect([...NOTIFICATION_KINDS].sort()).toEqual(["billing", "digest", "needs_you", "new_matches", "progress", "reply", "submitted", "system"]);
+    expect([...NOTIFICATION_KINDS].sort()).toEqual(["billing", "deadline", "digest", "needs_you", "new_matches", "progress", "reply", "submitted", "system"]);
     expect(isNotificationKind("digest")).toBe(true);
     expect(isNotificationKind("spam")).toBe(false);
   });

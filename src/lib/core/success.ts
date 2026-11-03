@@ -540,5 +540,23 @@ export function renderSuccessDefinitions(subGoal: SubGoalId, params: SuccessPara
   return successTemplatesFor(subGoal).map((t) => renderSuccessTemplate(t, params, locale));
 }
 
+/**
+ * A goal's success definition in the reader's language, when it is one of our templates as
+ * written (neutral wording, any horizon); a definition the person edited or that carries their
+ * own details stays exactly as stored.
+ */
+export function successDefinitionFor(goal: { sub: string | null; successDefinition: string; horizonMonths: number }, locale: Locale | string): string {
+  const sub = subGoalIdSchema.safeParse(goal.sub);
+  if (!sub.success) return goal.successDefinition;
+  const want: Locale = locale === "zh" ? "zh" : "en";
+  const stored = goal.successDefinition.trim();
+  const months = Number(stored.match(/\b(\d{1,2}) months?\b|(\d{1,2})\s?个月内/)?.slice(1).find(Boolean) ?? goal.horizonMonths);
+  const params = { months };
+  for (const t of successTemplatesFor(sub.data)) {
+    if (renderSuccessTemplate(t, params, "en").text === stored || renderSuccessTemplate(t, params, "zh").text === stored) return renderSuccessTemplate(t, params, want).text;
+  }
+  return goal.successDefinition;
+}
+
 /** Alias kept for the contract name in the build contract (`render(subGoalId, params, locale)`). */
 export const render = renderSuccessDefinitions;

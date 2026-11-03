@@ -59,6 +59,7 @@ export const REQUIRED_ENV = [
   "STRIPE_SECRET_KEY",
   "STRIPE_CONTEXT",
   "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_SINGLE",
   "STRIPE_PRICE_PRO",
   "STRIPE_PRICE_PACK_10",
   "STRIPE_PRICE_PACK_40",
@@ -184,9 +185,22 @@ export function features(vars: Record<string, string | undefined> = process.env)
   };
 }
 
-/** The per-user monthly LLM budget in US cents (LLM_USER_MONTHLY_CENTS, default 300). */
+/**
+ * The model spend one person's paid applications may add up to in a calendar month, in US cents
+ * (LLM_USER_MONTHLY_CENTS, default 2000 = $20: a season pass holder's whole month, well under
+ * what they paid). Over it, their calls run on the local engine until the month turns.
+ */
 export function llmUserMonthlyCents(): number {
-  return Math.max(0, intEnv("LLM_USER_MONTHLY_CENTS", 300));
+  return Math.max(0, intEnv("LLM_USER_MONTHLY_CENTS", 2000));
+}
+
+/**
+ * The model spend one unlocked application may cost, in US cents (LLM_APPLICATION_CENTS, default
+ * 250 = $2.50 against the $19 paid: the profile read again with Claude, every document written and
+ * a few revisions). Over it, further calls for that application run on the local engine.
+ */
+export function llmApplicationCents(): number {
+  return Math.max(0, intEnv("LLM_APPLICATION_CENTS", 250));
 }
 
 /** Which Stripe key is configured, by its shape only: `live`, `test` or `missing`. */

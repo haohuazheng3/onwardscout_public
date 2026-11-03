@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { NEEDS_USER_STATUSES } from "@/lib/core";
 import { db } from "@/lib/db";
+import { cappedMilestone } from "@/lib/core/playbooks";
 import { applications, goals, matches, messages, milestones, opportunities, users } from "@/lib/db/schema";
 import type { Locale } from "@/i18n/routing";
 import type { JobModule } from "@/lib/jobs/handlers";
@@ -217,7 +218,18 @@ export async function buildDigestData(userId: string, now = new Date()): Promise
       .from(applications)
       .where(and(eq(applications.userId, userId), eq(applications.status, "progress"), gte(applications.updatedAt, from))),
     db
-      .select({ title: milestones.title, current: milestones.current, target: milestones.target, dueAt: milestones.dueAt })
+      .select({
+        title: milestones.title,
+        current: milestones.current,
+        target: milestones.target,
+        dueAt: milestones.dueAt,
+        metric: milestones.metric,
+        position: milestones.position,
+        family: goals.family,
+        sub: goals.sub,
+        horizonMonths: goals.horizonMonths,
+        constraints: goals.constraints,
+      })
       .from(milestones)
       .innerJoin(goals, eq(goals.id, milestones.goalId))
       .where(and(eq(milestones.userId, userId), eq(milestones.status, "open"), eq(goals.status, "active")))
@@ -231,7 +243,11 @@ export async function buildDigestData(userId: string, now = new Date()): Promise
     submittedThisWeek: Number(submitted[0]?.n ?? 0),
     replies: Number(replies[0]?.n ?? 0),
     movedForward: Number(moved[0]?.n ?? 0),
-    milestones: milestoneRows.map((m) => ({ ...m, dueAt: m.dueAt ? new Date(m.dueAt) : null })),
+    // Application milestones set before the caps ("Apply to 130 high-match roles") read as capped, as on the dashboard.
+    milestones: milestoneRows.map(({ family, sub, horizonMonths, constraints, ...m }) => {
+      const c = cappedMilestone(m, { family, sub, horizonMonths, intensity: constraints?.intensity });
+      return { title: c.title, current: c.current, target: c.target, dueAt: c.dueAt ? new Date(c.dueAt) : null };
+    }),
   };
 }
 

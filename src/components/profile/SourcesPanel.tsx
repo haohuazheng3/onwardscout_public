@@ -45,7 +45,7 @@ export function SourcesPanel({ items, status: initial, locale, title, showList =
         </div>
       ) : null}
       {status && (status.phase === "reading" || status.phase === "building") ? <ParseStatus status={status} /> : null}
-      <Uploader mode="user" locale={locale} docs={status?.documents ?? []} onActivity={kick} compact showExisting={false} />
+      <Uploader mode="user" locale={locale} docs={status?.documents ?? []} onActivity={kick} compact showExisting={false} building={status?.phase === "building"} />
     </section>
   );
 }

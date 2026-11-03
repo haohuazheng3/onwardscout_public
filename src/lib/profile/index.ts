@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { documents, events, facts, goals, jobs, matches, milestones, profileVersions, profiles } from "@/lib/db/schema";
+import { applicationSteps, applications, documents, events, facts, generatedDocuments, goals, jobs, matches, milestones, notifications, orders, profileVersions, profiles } from "@/lib/db/schema";
 import { captureError } from "@/lib/errors";
 import { deleteObject } from "@/lib/files";
 import { isAnonId } from "./anon-cookie";
@@ -27,9 +27,10 @@ export { completenessBreakdown, completenessNext, completenessScore } from "./co
 export { applyGapAnswer, gapsFor, type GapQuestion } from "./gaps";
 
 /**
- * Moves everything an anonymous visitor built on /app/start to the account they just signed
- * in with: documents, facts, the profile (merged into an existing one by re-extracting from
- * all sources), goals with milestones, events and pending jobs. Idempotent: a second call
+ * Moves everything an anonymous visitor built on /app/start (or /app/apply) to the account they
+ * just signed in with: documents, facts, the profile (merged into an existing one by
+ * re-extracting from all sources), goals with milestones, applications with their drafted
+ * documents, notifications, events and pending jobs. Idempotent: a second call
  * finds nothing left to move. The sign-in email becomes a confirmed contact fact when the
  * profile has none.
  */
@@ -39,11 +40,34 @@ export async function claimAnonymousDraft(anonId: string, userId: string, opts: 
   const anonProfile = await getProfile(anonId);
   const userProfile = await getProfile(userId);
 
+  // An application the visitor started from a listing becomes theirs too — unless the account
+  // already has one for that opportunity: then the account's stays and the draft's is dropped.
+  const anonApps = await db.select({ id: applications.id, opportunityId: applications.opportunityId }).from(applications).where(eq(applications.userId, anonId));
+  if (anonApps.length) {
+    const taken = await db
+      .select({ opportunityId: applications.opportunityId })
+      .from(applications)
+      .where(and(eq(applications.userId, userId), eq(applications.practice, false), inArray(applications.opportunityId, anonApps.map((a) => a.opportunityId))));
+    const drop = anonApps.filter((a) => taken.some((t) => t.opportunityId === a.opportunityId)).map((a) => a.id);
+    if (drop.length) {
+      await db.batch([
+        db.delete(generatedDocuments).where(and(eq(generatedDocuments.userId, anonId), inArray(generatedDocuments.applicationId, drop))),
+        db.delete(applicationSteps).where(inArray(applicationSteps.applicationId, drop)),
+        db.delete(applications).where(and(eq(applications.userId, anonId), inArray(applications.id, drop))),
+      ]);
+    }
+  }
+
   const moved = await db.batch([
+    db.update(applications).set({ userId, updatedAt: sql`now()` }).where(eq(applications.userId, anonId)).returning({ id: applications.id }),
+    db.update(generatedDocuments).set({ userId }).where(eq(generatedDocuments.userId, anonId)).returning({ id: generatedDocuments.id }),
+    db.update(notifications).set({ userId }).where(eq(notifications.userId, anonId)).returning({ id: notifications.id }),
     db.update(documents).set({ userId }).where(eq(documents.userId, anonId)).returning({ id: documents.id }),
     db.update(goals).set({ userId, updatedAt: sql`now()` }).where(eq(goals.userId, anonId)).returning({ id: goals.id }),
     db.update(milestones).set({ userId, updatedAt: sql`now()` }).where(eq(milestones.userId, anonId)).returning({ id: milestones.id }),
     db.update(events).set({ userId }).where(eq(events.userId, anonId)).returning({ id: events.id }),
+    // A single-application purchase made signed out follows its application into the account.
+    db.update(orders).set({ userId, updatedAt: sql`now()` }).where(eq(orders.userId, anonId)).returning({ id: orders.id }),
     db
       .update(jobs)
       .set({ userId, payload: sql`jsonb_set(${jobs.payload}, '{userId}', to_jsonb(${userId}::text), false)`, updatedAt: sql`now()` })
@@ -52,12 +76,25 @@ export async function claimAnonymousDraft(anonId: string, userId: string, opts: 
   ]);
   let total = moved.reduce((n, rows) => n + rows.length, 0);
   let rebuild = false;
-  // The draft's picks were scored for the visitor; the account's board is scored again after the claim.
-  await db.delete(matches).where(eq(matches.userId, anonId));
 
   // A profile row the account got just by opening a page (nothing read, nothing chosen) is
   // simply replaced by the draft.
   const userEmpty = Boolean(userProfile && userProfile.status === "empty" && userProfile.completeness === 0 && !userProfile.roles.length);
+
+  // When the draft simply becomes the account's profile, its picks stay: they were scored for
+  // that same profile and goals, and the refresh after the claim re-scores them. Deleting them
+  // left a new account on an empty board ("hasn't looked yet") for the minute the refresh took,
+  // right after sign-up (2026-11-03: a visitor saved their scout from "All picks", landed on an
+  // empty board and left). Merged into an existing profile, the board is scored again from scratch.
+  if (anonProfile && (!userProfile || userEmpty)) {
+    const kept = await db
+      .update(matches)
+      .set({ userId, updatedAt: sql`now()` })
+      .where(and(eq(matches.userId, anonId), sql`not exists (select 1 from matches m where m.user_id = ${userId} and m.opportunity_id = matches.opportunity_id)`))
+      .returning({ id: matches.id });
+    total += kept.length;
+  }
+  await db.delete(matches).where(eq(matches.userId, anonId));
   if (anonProfile && userProfile && userEmpty) {
     await db.batch([
       db.delete(profileVersions).where(eq(profileVersions.profileId, userProfile.id)),
@@ -98,6 +135,25 @@ export async function claimAnonymousDraft(anonId: string, userId: string, opts: 
   // Both had content: rebuild from every source now that they are one person's.
   if (rebuild) await queueExtraction(userId, { locale: opts.locale, force: true });
   return { moved: total };
+}
+
+/**
+ * Applications a visitor paid for signed out carry the email typed at checkout: when someone
+ * signs in with that email, those drafts are theirs (the payment is the proof) and join the
+ * account without a question. Returns how many rows moved.
+ */
+export async function claimPaidDrafts(email: string, userId: string, opts: { locale?: "en" | "zh" } = {}): Promise<{ moved: number; drafts: number }> {
+  const { paidDraftOwners } = await import("@/lib/applications/unlock");
+  const owners = (await paidDraftOwners(email)).filter((id) => isAnonId(id) && id !== userId);
+  let moved = 0;
+  for (const anonId of owners) {
+    try {
+      moved += (await claimAnonymousDraft(anonId, userId, { email, locale: opts.locale })).moved;
+    } catch (err) {
+      await captureError(err, { route: "profile/claimPaidDrafts", severity: "warn", context: { userId, anonId } });
+    }
+  }
+  return { moved, drafts: owners.length };
 }
 
 /**

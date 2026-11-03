@@ -17,6 +17,8 @@ import type {
   QuestionAnswer,
   RecommendDirectionsInput,
   ReplyClassification,
+  ReviseDocumentInput,
+  RevisedDocument,
   ScoreMatchesInput,
 } from "./types";
 import { localAnswerQuestions } from "./local/answers";
@@ -27,6 +29,7 @@ import { localMapFormFields, localPlanBrowserStep } from "./local/forms";
 import { localScoreMatches } from "./local/match";
 import { localNormalizeOpportunity } from "./local/opportunity";
 import { localClassifyReply } from "./local/reply";
+import { localReviseDocument } from "./local/revise";
 
 /*
  * The deterministic engine: what production runs until ANTHROPIC_API_KEY is enabled, and
@@ -64,6 +67,9 @@ export class LocalIntelligence implements Intelligence {
   }
   async recommendDirections(input: RecommendDirectionsInput): Promise<DirectionPlan> {
     return localRecommendDirections(input);
+  }
+  async reviseDocument(input: ReviseDocumentInput): Promise<RevisedDocument> {
+    return localReviseDocument(input);
   }
 }
 

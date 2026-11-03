@@ -6,7 +6,7 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import type { ReactNode } from "react";
 import { CheckoutButton, CheckoutNotice } from "@/components/billing/CheckoutButton";
 import { PortalButton } from "@/components/billing/PortalButton";
-import { Callout, PageHeader, Pane, StatPane, Tag, type TagTone } from "@/components/ui";
+import { ButtonLink, Callout, PageHeader, Pane, StatPane, Tag, type TagTone } from "@/components/ui";
 import { Link } from "@/i18n/navigation";
 import { localizePath } from "@/i18n/paths";
 import { routing, type Locale } from "@/i18n/routing";
@@ -16,7 +16,7 @@ import { db } from "@/lib/db";
 import { applications, opportunities } from "@/lib/db/schema";
 import { shortRef } from "@/lib/ids";
 import { requireUser } from "@/lib/user";
-import { CREDIT_RULES, formatPrice, isSku, offerName, PACKS, perCreditUsd, PLANS } from "@/content/plans";
+import { CREDIT_RULES, formatPrice, isSku, offerName, PASSES, passForScope, PLANS, SINGLE } from "@/content/plans";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -81,6 +81,11 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
   const now = new Date();
   const trialLot = lots.find((l) => l.kind === "trial" && lotStatus(l, now) === "active");
   const money = (cents: number, currency: string) => format.number(cents / 100, { style: "currency", currency: currency.toUpperCase() });
+  // Season passes pay only for their own programmes: shown apart from the credits any application can use.
+  const passes = balance.passes.map((p) => ({ ...p, sku: passForScope(p.scope) })).filter((p) => p.sku !== null);
+  const lead = passes[0];
+  const passName = (sku: (typeof passes)[number]["sku"]) => (sku ? offerName(sku, locale) : "");
+  const passTypes = (scope: string[]) => PASSES[passForScope(scope) ?? "season_returnship"].scopeLabel?.[locale] ?? "";
 
   return (
     <div className="min-w-0 space-y-4">
@@ -100,9 +105,15 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 [&>*]:min-w-0">
         <StatPane
           label={t("stats.available")}
-          value={balance.available}
+          value={balance.general}
           tone={balance.available > 0 ? "pine" : "accent"}
-          hint={balance.reserved > 0 ? t("stats.availableHintHeld", { count: balance.reserved }) : t("stats.availableHintIdle")}
+          hint={
+            lead
+              ? t("stats.availablePlusPass", { count: lead.remaining, name: passName(lead.sku) })
+              : balance.reserved > 0
+                ? t("stats.availableHintHeld", { count: balance.reserved })
+                : t("stats.availableHintIdle")
+          }
         />
         <StatPane
           label={t("stats.expiring")}
@@ -115,77 +126,66 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
         />
         <StatPane
           label={t("stats.plan")}
-          value={plan.sku ? offerName(plan.sku, locale) : t("stats.planNone")}
-          tone={plan.sku ? "accent" : "default"}
-          hint={plan.sku ? t("stats.planHintPro", { price: formatPrice(pro.priceUsd), credits: pro.credits }) : t("stats.planHintNone", { credits: pro.credits })}
+          value={plan.sku ? offerName(plan.sku, locale) : lead ? passName(lead.sku) : t("stats.planNone")}
+          tone={plan.sku || lead ? "accent" : "default"}
+          hint={
+            plan.sku
+              ? t("stats.planHintPro", { price: formatPrice(pro.priceUsd), credits: pro.credits })
+              : lead
+                ? lead.expiresAt
+                  ? t("stats.planHintPass", { count: lead.remaining, types: passTypes(lead.scope), date: lead.expiresAt })
+                  : t("stats.planHintPassOpen", { count: lead.remaining, types: passTypes(lead.scope) })
+                : t("stats.planHintNone", { price: formatPrice(SINGLE.priceUsd) })
+          }
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] [&>*]:min-w-0">
         <div className="min-w-0 space-y-4">
-          {/* Plan */}
-          <Section
-            id="plan-heading"
-            title={status === "active" || status === "cancelScheduled" || status === "pastDue" ? t("plan.titleActive") : t("plan.titleNone")}
-            body={
-              status === "active" && sub?.currentPeriodEnd
-                ? t("plan.renews", { date: sub.currentPeriodEnd, days: pro.rolloverDays })
-                : status === "cancelScheduled" && sub?.currentPeriodEnd
-                  ? t("plan.cancelScheduled", { date: sub.currentPeriodEnd })
-                  : status === "pastDue"
-                    ? t("plan.pastDue")
-                    : status === "ended" && sub?.currentPeriodEnd
-                      ? t("plan.ended", { date: sub.currentPeriodEnd })
+          {/* Legacy Pro (no longer sold): shown only while a subscription exists */}
+          {plan.subscription ? (
+            <Section
+              id="plan-heading"
+              title={t("plan.titleActive")}
+              body={
+                status === "active" && sub?.currentPeriodEnd
+                  ? t("plan.renews", { date: sub.currentPeriodEnd, days: pro.rolloverDays })
+                  : status === "cancelScheduled" && sub?.currentPeriodEnd
+                    ? t("plan.cancelScheduled", { date: sub.currentPeriodEnd })
+                    : status === "pastDue"
+                      ? t("plan.pastDue")
                       : pro.blurb[locale]
-            }
-          >
-            {plan.subscription ? (
-              <div className="space-y-4">
-                <ul className="grid gap-2 text-[0.94rem] leading-snug text-ink-2">
-                  {pro.features[locale].map((f) => (
-                    <li key={f} className="flex gap-2.5">
-                      <span aria-hidden="true" className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-pine" />
-                      <span className="min-w-0">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="pane-inset flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-[0.9rem] leading-relaxed text-ink-3">{t("plan.portalNote")}</p>
-                  <PortalButton size="md" className="shrink-0" />
-                </div>
+              }
+            >
+              <div className="pane-inset flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[0.9rem] leading-relaxed text-ink-3">{t("plan.portalNote")}</p>
+                <PortalButton size="md" className="shrink-0" />
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="num text-[2rem] font-semibold tracking-[-0.03em] text-ink">{formatPrice(pro.priceUsd)}</span>
-                  <span className="text-[0.95rem] text-ink-3">{t("plan.perMonth", { credits: pro.credits })}</span>
-                </div>
-                <p className="eyebrow">{t("plan.perksTitle")}</p>
-                <ul className="grid gap-2 text-[0.94rem] leading-snug text-ink-2">
-                  {pro.features[locale].map((f) => (
-                    <li key={f} className="flex gap-2.5">
-                      <span aria-hidden="true" className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                      <span className="min-w-0">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <CheckoutButton sku="pro" from="billing" block className="sm:w-auto" />
-              </div>
-            )}
+            </Section>
+          ) : null}
+
+          {/* How paying works now: one application at a time, from its own page */}
+          <Section id="unlock-heading" title={t("unlock.title", { price: formatPrice(SINGLE.priceUsd) })} body={t("unlock.body", { price: formatPrice(SINGLE.priceUsd) })}>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <ButtonLink href="/app/applications" prefetch={false} variant="primary" size="md">
+                {t("unlock.ctaApplications")}
+              </ButtonLink>
+              <ButtonLink href="/app/scout" prefetch={false} variant="ghost" size="md">
+                {t("unlock.ctaScout")}
+              </ButtonLink>
+            </div>
           </Section>
 
-          {/* Packs */}
-          <Section id="packs-heading" title={t("packs.title")} body={t("packs.body", { days: PACKS.pack10.rolloverDays })}>
+          {/* Season passes */}
+          <Section id="passes-heading" title={t("passes.title")} body={t("passes.body")}>
             <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
-              {Object.values(PACKS).map((p) => (
+              {Object.values(PASSES).map((p) => (
                 <div key={p.sku} className="pane-inset flex flex-col gap-3 px-5 py-4">
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-[1.05rem] font-semibold text-ink">{p.name[locale]}</p>
                     <p className="num text-[1.05rem] font-semibold text-ink">{formatPrice(p.priceUsd)}</p>
                   </div>
-                  <p className="text-[0.88rem] text-ink-3">
-                    {t("packs.perCredit", { price: formatPrice(perCreditUsd(p)) })} · {p.blurb[locale]}
-                  </p>
+                  <p className="text-[0.88rem] text-ink-3">{p.blurb[locale]}</p>
                   <CheckoutButton sku={p.sku} from="billing" variant="ghost" size="md" block />
                 </div>
               ))}
@@ -204,7 +204,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
                   return (
                     <li key={l.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 py-3">
                       <div className="min-w-0">
-                        <p className="text-[0.95rem] font-semibold text-ink">{t(`lots.kind.${l.kind}`)}</p>
+                        <p className="text-[0.95rem] font-semibold text-ink">{l.scope?.length ? t("lots.pass", { types: passTypes(l.scope) }) : t(`lots.kind.${l.kind}`)}</p>
                         <p className="text-[0.84rem] text-ink-4">
                           {t("lots.added", { date: l.createdAt })}
                           {" · "}
@@ -279,7 +279,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
                       </p>
                       <p className="text-[0.82rem] text-ink-4">
                         {format.dateTime(o.createdAt, { dateStyle: "medium" })} · {t("orders.ref", { ref: shortRef(o.id) })}
-                        {o.promoCode ? ` · ${t("orders.code", { code: o.promoCode })}` : ""}
+                        {o.promoCode ? ` · ${o.promoCode.startsWith("promo_") ? t("orders.promo") : t("orders.code", { code: o.promoCode })}` : ""}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

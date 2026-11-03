@@ -1,8 +1,9 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { getSubGoal, subGoalLabel } from "@/lib/core/goals";
-import { buildMilestones } from "@/lib/core/playbooks";
+import { getSubGoal, goalLabelFor, subGoalLabel } from "@/lib/core/goals";
+import { buildMilestones, cappedMilestone, milestoneTitleFor } from "@/lib/core/playbooks";
+import { successDefinitionFor } from "@/lib/core/success";
 import { POST_SUBMISSION_STATUSES } from "@/lib/core/state-machine";
 import { familyOfSubGoal, goalConstraintsSchema, goalFamilySchema, goalStatusSchema, intensitySchema, subGoalIdSchema, type Intensity, type Profile } from "@/lib/core/types";
 import { db } from "@/lib/db";
@@ -94,7 +95,7 @@ export async function saveGoals(ownerId: string, inputs: readonly GoalInput[], l
       .values({ id, userId: ownerId, family: g.family, sub: g.sub, label: subGoalLabel(g.sub, locale), successDefinition: g.successDefinition, horizonMonths: g.horizonMonths, constraints: constraintsFor(profile, g.intensity, g.rationale), status: "active" })
       .returning();
     const goal = rows[0]!;
-    const planned = buildMilestones(g.family, { intensity: g.intensity, horizonMonths: g.horizonMonths });
+    const planned = buildMilestones(g.family, { intensity: g.intensity, horizonMonths: g.horizonMonths, sub: g.sub });
     if (planned.length) {
       await db.insert(milestones).values(
         planned.map((m) => ({ id: newId("mil"), goalId: id, userId: ownerId, title: locale === "zh" ? m.title.zh : m.title.en, metric: m.metric, target: m.target, dueAt: m.dueAt, position: m.position })),
@@ -109,7 +110,7 @@ export async function saveGoals(ownerId: string, inputs: readonly GoalInput[], l
 /** Re-plans the open milestones after the horizon or intensity changed. */
 async function rebuildMilestones(goal: GoalRow, locale: "en" | "zh"): Promise<void> {
   const intensity = goal.constraints.intensity ?? "steady";
-  const planned = buildMilestones(goal.family, { intensity, horizonMonths: goal.horizonMonths, start: new Date(goal.createdAt) });
+  const planned = buildMilestones(goal.family, { intensity, horizonMonths: goal.horizonMonths, start: new Date(goal.createdAt), sub: goal.sub });
   const current = await db.select().from(milestones).where(eq(milestones.goalId, goal.id));
   for (const m of planned) {
     const row = current.find((c) => c.position === m.position);
@@ -157,7 +158,7 @@ async function submittedByGoal(ownerId: string): Promise<Map<string, number>> {
 }
 
 /** Every goal with its milestones; active goals first. */
-export async function listGoals(ownerId: string, opts: { onlyActive?: boolean } = {}): Promise<GoalWithMilestones[]> {
+export async function listGoals(ownerId: string, opts: { onlyActive?: boolean; locale?: string } = {}): Promise<GoalWithMilestones[]> {
   const where = opts.onlyActive ? and(eq(goals.userId, ownerId), eq(goals.status, "active")) : eq(goals.userId, ownerId);
   const rows = await db.select().from(goals).where(where).orderBy(sql`case ${goals.status} when 'active' then 0 when 'paused' then 1 when 'achieved' then 2 else 3 end`, desc(goals.updatedAt));
   if (!rows.length) return [];
@@ -169,10 +170,20 @@ export async function listGoals(ownerId: string, opts: { onlyActive?: boolean } 
       .orderBy(asc(milestones.position)),
     submittedByGoal(ownerId).catch(() => new Map<string, number>()),
   ]);
+  // With a locale, our own names (goal and milestone titles) read in it, whatever language they were set in.
+  const lang = opts.locale;
   return rows.map((g) => ({
     ...g,
+    label: lang ? goalLabelFor(g, lang) : g.label,
+    successDefinition: lang && g.successDefinition ? successDefinitionFor({ ...g, successDefinition: g.successDefinition }, lang) : g.successDefinition,
     milestones: ms
       .filter((m) => m.goalId === g.id)
-      .map((m) => ({ ...m, progress: m.metric === "applications" ? Math.max(m.current, submitted.get(g.id) ?? 0) : m.current })),
+      // Application milestones set before the caps ("Apply to 130 high-match roles") read as capped now.
+      .map((stored) => (stored.status === "open" ? cappedMilestone(stored, { family: g.family, sub: g.sub, horizonMonths: g.horizonMonths, intensity: g.constraints.intensity }) : stored))
+      .map((m) => ({
+        ...m,
+        title: lang ? milestoneTitleFor(m, g, lang) : m.title,
+        progress: m.metric === "applications" ? Math.max(m.current, submitted.get(g.id) ?? 0) : m.current,
+      })),
   }));
 }

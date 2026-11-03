@@ -393,6 +393,16 @@ export const applications = pgTable(
     creditsReserved: integer("credits_reserved").notNull().default(0),
     creditLotId: text("credit_lot_id"),
     practice: boolean("practice").notNull().default(false),
+    /**
+     * When the person paid for this application (one $19 unlock, a credit from a season pass, or
+     * an application that reached "ready" before 2026-11-03). Only unlocked applications are
+     * written with Claude, downloadable, copyable and submittable; the rest show a preview.
+     */
+    unlockedAt: tsz("unlocked_at"),
+    /** How it was unlocked: 'order' (paid once), 'credit' (a pass or pack credit), 'legacy'. */
+    unlockSource: text("unlock_source").$type<"order" | "credit" | "legacy">(),
+    /** The email typed at checkout when a signed-out visitor paid: a sign-in with it claims the application. */
+    paidEmail: text("paid_email"),
     /** When the next follow-up is due (playbook `nextFollowUpAt`); null = none scheduled. */
     followUpAt: tsz("follow_up_at"),
     followUpsSent: integer("follow_ups_sent").notNull().default(0),
@@ -406,6 +416,7 @@ export const applications = pgTable(
     index("applications_status_idx").on(t.status, t.updatedAt),
     index("applications_followup_idx").on(t.status, t.followUpAt),
     index("applications_opportunity_idx").on(t.opportunityId),
+    index("applications_paid_email_idx").on(t.paidEmail),
   ],
 );
 
@@ -619,6 +630,8 @@ export const llmCalls = pgTable(
   {
     id: text("id").primaryKey(),
     userId: text("user_id"),
+    /** The unlocked application the call worked for (its own model budget), when there is one. */
+    applicationId: text("application_id"),
     purpose: text("purpose").notNull(),
     provider: text("provider").notNull(),
     model: text("model").notNull(),
@@ -638,6 +651,7 @@ export const llmCalls = pgTable(
     index("llm_calls_user_idx").on(t.userId, t.createdAt),
     index("llm_calls_created_idx").on(t.createdAt),
     index("llm_calls_purpose_idx").on(t.purpose, t.createdAt),
+    index("llm_calls_application_idx").on(t.applicationId, t.createdAt),
   ],
 );
 
@@ -660,6 +674,8 @@ export const creditLots = pgTable(
     sourceKey: text("source_key").notNull(),
     orderId: text("order_id"),
     expiresAt: tsz("expires_at"),
+    /** Opportunity types these credits may pay for (season passes); empty = any application. */
+    scope: text("scope").array().notNull().default(sql`'{}'::text[]`),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("credit_lots_source_uq").on(t.sourceKey), index("credit_lots_user_idx").on(t.userId, t.status, t.expiresAt)],
@@ -705,6 +721,8 @@ export const orders = pgTable(
     promoCode: text("promo_code"),
     email: text("email"),
     source: text("source").$type<OrderSource>().notNull(),
+    /** A single-application purchase: the application it unlocked. */
+    applicationId: text("application_id"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

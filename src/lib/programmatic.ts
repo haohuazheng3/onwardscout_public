@@ -566,10 +566,13 @@ export function shorten(text: string, max: number): string {
   return `${(cut > max * 0.6 ? head.slice(0, cut) : head).replace(/[,;:.\-–]+$/, "")}…`;
 }
 
+/** Indian rupee amounts read in the grouping their readers use: ₹2,00,000 (two lakh), ₹4,00,00,000. */
+const MONEY_LOCALE: Record<string, string> = { INR: "en-IN" };
+
 function money(amount: number, currency: string | null): string {
   if (currency && /^[A-Z]{3}$/.test(currency)) {
     try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+      return new Intl.NumberFormat(MONEY_LOCALE[currency] ?? "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
     } catch {
       /* unknown currency code: plain number below */
     }

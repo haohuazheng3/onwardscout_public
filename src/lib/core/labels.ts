@@ -34,3 +34,12 @@ export function bi(en: string, zh: string): Bilingual {
 export function hasCjk(text: string): boolean {
   return /[㐀-鿿豈-﫿]/.test(text);
 }
+
+/** "B.S. in Statistics" with field "Statistics" reads once: the field is added only when the degree doesn't already name it. */
+export function degreeWithField(degree: string | null | undefined, field: string | null | undefined, sep = ", "): string {
+  const d = (degree ?? "").trim();
+  const f = (field ?? "").trim();
+  if (!f) return d;
+  if (!d) return f;
+  return d.toLowerCase().includes(f.toLowerCase()) ? d : `${d}${sep}${f}`;
+}

@@ -53,6 +53,8 @@ const CLERK = ["https://clerk.onwardscout.com", "https://*.clerk.accounts.dev", 
 const CLERK_WS = ["wss://clerk.onwardscout.com", "wss://*.clerk.accounts.dev"];
 // Clerk development instances report SDK telemetry; blocking it only adds console noise.
 const CLERK_TELEMETRY = ["https://clerk-telemetry.com"];
+// Clerk Protect (sign-up abuse checks) probes its edge on non-standard ports; a host without a port only allows 443.
+const CLERK_PROTECT = ["https://*.client.protect.clerk.com:*"];
 const STRIPE = ["https://js.stripe.com", "https://checkout.stripe.com", "https://api.stripe.com", "https://m.stripe.network"];
 // FlowGlance loads from flowglance.com and posts to collect.flowglance.com (a blocked collector silently loses all analytics).
 const FLOWGLANCE = ["https://flowglance.com", "https://*.flowglance.com"];
@@ -72,7 +74,7 @@ export const CSP = [
   ["style-src", "'self'", "'unsafe-inline'"],
   ["img-src", "'self'", "data:", "blob:", ...CLERK.slice(3), ...FILES, ...STRIPE, ...FLOWGLANCE, ...PEXELS],
   ["font-src", "'self'", "data:"],
-  ["connect-src", "'self'", ...CLERK, ...CLERK_WS, ...CLERK_TELEMETRY, ...STRIPE, ...FLOWGLANCE, ...TURNSTILE, ...FILES, ...(isDev ? ["ws:", "http://localhost:*"] : [])],
+  ["connect-src", "'self'", ...CLERK, ...CLERK_WS, ...CLERK_TELEMETRY, ...CLERK_PROTECT, ...STRIPE, ...FLOWGLANCE, ...TURNSTILE, ...FILES, ...(isDev ? ["ws:", "http://localhost:*"] : [])],
   ["frame-src", "'self'", ...STRIPE.slice(0, 2), ...TURNSTILE, ...CLERK.slice(0, 3), ...FILES],
   ["worker-src", "'self'", "blob:"],
   ["media-src", "'self'", "blob:", ...FILES],

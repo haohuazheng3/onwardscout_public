@@ -456,6 +456,15 @@
         "done": "You've used all your re-plans.",
         "limited": "Your answers are saved. No re-plans left, so your plan stays as it is."
       }
+    },
+    "discard": {
+      "cta": "Delete this draft",
+      "confirm": "Delete everything this browser started (files, profile, plan and drafts)?",
+      "confirmLabel": "Confirm deleting this draft",
+      "yes": "Delete it",
+      "no": "Keep it",
+      "done": "Deleted. You can start again any time.",
+      "failed": "We couldn't delete the draft"
     }
   }
 }

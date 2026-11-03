@@ -1,0 +1,30 @@
+Priya Raman
+Chennai, India | priya.raman@example.com | +91 98400 12345 | github.com/priyaraman-example
+
+SUMMARY
+Third-year computer science student who builds small tools for real local problems. Looking for a software engineering internship for summer 2026.
+
+EDUCATION
+B.E. Computer Science and Engineering, College of Engineering Guindy, Anna University  2023 – 2027
+CGPA: 8.7/10
+
+EXPERIENCE
+Software Engineering Intern, Zoho Corporation, Chennai  May 2025 – Jul 2025
+• Built a usage dashboard for the Zoho Desk team in React and Node.js, used in weekly reviews
+• Cut a slow report query from 9 s to 1.2 s by adding PostgreSQL indexes
+Teaching Assistant, Programming in Python, CEG  Jan 2025 – Apr 2025
+• Ran weekly lab sessions for 60 first-year students
+• Wrote 12 autograded exercises used across three sections
+
+PROJECTS
+KrishiAlert — crop disease alerts over WhatsApp  2025
+• Farmers send a leaf photo; a small image model replies with the likely disease and a remedy
+• Piloted with 40 farmers in Kanchipuram district
+BusBuddy — live bus arrival tracker  2024
+• Shows live arrival times for 30 MTC routes from crowd-sourced GPS pings
+• 1,100 weekly users at its peak
+
+SKILLS
+Languages: Python, Java, JavaScript, SQL
+Tools: React, Node.js, PostgreSQL, Git, Docker
+

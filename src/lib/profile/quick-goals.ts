@@ -27,6 +27,7 @@ export interface QuickGoal {
 export const QUICK_GOALS: readonly QuickGoal[] = [
   { id: "job", family: "G1", sub: "G1.1", icon: "briefcase", label: bi("A full-time job", "全职工作"), hint: bi("Open roles at companies hiring now", "正在招聘的公司职位"), paths: ["work"] },
   { id: "internship", family: "G1", sub: "G1.2", icon: "briefcase", label: bi("An internship", "实习"), hint: bi("Internships at companies hiring now", "正在招聘的实习岗位"), paths: ["work"] },
+  { id: "returnship", family: "G1", sub: "G1.9", icon: "briefcase", label: bi("A returnship", "重返职场计划"), hint: bi("Paid programmes for people back from a career break", "面向职业空窗后回归者的带薪项目"), paths: ["work"] },
   { id: "graduate", family: "G1", sub: "G1.3", icon: "graduation", label: bi("A graduate or trainee program", "校招或管培项目"), hint: bi("Programs for students and new graduates", "面向在校生和应届生的项目"), paths: ["work"] },
   { id: "scholarship", family: "G5", sub: "G5.2", icon: "graduation", label: bi("A scholarship", "奖学金"), hint: bi("Scholarships you can apply for", "可以申请的奖学金"), paths: ["study"] },
   { id: "fellowship", family: "G8", sub: "G8.1", icon: "coins", label: bi("A fellowship", "Fellowship 项目"), hint: bi("Funded fellowships for people at your stage", "适合你所处阶段的资助型项目"), paths: ["research", "study"] },

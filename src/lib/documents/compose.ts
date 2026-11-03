@@ -120,7 +120,7 @@ export function resolveLanguage(requested: string | null | undefined, opp: Oppor
   return documentLanguage(opp, userLocale);
 }
 
-async function nextVersion(userId: string, applicationId: string | null, kind: GeneratedDocumentKind): Promise<number> {
+export async function nextVersion(userId: string, applicationId: string | null, kind: GeneratedDocumentKind): Promise<number> {
   const rows = await db
     .select({ v: max(generatedDocuments.version) })
     .from(generatedDocuments)
@@ -155,7 +155,7 @@ export async function composeDocumentWith(input: ComposeDocumentInput, opts: Com
   }
   const language = resolveLanguage(input.language, opp, ctx.userLocale);
   const tone = TONES.has(input.tone as Tone) ? (input.tone as Tone) : undefined;
-  const ai = opts.ai ?? getIntelligence({ userId: input.userId });
+  const ai = opts.ai ?? getIntelligence({ userId: input.userId, applicationId: input.applicationId ?? null });
   const checklist =
     opts.material === "document_checklist" || opts.material === "evidence_list"
       ? (opp?.requiredMaterials ?? []).map((m) => {

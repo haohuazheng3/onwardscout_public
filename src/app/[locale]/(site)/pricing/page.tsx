@@ -8,10 +8,10 @@ import { BillingIntl } from "@/components/billing/BillingIntl";
 import { CheckoutButton, CheckoutNotice, ResumePurchase } from "@/components/billing/CheckoutButton";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs, CheckList, CtaPane, DotList, FaqList, PageHero } from "@/components/site/blocks";
-import { compareRows, perCreditLabel, type CompareCell } from "@/components/site/pricing";
+import { compareRows, type CompareCell } from "@/components/site/pricing";
 import { ButtonLink, Container, Section, SectionHeading, cx } from "@/components/ui";
 import { faqsByGroup } from "@/content/faq";
-import { CREDIT_RULES, PACKS, PLANS, TRIAL, formatPrice, type Offer, type Sku } from "@/content/plans";
+import { CREDIT_RULES, PASSES, SINGLE, formatPrice, offerFeatures, type Sku } from "@/content/plans";
 import { FREE_INCLUDES, pick } from "@/content/site-copy";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -26,22 +26,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "site.pricing" });
   return pageMetadata({
     title: t("metaTitle"),
-    description: t("metaDescription", {
-      proPrice: formatPrice(PLANS.pro.priceUsd),
-      proCredits: PLANS.pro.credits,
-      smallCredits: PACKS.pack10.credits,
-      smallPrice: formatPrice(PACKS.pack10.priceUsd),
-      largeCredits: PACKS.pack40.credits,
-      largePrice: formatPrice(PACKS.pack40.priceUsd),
-    }),
+    description: t("metaDescription", { price: formatPrice(SINGLE.priceUsd), passPrice: formatPrice(PASSES.season_returnship.priceUsd) }),
     path: "/pricing",
     locale,
   });
 }
 
 /**
- * P4's CheckoutButton: instant pressed state, signed-out → sign-in and back to /pricing?buy=<sku>,
- * where the purchase resumes once (ResumePurchase shows it), signed-in → Stripe Checkout.
+ * P4's CheckoutButton (season passes): instant pressed state, signed-out → sign-in and back to
+ * /pricing?buy=<sku>, where the purchase resumes once (ResumePurchase shows it), signed-in →
+ * Stripe Checkout. One application is unlocked from its own page, never from here.
  */
 function BuyButton({ sku, label, variant = "primary" }: { sku: Sku; label: string; variant?: "primary" | "ghost" | "ink" }) {
   return (
@@ -83,10 +77,8 @@ export default async function PricingPage({ params }: Props) {
   const tcmp = await getTranslations({ locale, namespace: "site.pricing.compare" });
   const em = { em: (chunks: ReactNode) => <em>{chunks}</em> };
 
-  const pro = PLANS.pro;
-  const packs: Offer[] = [PACKS.pack10, PACKS.pack40];
-  // Read at build time (the page is static): the email brief shows "coming soon" until product email is on.
-  const rows = compareRows((key, values) => tcmp(key, values), { mailer: features().mailer });
+  const price = formatPrice(SINGLE.priceUsd);
+  const rows = compareRows((key, values) => tcmp(key, values));
   const billingFaqs = faqsByGroup("billing").map((f) => ({
     id: f.id,
     q: pick(f.q, locale),
@@ -97,8 +89,8 @@ export default async function PricingPage({ params }: Props) {
   const noLabel = tcmp("notIncluded");
   const plans = [
     { key: "free" as const, name: tcmp("free") },
-    { key: "packs" as const, name: tcmp("packs") },
-    { key: "pro" as const, name: tcmp("pro") },
+    { key: "single" as const, name: tcmp("single") },
+    { key: "pass" as const, name: tcmp("pass") },
   ];
 
   return (
@@ -107,11 +99,11 @@ export default async function PricingPage({ params }: Props) {
       <JsonLd
         data={[
           softwareApplicationLd(
-            [pro, ...packs].map((o) => ({
+            [SINGLE, ...Object.values(PASSES)].map((o) => ({
               sku: o.sku,
               name: o.name[locale],
               priceUsd: o.priceUsd,
-              interval: o.interval === "month" ? "month" : "once",
+              interval: "once" as const,
               description: o.blurb[locale],
             })),
             locale,
@@ -133,17 +125,17 @@ export default async function PricingPage({ params }: Props) {
         }
         eyebrow={tp("eyebrow")}
         title={tp.rich("title", em)}
-        lede={tp("lede")}
+        lede={tp("lede", { price })}
       />
       <Container className="mt-6 grid gap-3 empty:hidden">
         <ResumePurchase className="max-w-xl" />
         <CheckoutNotice className="max-w-xl" />
       </Container>
 
-      {/* ---------- Free, Pro, packs ---------- */}
+      {/* ---------- Free preview, one application, season pass ---------- */}
       <Section className="pt-12 sm:pt-16" size="lg">
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* Free */}
+          {/* Free preview */}
           <div className="pane flex min-w-0 flex-col p-6 sm:p-8">
             <p className="eyebrow">{tp("free.name")}</p>
             <p className="mt-3 flex items-baseline gap-1.5">
@@ -151,62 +143,54 @@ export default async function PricingPage({ params }: Props) {
               <span className="text-[0.92rem] text-ink-4">{tp("free.period")}</span>
             </p>
             <p className="mt-3 text-[0.96rem] leading-relaxed text-ink-3">{tp("free.blurb")}</p>
-            <CheckList
-              className="mt-6"
-              items={[...FREE_INCLUDES.map((l) => pick(l, locale)), tp("free.trial", { credits: TRIAL.credits, days: TRIAL.expiryDays })]}
-            />
+            <CheckList className="mt-6" items={[tp("free.preview"), ...FREE_INCLUDES.map((l) => pick(l, locale))]} />
             <div className="mt-auto pt-8">
-              <ButtonLink href="/app/start" prefetch={false} variant="ghost" size="lg" block iconRight={<ArrowUpRight size={18} aria-hidden />}>
+              <ButtonLink href="/opportunities" prefetch={false} variant="ghost" size="lg" block iconRight={<ArrowUpRight size={18} aria-hidden />}>
                 {tp("free.cta")}
               </ButtonLink>
             </div>
           </div>
 
-          {/* Pro */}
-          <div id="buy-pro" className="pane-ink flex min-w-0 scroll-mt-28 flex-col p-6 sm:p-8">
+          {/* One application */}
+          <div id="buy-single" className="pane-ink flex min-w-0 scroll-mt-28 flex-col p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="eyebrow eyebrow-accent">{pro.name[locale]}</p>
-              <span className="tag tag-accent">{tp("recommended")}</span>
+              <p className="eyebrow eyebrow-accent">{SINGLE.name[locale]}</p>
+              <span className="tag tag-accent">{tp("single.recommended")}</span>
             </div>
             <p className="mt-3 flex items-baseline gap-1.5">
-              <span className="num font-display text-[3rem] font-semibold leading-none text-ink">{formatPrice(pro.priceUsd)}</span>
-              <span className="text-[0.92rem] text-ink-4">{tp("perMonth")}</span>
+              <span className="num font-display text-[3rem] font-semibold leading-none text-ink">{price}</span>
+              <span className="text-[0.92rem] text-ink-4">{tp("single.period")}</span>
             </p>
-            <p className="mt-3 text-[0.96rem] text-ink-2">
-              <strong className="font-semibold text-ink">{tp("creditsPerMonth", { credits: pro.credits })}</strong>
-              <span className="text-ink-4"> · {tp("perCredit", { price: perCreditLabel(pro) })}</span>
-            </p>
-            <p className="mt-1.5 text-[0.94rem] leading-relaxed text-ink-3">{pro.blurb[locale]}</p>
-            <CheckList className="mt-6" tone="accent" items={[...pro.features[locale]]} />
+            <p className="mt-3 text-[0.96rem] leading-relaxed text-ink-3">{SINGLE.blurb[locale]}</p>
+            <CheckList className="mt-6" tone="accent" items={[...SINGLE.features[locale]]} />
             <div className="mt-auto pt-8">
-              <BuyButton sku="pro" label={tp("subscribe", { name: pro.name[locale] })} variant="primary" />
+              <ButtonLink href="/opportunities" prefetch={false} size="lg" block iconRight={<ArrowUpRight size={18} aria-hidden />}>
+                {tp("single.cta")}
+              </ButtonLink>
+              <p className="mt-3 text-center text-[0.84rem] text-ink-4">{tp("single.note", { price })}</p>
             </div>
           </div>
 
-          {/* Packs */}
+          {/* Season pass */}
           <div className="pane flex min-w-0 flex-col p-6 sm:p-8">
-            <p className="eyebrow">{tp("packsTitle")}</p>
-            <p className="mt-3 text-[0.96rem] leading-relaxed text-ink-3">{tp("packsLede")}</p>
+            <p className="eyebrow">{tp("passes.eyebrow")}</p>
+            <p className="mt-3 flex items-baseline gap-1.5">
+              <span className="num font-display text-[3rem] font-semibold leading-none text-ink">{formatPrice(PASSES.season_returnship.priceUsd)}</span>
+              <span className="text-[0.92rem] text-ink-4">{tp("passes.period", { days: PASSES.season_returnship.rolloverDays })}</span>
+            </p>
+            <p className="mt-3 text-[0.96rem] leading-relaxed text-ink-3">{tp("passes.lede")}</p>
             <div className="mt-5 grid gap-3">
-              {packs.map((o) => (
+              {Object.values(PASSES).map((o) => (
                 <div key={o.sku} id={`buy-${o.sku}`} className="pane-inset min-w-0 scroll-mt-28 p-4 sm:p-5">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <p className="text-[1.08rem] font-semibold text-ink">{tp("credits", { credits: o.credits })}</p>
-                    <p className="flex items-baseline gap-1">
-                      <span className="num font-display text-[1.9rem] font-semibold leading-none text-ink">{formatPrice(o.priceUsd)}</span>
-                      <span className="text-[0.84rem] text-ink-4">{tp("once")}</span>
-                    </p>
-                  </div>
-                  <p className="mt-1 text-[0.88rem] text-ink-3">
-                    {tp("perCredit", { price: perCreditLabel(o) })} · {o.blurb[locale]}
-                  </p>
+                  <p className="text-[1.04rem] font-semibold text-ink">{o.name[locale]}</p>
+                  <p className="mt-1 text-[0.88rem] leading-relaxed text-ink-3">{o.blurb[locale]}</p>
                   <div className="mt-4">
-                    <BuyButton sku={o.sku} label={tp("buy", { credits: o.credits })} variant="ink" />
+                    <BuyButton sku={o.sku} label={tp("passes.buy", { name: o.name[locale] })} variant="ink" />
                   </div>
                 </div>
               ))}
             </div>
-            <DotList className="mt-5" items={PACKS.pack10.features[locale].slice(1)} />
+            <DotList className="mt-5" items={offerFeatures(PASSES.season_returnship, locale, { mailer: features().mailer }).slice(2)} />
           </div>
         </div>
 
@@ -220,7 +204,21 @@ export default async function PricingPage({ params }: Props) {
         </ul>
       </Section>
 
-      {/* ---------- Credit rules ---------- */}
+      {/* ---------- How unlocking works ---------- */}
+      <Section id="how">
+        <SectionHeading eyebrow={tp("how.eyebrow")} title={tp("how.title")} />
+        <ol className="grid gap-4 md:grid-cols-3">
+          {(["one", "two", "three"] as const).map((k, i) => (
+            <li key={k} className="pane min-w-0 p-6">
+              <p className="num text-[0.84rem] font-semibold text-accent-text">0{i + 1}</p>
+              <p className="mt-2 text-[1.04rem] font-semibold text-ink">{tp(`how.${k}Title`)}</p>
+              <p className="mt-2 text-[0.94rem] leading-relaxed text-ink-3">{tp(`how.${k}Body`, { price })}</p>
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      {/* ---------- Rules ---------- */}
       <Section id="credits">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-start">
           <SectionHeading eyebrow={tp("rules.eyebrow")} title={tp("rules.title")} className="mb-0 sm:mb-0" />
@@ -236,8 +234,8 @@ export default async function PricingPage({ params }: Props) {
         {/* Phones: one pane per plan. */}
         <div className="grid gap-4 md:hidden">
           {plans.map((p) => (
-            <div key={p.key} className={cx("min-w-0 p-5", p.key === "pro" ? "pane-ink" : "pane")}>
-              <p className={cx("eyebrow", p.key === "pro" && "eyebrow-accent")}>{p.name}</p>
+            <div key={p.key} className={cx("min-w-0 p-5", p.key === "single" ? "pane-ink" : "pane")}>
+              <p className={cx("eyebrow", p.key === "single" && "eyebrow-accent")}>{p.name}</p>
               <dl className="mt-3 divide-y divide-[var(--line)]">
                 {rows.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-4 py-2.5">
@@ -260,7 +258,7 @@ export default async function PricingPage({ params }: Props) {
                   {tcmp("feature")}
                 </th>
                 {plans.map((p) => (
-                  <th key={p.key} scope="col" className={cx("px-5 pb-4 pt-6 text-[1rem] font-semibold", p.key === "pro" ? "text-accent-text" : "text-ink")}>
+                  <th key={p.key} scope="col" className={cx("px-5 pb-4 pt-6 text-[1rem] font-semibold", p.key === "single" ? "text-accent-text" : "text-ink")}>
                     {p.name}
                   </th>
                 ))}
@@ -273,7 +271,7 @@ export default async function PricingPage({ params }: Props) {
                     {r.label}
                   </th>
                   {plans.map((p) => (
-                    <td key={p.key} className={cx("px-5 py-4 align-middle", p.key === "pro" && "bg-accent-soft/40")}>
+                    <td key={p.key} className={cx("px-5 py-4 align-middle", p.key === "single" && "bg-accent-soft/40")}>
                       <Cell cell={r[p.key]} yes={yesLabel} no={noLabel} />
                     </td>
                   ))}
@@ -323,8 +321,8 @@ export default async function PricingPage({ params }: Props) {
       <Section>
         <CtaPane
           title={tp.rich("cta.title", em)}
-          body={tp("cta.body", { credits: TRIAL.credits })}
-          primary={{ label: t("shared.startFree"), href: "/app/start" }}
+          body={tp("cta.body", { price })}
+          primary={{ label: tp("cta.primary"), href: "/opportunities" }}
           secondary={{ label: t("shared.seeHowItWorks"), href: "/how-it-works" }}
         />
       </Section>

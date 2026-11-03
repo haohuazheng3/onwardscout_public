@@ -1,9 +1,13 @@
 import { getMaterial, isMaterialId } from "@/lib/core/materials";
-import type { GeneratedBlock, GeneratedDocumentKind, MaterialId } from "@/lib/core/types";
+import type { GeneratedBlock, GeneratedDocumentKind, MaterialId, Profile } from "@/lib/core/types";
 import { hasCjk } from "@/lib/core/labels";
+import { FactView } from "@/lib/llm/local/factview";
+import { resolveField } from "@/lib/llm/local/forms";
 import { readProfile, type ComposedDocument, type ComposeKind, type FactRef, type Intelligence, type OpportunityInput, type QuestionKey, type Tone } from "@/lib/llm/types";
-import { documentMetaSchema, type DocumentGap, type DocumentLabel, type StoredContent } from "./content";
+import { documentMetaSchema, isGapBlock, type DocumentGap, type DocumentLabel, type StoredContent } from "./content";
+import { CAREER_BREAK_KEY, careerBreakDetail, careerBreakSentence, careerBreakSince } from "./career-break";
 import { buildResume } from "./resume";
+import { classifySpot, FOLDED_KEYS, fillPlaceholder, IDEA_ALIASES, IDEA_KEY, ideaContext, listedOptions, TRACK_KEY } from "./spots";
 
 /*
  * Pure composition core (no DB, no network of its own): given the person's profile + facts and
@@ -13,7 +17,7 @@ import { buildResume } from "./resume";
  * Kinds and how they are made:
  *   cover_letter / one_pager / bio / email   → intelligence.compose (local templates or Claude)
  *   statement / proposal / press_release      → sections, each an intelligence.compose "answer"
- *   pitch_notes                               → the founder one-pager, rendered as slides
+ *   pitch_notes                               → the pitch deck (one heading per slide, deck.ts)
  *   resume_variant                            → deterministic assembly from backed items (resume.ts)
  *   answers                                   → the application's own answers as field blocks
  *   other                                     → material-specific lists (publication list, checklists)
@@ -112,6 +116,12 @@ function sectionsFor(kind: GeneratedDocumentKind, material: string | null | unde
           return [S("about_you", "What your referee can speak to", "推荐人可以谈到的内容", 180), S("proud_project", "A concrete example", "一个具体例子", 160)];
         case "transfer_request":
           return [S("experience", "What I do today", "目前的工作", 170), S("why_this", "Why this move", "为什么申请转岗", 120)];
+        case "career_break_statement":
+          return [
+            S(CAREER_BREAK_KEY, "My career break", "我的职业空窗", 80, { en: "Why did you step away from work? (one tap — it's yours to say, we never guess)", zh: "你当时为什么离开职场？（点选即可，这只能由你本人来说）" }),
+            S("experience", "What I bring back", "我带回来的经验", 170),
+            S("why_this", "Why I'm ready to return now", "为什么现在回来", 110),
+          ];
         default:
           return [S("about_you", "About me", "关于我", 180), S("proud_project", "What I'm proudest of", "最自豪的经历", 170), S("why_this", "Why this programme", "为什么申请", 120)];
       }
@@ -152,6 +162,7 @@ const SECTION_DOC_TITLE: Partial<Record<string, { en: string; zh: string }>> = {
   promotion_case: { en: "Promotion case", zh: "晋升材料" },
   recommendation_letters: { en: "Brief for your referees", zh: "给推荐人的要点" },
   transfer_request: { en: "Internal transfer request", zh: "转岗申请" },
+  career_break_statement: { en: "Career-break note", zh: "职业空窗说明" },
   research_proposal: { en: "Research proposal", zh: "研究计划" },
   talk_proposal: { en: "Talk proposal", zh: "演讲提案" },
   book_proposal: { en: "Book proposal", zh: "出版提案" },
@@ -170,7 +181,7 @@ const KIND_TITLE: Record<GeneratedDocumentKind, { en: string; zh: string }> = {
   proposal: { en: "Proposal", zh: "提案" },
   bio: { en: "Bio", zh: "个人简介" },
   press_release: { en: "Press release", zh: "新闻稿" },
-  pitch_notes: { en: "Pitch notes", zh: "路演讲稿" },
+  pitch_notes: { en: "Pitch deck", zh: "路演 Deck" },
   other: { en: "Document", zh: "文档" },
 };
 
@@ -280,6 +291,22 @@ async function composeSections(input: BuildInput, sections: Section[]): Promise<
   for (const s of sections) {
     const heading: Piece = { blocks: [{ type: "heading", text: s.heading[lang], factIds: [], flags: [] }], roles: ["heading"], gaps: [], notes: [], label: "drafted_from_profile" };
     const own = input.answers?.[s.key];
+    if (s.key === CAREER_BREAK_KEY && own?.trim()) {
+      // The person's own reason, dated from their documents (career-break.ts).
+      const since = careerBreakSince(readProfile(input.profile), input.facts);
+      const text = careerBreakSentence(own, since?.date ?? null, lang);
+      pieces.push(heading, { blocks: [{ type: "paragraph", text, factIds: [`answer:${s.key}`, ...(since?.ids ?? [])], flags: [] }], roles: ["body"], gaps: [], notes: [], label: "drafted_from_profile" });
+      continue;
+    }
+    if (s.key === "why_this" && !own?.trim()) {
+      // Motivation is never drafted: one spot with the same key as the application's motivation
+      // question, so every document waits on the one answer (asked once) instead of each writer
+      // inventing its own wording of "why".
+      const target = input.opportunity?.orgName || input.opportunity?.name;
+      const q = lang === "zh" ? `你为什么申请${target ?? "这个项目"}？` : `Why are you applying to ${target ?? "this programme"}?`;
+      pieces.push(heading, gapPiece("why_this", q, lang === "zh" ? `【${s.heading.zh}：你自己的理由】` : `[${s.heading.en}: your own reasons]`));
+      continue;
+    }
     if (s.ask) {
       // A section only the person can write (their talk, their book, their news).
       pieces.push(heading, own ? { blocks: [{ type: "paragraph", text: own.trim(), factIds: [`answer:${s.key}`], flags: [] }], roles: ["body"], gaps: [], notes: [], label: "drafted_from_profile" } : gapPiece(s.key, s.ask[lang], lang === "zh" ? `【${s.heading.zh}：需要你本人来写】` : `[${s.heading.en}: in your own words]`));
@@ -340,7 +367,80 @@ function checklist(input: BuildInput): Piece {
   return out;
 }
 
-export async function buildDocument(input: BuildInput): Promise<BuiltDocument> {
+/* ------------------------------------------------------------------ the spots left for the person */
+
+/** What the profile says for a profile spot, with the facts behind it (never a value without one). */
+function profileValue(key: string, profile: Profile, facts: FactRef[], lang: DocLanguage): { text: string; ids: string[] } | null {
+  const r = resolveField(key, { name: key, label: key, type: "text" }, new FactView(profile, facts), {}, [], lang);
+  return r.value && r.ids.length ? { text: r.value, ids: r.ids } : null;
+}
+
+/**
+ * Settles the writer's gaps before anything is asked (spots.ts): a spot the profile or an
+ * earlier answer already fills is filled (cited); idea / team / track spots take one canonical
+ * key each, and once that one answer exists a spot the writer still left is dropped instead of
+ * asked again; a track the organiser's options are unknown for, and a deck slide nobody needs to
+ * apply (traction, the ask…), are left out; a heading whose section emptied goes with them.
+ * Every remaining spot keeps its block's question, so blocks and gaps stay paired.
+ */
+export function settleSpots(piece: { blocks: GeneratedBlock[]; roles: string[]; gaps: DocumentGap[] }, input: Pick<BuildInput, "kind" | "opportunity" | "answers" | "facts" | "language">, profile: Profile) {
+  if (!piece.gaps.length) return piece;
+  const ctx = { idea: ideaContext(input.kind, input.opportunity?.type), slides: input.kind === "pitch_notes" || input.kind === "one_pager" };
+  const answers = input.answers ?? {};
+  const blocks = [...piece.blocks];
+  const roles = [...piece.roles];
+  const drop = new Set<number>();
+  const gaps: DocumentGap[] = [];
+  const spotsFor = (question: string) => blocks.flatMap((b, i) => (!drop.has(i) && isGapBlock(b) && b.label === question ? [i] : []));
+  for (const g of piece.gaps) {
+    const spot = classifySpot(g, ctx);
+    const at = spotsFor(g.question);
+    if (spot.kind === "profile") {
+      const said = [spot.key, g.key].find((k) => answers[k]?.trim());
+      const fill = said ? { text: answers[said].trim(), ids: [`answer:${said}`] } : profileValue(spot.key, profile, input.facts, input.language);
+      const texts = fill ? at.map((i) => fillPlaceholder(blocks[i].text, fill.text)) : [];
+      if (fill && texts.every((x) => x !== null)) {
+        at.forEach((i, n) => {
+          const b = blocks[i];
+          blocks[i] = { type: b.type === "field" ? "paragraph" : b.type, text: texts[n] as string, factIds: fill.ids, flags: [] };
+          roles[i] = "body";
+        });
+        continue;
+      }
+    } else if (spot.kind === "slide") {
+      at.forEach((i) => drop.add(i));
+      continue;
+    } else if (FOLDED_KEYS.has(spot.key) && (answers[spot.key]?.trim() || (spot.key === TRACK_KEY && !listedOptions(g.question).length))) {
+      at.forEach((i) => drop.add(i));
+      continue;
+    }
+    gaps.push({ key: spot.key, question: g.question });
+  }
+  if (!drop.size) return { blocks, roles, gaps };
+  const keep = blocks.map((_, i) => !drop.has(i));
+  blocks.forEach((b, i) => {
+    if (b.type !== "heading" || drop.has(i) || isGapBlock(b)) return;
+    let dropped = false;
+    let kept = false;
+    for (let j = i + 1; j < blocks.length && !(blocks[j].type === "heading" && !isGapBlock(blocks[j])); j++) {
+      if (drop.has(j)) dropped = true;
+      else kept = true;
+    }
+    if (dropped && !kept) keep[i] = false;
+  });
+  return { blocks: blocks.filter((_, i) => keep[i]), roles: roles.filter((_, i) => keep[i]), gaps };
+}
+
+/** The idea answer, also under the names the composers read (it is the project's description). */
+function withIdeaAliases(input: BuildInput): { input: BuildInput; aliases: string[] } {
+  const idea = input.answers?.[IDEA_KEY]?.trim();
+  if (!idea || !ideaContext(input.kind, input.opportunity?.type)) return { input, aliases: [] };
+  const aliases = IDEA_ALIASES.filter((a) => !input.answers?.[a]?.trim());
+  return { input: { ...input, answers: { ...input.answers, ...Object.fromEntries(aliases.map((a) => [a, idea])) } }, aliases };
+}
+
+export async function buildDocument(raw: BuildInput): Promise<BuiltDocument> {
+  const { input, aliases } = withIdeaAliases(raw);
   const lang = input.language;
   const profile = readProfile(input.profile);
   const tone = input.tone ?? "professional";
@@ -363,11 +463,17 @@ export async function buildDocument(input: BuildInput): Promise<BuiltDocument> {
       piece = fromComposed(doc, { keepStructure: true });
       break;
     }
-    case "one_pager":
-    case "pitch_notes": {
+    case "one_pager": {
       const doc = await input.ai.compose({ ...base, kind: "one_pager" });
       piece = fromComposed(doc, { keepStructure: true });
       composer = "one_pager";
+      break;
+    }
+    case "pitch_notes": {
+      const doc = await input.ai.compose({ ...base, kind: "pitch_deck" });
+      piece = fromComposed(doc, { keepStructure: true });
+      composer = "pitch_deck";
+      title = doc.title || title;
       break;
     }
     case "bio": {
@@ -392,7 +498,11 @@ export async function buildDocument(input: BuildInput): Promise<BuiltDocument> {
       break;
     }
     case "resume_variant": {
-      const r = buildResume({ profile, facts: input.facts, opportunity: input.opportunity ?? null, language: lang });
+      // A returnship résumé names the break plainly (the person's own reason), instead of leaving a silent gap.
+      const reason = input.opportunity?.type === "returnship" ? input.answers?.[CAREER_BREAK_KEY]?.trim() : null;
+      const since = reason ? careerBreakSince(profile, input.facts) : null;
+      const careerBreak = reason ? { detail: careerBreakDetail(reason, lang), since: since?.date ?? null, ids: [`answer:${CAREER_BREAK_KEY}`, ...(since?.ids ?? [])] } : null;
+      const r = buildResume({ profile, facts: input.facts, opportunity: input.opportunity ?? null, language: lang, careerBreak });
       piece = { blocks: r.blocks, roles: r.roles, gaps: r.gaps, notes: r.notes, label: "drafted_from_profile" };
       title = r.title;
       composer = "resume";
@@ -421,6 +531,13 @@ export async function buildDocument(input: BuildInput): Promise<BuiltDocument> {
       throw new UnsupportedDocumentError(input.kind, input.material);
   }
 
+  // The idea answer read under an alias is still the person's one answer.
+  if (aliases.length) {
+    const alias = new Set(aliases.map((a) => `answer:${a}`));
+    piece.blocks = piece.blocks.map((b) => (b.factIds.some((id) => alias.has(id)) ? { ...b, factIds: [...new Set(b.factIds.map((id) => (alias.has(id) ? `answer:${IDEA_KEY}` : id)))] } : b));
+  }
+  piece = { ...piece, ...settleSpots(piece, input, profile) };
+
   const meta = documentMetaSchema.parse({ label: piece.label, gaps: piece.gaps, notes: piece.notes, composer, tone, roles: piece.roles });
   const content: StoredContent = { format: "blocks", blocks: piece.blocks, meta };
   const sources = [...new Set(piece.blocks.flatMap((b) => b.factIds))];
@@ -434,6 +551,11 @@ export function isOptionalGap(key: string): boolean {
   return OPTIONAL_GAP_KEYS.has(key);
 }
 
+/** A spot the writer itself offered as optional ("…? This is optional.", "anything else you'd like to mention"). */
+export function isOptionalGapQuestion(question: string): boolean {
+  return /\b(optional|if you (like|wish|want)|would you like to (say|add|mention|share))\b|\banything\b[^?]{0,80}\b(you('d)? like|you want|you wish) to (add|mention|say|share)|可选|如果你愿意|如愿意|有没有(什么)?想(补充|说|提)/i.test(question);
+}
+
 /** The questions a document is still waiting for (gap blocks), keyed for the application's answers. */
 export function documentGaps(content: StoredContent): DocumentGap[] {
   return content.meta.gaps;
@@ -441,12 +563,12 @@ export function documentGaps(content: StoredContent): DocumentGap[] {
 
 /** Removes unanswered optional gap blocks (a submitted document never shows a placeholder). */
 export function dropOptionalGaps(content: StoredContent): StoredContent {
-  const optionalQuestions = new Set(content.meta.gaps.filter((g) => isOptionalGap(g.key)).map((g) => g.question));
+  const optionalQuestions = new Set(content.meta.gaps.filter((g) => isOptionalGap(g.key) || isOptionalGapQuestion(g.question)).map((g) => g.question));
   if (!optionalQuestions.size) return content;
   const keep = content.blocks.map((b) => !(b.flags.includes("needs_confirmation") && b.factIds.length === 0 && optionalQuestions.has(b.label ?? "")));
   return {
     format: "blocks",
     blocks: content.blocks.filter((_, i) => keep[i]),
-    meta: { ...content.meta, roles: content.meta.roles.filter((_, i) => keep[i]), gaps: content.meta.gaps.filter((g) => !isOptionalGap(g.key)) },
+    meta: { ...content.meta, roles: content.meta.roles.filter((_, i) => keep[i]), gaps: content.meta.gaps.filter((g) => !isOptionalGap(g.key) && !isOptionalGapQuestion(g.question)) },
   };
 }

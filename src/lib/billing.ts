@@ -9,7 +9,7 @@ import { captureError } from "./errors";
 import { grantLot, lotExpiryFor, restoreLot, revokeLot } from "./credits";
 import { newId } from "./ids";
 import { CHECKOUT_BRAND, stripe, stripeContext, stripeEnvTag, stripePermissionProblem } from "./stripe";
-import { isPlanSku, isSku, OFFERS, SKUS, type Locale, type PlanSku, type Sku } from "@/content/plans";
+import { isPassSku, isPlanSku, isSingleSku, isSku, OFFERS, offerName, SKUS, type Locale, type PlanSku, type Sku } from "@/content/plans";
 
 /*
  * The ONLY module that turns Stripe objects into orders, subscriptions and credit lots. Three
@@ -21,7 +21,11 @@ import { isPlanSku, isSku, OFFERS, SKUS, type Locale, type PlanSku, type Sku } f
  *  - subscriptions are unique per Stripe subscription id;
  *  - credit lots are unique per source key: the session id for a pack, and
  *    `<subscriptionId>:<periodStartUnix>` for every paid Pro invoice;
- *  - a refunded or disputed order is never re-granted by a late event.
+ *  - a single-application purchase (`single`, $19) grants no lot: it unlocks the application it
+ *    names (metadata.applicationId) through applications/unlock.ts, once; its owner may be a
+ *    signed-out draft (`anon_…`), which is why it never requires a users row;
+ *  - a refunded or disputed order is never re-granted by a late event; a refunded single
+ *    purchase locks its application again.
  */
 
 export type GrantSource = "success_page" | "webhook" | "reconcile";
@@ -31,7 +35,10 @@ export interface UnixPeriod {
   end: number;
 }
 
-export type SessionCheck = { ok: true; userId: string; sku: Sku; kind: "pack" | "subscription" } | { ok: false; reason: string };
+export type SessionCheck =
+  | { ok: true; userId: string; sku: Sku; kind: "pack" | "subscription"; applicationId?: undefined }
+  | { ok: true; userId: string; sku: "single"; kind: "single"; applicationId: string }
+  | { ok: false; reason: string };
 
 export type InvoiceCheck =
   | { ok: true; subscriptionId: string; userId: string | null; sku: PlanSku | null; period: UnixPeriod; billingReason: string }
@@ -42,8 +49,10 @@ export type GrantResult =
       ok: true;
       userId: string;
       sku: Sku;
-      kind: "pack" | "subscription";
+      kind: "pack" | "subscription" | "single";
       orderId: string | null;
+      /** The application a single purchase unlocked. */
+      applicationId?: string;
       /** Credits in the lot this purchase (or this invoice period) created. */
       credits: number;
       /** True when this call created the lot; false when an earlier caller already had. */
@@ -177,6 +186,12 @@ export function validateSession(
   if (s.metadata?.userId && s.metadata.userId !== userId) return { ok: false, reason: "user-mismatch" };
   const sku = s.metadata?.sku;
   if (!isSku(sku)) return { ok: false, reason: "unknown-sku" };
+  if (isSingleSku(sku)) {
+    if (s.mode !== "payment") return { ok: false, reason: "single-not-payment-mode" };
+    const applicationId = s.metadata?.applicationId;
+    if (!applicationId || !/^app_[0-9a-hjkmnp-tv-z]{6,40}$/.test(applicationId)) return { ok: false, reason: "no-application" };
+    return { ok: true, userId, sku, kind: "single", applicationId };
+  }
   const kind = isPlanSku(sku) ? "subscription" : "pack";
   if (kind === "subscription" && s.mode !== "subscription") return { ok: false, reason: "plan-not-subscription-mode" };
   if (kind === "pack" && s.mode !== "payment") return { ok: false, reason: "pack-not-payment-mode" };
@@ -425,6 +440,18 @@ export async function grantFromInvoice(invoice: Stripe.Invoice, source: GrantSou
   };
 }
 
+/** The code the person typed at checkout ("SPRING20"), not Stripe's id for it; the id when Stripe cannot say. */
+async function promotionCodeText(promo: string | Stripe.PromotionCode | null | undefined): Promise<string | null> {
+  if (!promo) return null;
+  if (typeof promo !== "string") return promo.code;
+  try {
+    return (await stripe().promotionCodes.retrieve(promo)).code;
+  } catch (err) {
+    await captureError(err, { route: "billing:promotion-code", severity: "warn", context: { promo } });
+    return promo;
+  }
+}
+
 function invoicePaymentIntentId(invoice: Stripe.Invoice): string | null {
   for (const p of invoice.payments?.data ?? []) {
     const id = idOf(p.payment?.payment_intent as string | { id: string } | null | undefined);
@@ -446,10 +473,18 @@ export async function grantFromCheckoutSession(s: Stripe.Checkout.Session, sourc
   const check = validateSession(s, stripeEnvTag());
   if (!check.ok) return check;
   const { userId, sku, kind } = check;
-  if (!(await userExists(userId))) return { ok: false, reason: "unknown-user" };
+  // A single purchase belongs to the application it names. Its metadata was written by our own
+  // server for that application and the session is verified by Stripe, so a signed-out draft id
+  // in it is trusted even after the draft was claimed (the application then lives on the account).
+  const { loadApplication } = await import("@/lib/applications/engine");
+  const application = check.kind === "single" ? await loadApplication(check.applicationId) : null;
+  if (check.kind === "single") {
+    if (!application || (application.userId !== userId && !userId.startsWith("anon_"))) return { ok: false, reason: "unknown-application" };
+  } else if (!(await userExists(userId))) return { ok: false, reason: "unknown-user" };
+  // The order follows the application's current owner (a claimed draft's order lands on the account).
+  const orderOwner = application?.userId ?? userId;
 
-  const promo = s.discounts?.[0]?.promotion_code;
-  const promoCode = promo && typeof promo !== "string" ? promo.code : idOf(promo as string | null | undefined);
+  const promoCode = await promotionCodeText(s.discounts?.[0]?.promotion_code);
   const email = s.customer_details?.email ?? s.customer_email ?? null;
   const piId = idOf(s.payment_intent as string | { id: string } | null);
   const subscriptionId = idOf(s.subscription as string | { id: string } | null);
@@ -458,7 +493,7 @@ export async function grantFromCheckoutSession(s: Stripe.Checkout.Session, sourc
     .insert(orders)
     .values({
       id: newId("ord"),
-      userId,
+      userId: orderOwner,
       kind,
       sku,
       stripeSessionId: s.id,
@@ -471,13 +506,30 @@ export async function grantFromCheckoutSession(s: Stripe.Checkout.Session, sourc
       promoCode,
       email,
       source,
+      applicationId: application?.id ?? null,
     })
     .onConflictDoNothing({ target: orders.stripeSessionId });
   const order = await orderBySession(s.id);
   if (!order) return { ok: false, reason: "order-not-persisted" };
-  if (order.userId !== userId) return { ok: false, reason: "user-mismatch" };
+  if (order.userId !== orderOwner && order.userId !== userId) return { ok: false, reason: "user-mismatch" };
   // A refunded or disputed order is never re-granted by a late or replayed event.
   if (order.status !== "paid") return { ok: false, reason: `order-${order.status}` };
+
+  if (check.kind === "single" && application) {
+    const { isUnlocked, unlockFromOrder } = await import("@/lib/applications/unlock");
+    if (!isUnlocked(application)) {
+      const pi = s.payment_intent && typeof s.payment_intent !== "string" ? s.payment_intent : piId;
+      const reversed = chargeReversed(await latestCharge(pi));
+      if (reversed) {
+        await setOrderStatus(order.id, reversed);
+        return { ok: false, reason: `charge-${reversed}` };
+      }
+    }
+    const before = Boolean(application.unlockedAt);
+    await unlockFromOrder(application, { orderId: order.id, email });
+    if (!before) console.info(`[billing] ${source}: application ${application.id} unlocked for ${orderOwner} (${s.id})`);
+    return { ok: true, userId: orderOwner, sku, kind: "single", applicationId: application.id, orderId: order.id, credits: 1, lotCreated: !before, sourceKey: s.id, expiresAt: new Date(s.created * 1000), amountTotal: order.amountTotal, currency: order.currency };
+  }
 
   if (kind === "pack") {
     const sourceKey = packLotKey(s.id);
@@ -492,11 +544,16 @@ export async function grantFromCheckoutSession(s: Stripe.Checkout.Session, sourc
     }
     const expiresAt = lotExpiryFor(sku, { purchasedAt: new Date(s.created * 1000) });
     const credits = OFFERS[sku].credits;
-    const { created } = await grantLot({ userId, kind: "pack", total: credits, sourceKey, expiresAt, orderId: order.id });
+    const scope = OFFERS[sku].scope;
+    const { created } = await grantLot({ userId, kind: "pack", total: credits, sourceKey, expiresAt, orderId: order.id, scope });
     if (created) {
-      console.info(`[billing] ${source}: ${credits}-credit pack for ${userId} (${s.id})`);
+      console.info(`[billing] ${source}: ${credits}-credit ${isPassSku(sku) ? "season pass" : "pack"} for ${userId} (${s.id})`);
       if (source !== "success_page") {
-        await tellUser(userId, (t) => ({ title: t("packTitle", { count: credits }), body: t("packBody", { count: credits, date: expiresAt }) }));
+        await tellUser(userId, (t, locale) =>
+          isPassSku(sku)
+            ? { title: t("passTitle", { name: offerName(sku, locale) }), body: t("passBody", { date: expiresAt }) }
+            : { title: t("packTitle", { count: credits }), body: t("packBody", { count: credits, date: expiresAt }) },
+        );
       }
     }
     return { ok: true, userId, sku, kind, orderId: order.id, credits, lotCreated: created, sourceKey, expiresAt, amountTotal: order.amountTotal, currency: order.currency };
@@ -546,6 +603,20 @@ export interface RevokeOutcome {
   credits: number;
 }
 
+/**
+ * Whether a payment on the shared Stripe account is one of ours: an order we recorded for it, or
+ * the customer we created for one of our users (every checkout of ours names one). The account
+ * also takes other sites' payments, and their refunds and disputes reach this webhook too: they
+ * are acknowledged without looking further (an invoice lookup for someone else's renewal needs
+ * "Invoices Read", which the organization key may not have). Pass the customer when the event
+ * carries it (a charge does, null included); otherwise it is read from the payment intent.
+ */
+export async function ownsPayment(pi: string, customer?: string | null): Promise<boolean> {
+  if (await orderByPaymentIntent(pi)) return true;
+  const id = customer !== undefined ? customer : idOf((await stripe().paymentIntents.retrieve(pi)).customer as string | { id: string } | null);
+  return (await userIdByCustomer(id)) !== null;
+}
+
 /** The invoice a payment intent paid, through Stripe's invoice payments index (charges no longer link to invoices). */
 async function invoiceForPaymentIntent(pi: string): Promise<Stripe.Invoice | null> {
   const page = await stripe().invoicePayments.list({ payment: { type: "payment_intent", payment_intent: pi }, limit: 1, expand: ["data.invoice"] });
@@ -559,6 +630,8 @@ async function invoiceForPaymentIntent(pi: string): Promise<Stripe.Invoice | nul
 async function locateByPaymentIntent(pi: string): Promise<{ userId: string; order: OrderRow | null; sourceKey: string } | null> {
   const order = await orderByPaymentIntent(pi);
   if (order?.kind === "pack") return { userId: order.userId, order, sourceKey: packLotKey(order.stripeSessionId) };
+  // A single purchase funded no lot: the application itself is what a refund takes back.
+  if (order?.kind === "single") return { userId: order.userId, order, sourceKey: "" };
 
   const invoice = await invoiceForPaymentIntent(pi);
   if (!invoice) return order ? { userId: order.userId, order, sourceKey: "" } : null;
@@ -590,6 +663,11 @@ export async function revokeByPaymentIntent(pi: string, reason: "refunded" | "di
   if (hit.order && (reason === "refunded" ? hit.order.status !== "refunded" : hit.order.status === "paid")) await setOrderStatus(hit.order.id, reason);
   let credits = 0;
   const sourceKeys: string[] = [];
+  if (hit.order?.kind === "single" && hit.order.applicationId) {
+    // The money for this application is gone: it closes again (its documents stay, Claude and downloads stop).
+    const { relockApplication } = await import("@/lib/applications/unlock");
+    if (await relockApplication(hit.order.applicationId)) sourceKeys.push(`application:${hit.order.applicationId}`);
+  }
   if (hit.sourceKey) {
     const r = await revokeLot(hit.sourceKey);
     if (r) {
@@ -597,7 +675,8 @@ export async function revokeByPaymentIntent(pi: string, reason: "refunded" | "di
       sourceKeys.push(hit.sourceKey);
     }
   }
-  if (sourceKeys.length) {
+  // A signed-out buyer has no account to notify (and no inbox); the room says it is closed again.
+  if (sourceKeys.length && !hit.userId.startsWith("anon_")) {
     await tellUser(
       hit.userId,
       (t) => ({ title: t(reason === "refunded" ? "refundedTitle" : "disputedTitle"), body: t(reason === "refunded" ? "refundedBody" : "disputedBody", { count: credits }) }),

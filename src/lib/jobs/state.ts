@@ -46,6 +46,22 @@ export function backoffMs(attempt: number, random: () => number = Math.random): 
   return Math.round(Math.min(BACKOFF_MAX_MS, base * jitter));
 }
 
+/** Longest pause an invocation sits through to resume a job that asked to continue after a delay. */
+export const MAX_INLINE_WAIT_MS = 30_000;
+
+/**
+ * How long an invocation should wait before resuming a job that continued with `delayMs`, or
+ * null when the wait does not fit (longer than MAX_INLINE_WAIT_MS, or it would eat into the
+ * `reserveMs` kept free at the end) and the job is left to the next drain. Without this, a job
+ * that polls ("continue in 3 s") sat queued until the hourly cron. Pure.
+ */
+export function inlineWaitMs(delayMs: number, timeLeftMs: number, reserveMs: number): number | null {
+  const wait = Math.max(0, Math.round(delayMs));
+  if (wait > MAX_INLINE_WAIT_MS) return null;
+  if (timeLeftMs - wait < reserveMs) return null;
+  return wait;
+}
+
 /** What a handler may return; `undefined` means done. */
 export type JobResult =
   | void

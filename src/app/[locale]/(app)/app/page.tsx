@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { FeedPane, NeedsYouPane, PipelinePane, type FeedItem, type NeedsYouItem } from "@/components/home/HomePanes";
+import { DiscardDraft } from "@/components/home/DiscardDraft";
 import { PathHero } from "@/components/home/PathHero";
 import { DeadlinesPane, GapsPane, OpenNowPane, PicksListPane, RoadmapPane, StandPane, ThisWeekPane, type CompactPick, type WeekStep } from "@/components/home/PlanPanes";
 import { PicksRefresher } from "@/components/home/PicksRefresher";
@@ -82,7 +83,7 @@ export default async function HomePage({ params, searchParams }: Props) {
   const [row, docCount, goals, needsYou, appCount, picks, pipeline, notes, activity, refresh, stored, plans] = await Promise.all([
     getProfile(userId),
     section("documents", async () => Number((await db.select({ n: count() }).from(documents).where(eq(documents.userId, userId)))[0]?.n ?? 0)),
-    section("goals", () => listGoals(userId, { onlyActive: true })),
+    section("goals", () => listGoals(userId, { onlyActive: true, locale })),
     section("needs-you", () =>
       db
         .select({ id: applications.id, status: applications.status, reason: applications.needsYouReason, practice: applications.practice, name: opportunities.name, orgName: opportunities.orgName })
@@ -114,6 +115,12 @@ export default async function HomePage({ params, searchParams }: Props) {
 
   const profile = row ? profileOf(row) : null;
   const isNew = !row || ((docCount ?? 0) === 0 && !profile?.roles.length && !(goals?.length ?? 0));
+  // A new account with nothing yet (signed in from the home or sign-in page) starts at the first
+  // question, not on an empty dashboard: two of the first sign-ups (2026-10-27, 10-29) landed here
+  // with nothing to see, opened the account menu and billing, and left. Only when the counts were
+  // read (not on a database error), and not while a draft from this browser is still waiting to be
+  // claimed by the shell (ClaimDraft) — that visit stays here and fills in.
+  if (signedIn && isNew && !planning && docCount === 0 && appCount === 0 && goals !== null && !(await readAnonId())) redirect(localizePath("/app/start", locale));
   const firstName = profile?.identity.name ? (locale === "zh" ? profile.identity.name : profile.identity.name.split(/\s+/)[0]) : null;
   const now = new Date();
   const plan = stored?.plan ?? null;
@@ -204,6 +211,9 @@ export default async function HomePage({ params, searchParams }: Props) {
             <ButtonLink href={saveHref} external size="sm" iconRight={<ArrowRight size={15} aria-hidden />}>
               {t("save.cta")}
             </ButtonLink>
+          </div>
+          <div className="mt-3 border-t border-line pt-2">
+            <DiscardDraft />
           </div>
         </section>
       ) : null}

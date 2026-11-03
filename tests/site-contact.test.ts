@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { compareRows, perCreditLabel } from "@/components/site/pricing";
+import { compareRows, perApplicationLabel } from "@/components/site/pricing";
 import { CONTACT_ERROR_TEXT, CONTACT_LIMITS, CONTACT_TOPICS, CONTACT_TOPIC_VALUES, isContactTopic, parseContact, precheckContact } from "@/content/contact";
-import { PACKS, PLANS, TRIAL } from "@/content/plans";
+import { formatPrice, PASSES, SINGLE } from "@/content/plans";
 
 const valid = { name: "Ada", email: "  Ada@Example.COM ", topic: "billing", message: "I was charged twice on Monday.", locale: "zh" };
 
@@ -60,33 +60,26 @@ describe("pricing comparison", () => {
   const rows = compareRows(t);
   const row = (id: string) => rows.find((r) => r.id === id)!;
 
-  it("derives credit amounts and validity from the catalog", () => {
-    expect(row("credits").free).toEqual({ kind: "text", text: `creditsFree:${JSON.stringify({ credits: TRIAL.credits, days: TRIAL.expiryDays })}` });
-    expect(row("credits").pro).toEqual({ kind: "text", text: `creditsPro:${JSON.stringify({ credits: PLANS.pro.credits, days: PLANS.pro.rolloverDays })}` });
-    expect(row("credits").packs).toEqual({
-      kind: "text",
-      text: `creditsPacks:${JSON.stringify({ small: PACKS.pack10.credits, large: PACKS.pack40.credits, days: PACKS.pack10.rolloverDays })}`,
-    });
+  it("derives prices and application counts from the catalog", () => {
+    expect(row("price").single).toEqual({ kind: "text", text: `priceSingle:${JSON.stringify({ price: formatPrice(SINGLE.priceUsd) })}` });
+    expect(row("price").pass).toEqual({ kind: "text", text: `pricePass:${JSON.stringify({ price: formatPrice(PASSES.season_returnship.priceUsd), days: PASSES.season_returnship.rolloverDays })}` });
+    expect(row("applications").pass).toEqual({ kind: "text", text: `applicationsPass:${JSON.stringify({ returnships: PASSES.season_returnship.credits, startup: PASSES.season_startup.credits })}` });
   });
 
-  it("gives Pro its perks and keeps the free core free everywhere", () => {
-    // The brief is in the app for everyone; its email copy is the Pro perk ("coming soon" until email is on).
-    for (const col of ["free", "packs", "pro"] as const) expect(row("digest")[col].kind).toBe("yes");
-    expect(row("digestEmail").free.kind).toBe("no");
-    expect(row("digestEmail").packs.kind).toBe(PACKS.pack10.perks.weeklyDigest ? "yes" : "no");
-    expect(row("digestEmail").pro).toEqual(PLANS.pro.perks.weeklyDigest ? { kind: "text", text: "comingSoon" } : { kind: "no" });
-    expect(rows.some((r) => r.id === "priority")).toBe(false);
-    expect(row("followups").pro).toEqual({ kind: "text", text: "followUpsAuto" });
-    expect(row("followups").free).toEqual({ kind: "text", text: "followUpsTap" });
-    for (const id of ["core", "practice", "channels"]) {
-      expect([row(id).free.kind, row(id).packs.kind, row(id).pro.kind]).toEqual(["yes", "yes", "yes"]);
+  it("keeps the free core free and puts the full writing, files, answers and submission behind the unlock", () => {
+    for (const id of ["core", "preview", "deadlines", "practice"]) {
+      expect([row(id).free.kind, row(id).single.kind, row(id).pass.kind]).toEqual(["yes", "yes", "yes"]);
     }
+    for (const id of ["written", "files", "answers", "submit"]) {
+      expect([row(id).free.kind, row(id).single.kind, row(id).pass.kind]).toEqual(["no", "yes", "yes"]);
+    }
+    expect(row("revisions").single).toEqual({ kind: "text", text: "revisionsUnlimited" });
+    expect(rows.some((r) => r.id === "priority")).toBe(false);
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
   });
 
-  it("prices one credit to the cent", () => {
-    expect(perCreditLabel(PACKS.pack10)).toBe("$0.90");
-    expect(perCreditLabel(PACKS.pack40)).toBe("$0.73");
-    expect(perCreditLabel(PLANS.pro)).toBe("$0.48");
+  it("prices one application on a pass to the cent", () => {
+    expect(perApplicationLabel(PASSES.season_returnship)).toBe("$0.82");
+    expect(perApplicationLabel(PASSES.season_startup)).toBe("$4.90");
   });
 });

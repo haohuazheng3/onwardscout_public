@@ -144,6 +144,15 @@ describe("the research team's curated files", () => {
       expect(draft.url, e.entry.slug).toMatch(/^https?:\/\//);
     }
   });
+
+  it("no headline amount is a misread digit grouping (\"₹2,00,000\" shown as ₹2)", () => {
+    if (!present) return;
+    for (const e of loadCurated().entries) {
+      const money = mapCuratedEntry(e, NOW).mapped.draft.benefits?.money;
+      if (!money) continue;
+      for (const v of [money.min, money.max]) if (v !== null) expect(v, `${e.entry.slug}: ${e.entry.benefits?.funding}`).toBeGreaterThanOrEqual(100);
+    }
+  });
 });
 
 describe("practice opportunity", () => {

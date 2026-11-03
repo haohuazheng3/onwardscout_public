@@ -54,7 +54,8 @@
     "optional": "选填",
     "notePlaceholder": "例如：想找欧洲的远程产品岗位，3 月起可到岗",
     "noteAdd": "添加",
-    "noteSaved": "你的备注已保存"
+    "noteSaved": "你的备注已保存",
+    "assembling": "已读完，正在整理你的档案…"
   },
   "counts": {
     "found": "找到 {list}",
@@ -224,5 +225,16 @@
       "hint": "选最接近的一项，我们会据此寻找适合你的机会。",
       "more": "{count, plural, one {还有 # 项} other {还有 # 项}}"
     }
+  },
+  "claimAsk": {
+    "title": "这个浏览器里有一份未保存的草稿",
+    "body": "在你登录之前，这个浏览器里创建过{what}。你的账号已经有档案，所以我们没有把它加进来。只有它是你本人的，才加入：它的文件和回答会并入你的档案。",
+    "withName": "一份属于 {name} 的草稿",
+    "withoutName": "一份草稿",
+    "add": "加入我的账号",
+    "discard": "删除它",
+    "added": "已加入你的账号",
+    "deleted": "草稿已删除",
+    "failed": "没有成功，请再试一次。"
   }
 }

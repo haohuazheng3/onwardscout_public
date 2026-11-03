@@ -1,14 +1,19 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { BOARD_COLUMNS, boardColumn, statusesInColumn, type BoardColumn } from "@/lib/core/state-machine";
+import { goalLabelFor } from "@/lib/core/goals";
 import type { ApplicationAnswer } from "@/lib/core/types";
 import { db } from "@/lib/db";
-import { applicationSteps, applications, documents, events, facts, goals, integrations, jobs, opportunities, type ApplicationRow } from "@/lib/db/schema";
+import { applicationSteps, applications, documents, events, facts, generatedDocuments, goals, integrations, jobs, opportunities, type ApplicationRow, type GeneratedDocumentRow } from "@/lib/db/schema";
 import { latestDocuments } from "@/lib/documents";
+import { CAREER_BREAK_KEY, careerBreakDetail } from "@/lib/documents/career-break";
 import { isGapBlock, readContent } from "@/lib/documents/content";
+import { spotLabel } from "@/lib/documents/spots";
 import { creditCost } from "./plan";
 import { latestHandoff, latestPrepared, latestStepOutput } from "./engine";
-import type { AnswerView, ApplicationView, BoardCard, DocumentView, FactView, OpportunityBrief, RequirementsLike, StepView } from "./types";
+import type { AnswerView, ApplicationView, BoardCard, DocumentVersionView, DocumentView, FactView, OpportunityBrief, RequirementsLike, StepView } from "./types";
+import { isUnlocked } from "./unlock";
+import { maskText, previewReveal } from "./preview";
 
 /*
  * Read models: the board (cards), the room (one application with everything it shows) and the
@@ -61,7 +66,8 @@ export async function listBoard(userId: string, opts: { goalId?: string | null }
     channel: r.channel,
     practice: r.practice,
     needsYouReason: r.needsYouReason,
-    openQuestions: (r.questions ?? []).filter((q) => q.required !== false && !hasValue(r.answers?.[q.fieldName ?? q.id])).length,
+    // Files never hold an application back (materials.ts): only the questions count.
+    openQuestions: (r.questions ?? []).filter((q) => q.kind !== "file" && q.required !== false && !hasValue(r.answers?.[q.fieldName ?? q.id])).length,
     goalId: r.goalId,
     opportunity: brief(r.opp?.id ? r.opp : null, r.opportunityId),
     updatedAt: r.updatedAt.toISOString(),
@@ -112,6 +118,9 @@ function summarize(output: Record<string, unknown> | null): StepView["summary"] 
   return out;
 }
 
+/** Earlier versions of a document the room keeps at hand. */
+const VERSIONS_SHOWN = 6;
+
 function formatsFor(kind: string): DocumentView["formats"] {
   if (kind === "email") return [];
   if (kind === "pitch_notes") return ["pdf", "docx", "pptx"];
@@ -126,7 +135,7 @@ function answerValue(a: ApplicationAnswer): string {
 
 export async function applicationView(userId: string, id: string): Promise<ApplicationView | null> {
   const rows = await db
-    .select({ app: applications, opp: briefCols, oppApply: opportunities.apply, goal: { id: goals.id, label: goals.label } })
+    .select({ app: applications, opp: briefCols, oppApply: opportunities.apply, goal: { id: goals.id, label: goals.label, sub: goals.sub } })
     .from(applications)
     .leftJoin(opportunities, eq(opportunities.id, applications.opportunityId))
     .leftJoin(goals, and(eq(goals.id, applications.goalId), eq(goals.userId, userId)))
@@ -136,23 +145,31 @@ export async function applicationView(userId: string, id: string): Promise<Appli
   if (!row) return null;
   const app: ApplicationRow = row.app;
 
-  const [steps, docs, prepared, handoffStep, analyze, job, unlockEvent] = await Promise.all([
+  const locked = !isUnlocked(app);
+  const [steps, docs, allVersions, prepared, handoffStep, analyze, job, unlockEvent] = await Promise.all([
     db.select().from(applicationSteps).where(eq(applicationSteps.applicationId, app.id)).orderBy(asc(applicationSteps.n)).limit(200),
     latestDocuments(userId, app.id),
+    db
+      .select()
+      .from(generatedDocuments)
+      .where(and(eq(generatedDocuments.userId, userId), eq(generatedDocuments.applicationId, app.id)))
+      .orderBy(desc(generatedDocuments.version))
+      .limit(80),
     latestPrepared(app.id),
     latestHandoff(app.id),
     latestStepOutput<{ requirements?: RequirementsLike }>(app.id, "analyze"),
     db
       .select({ kind: jobs.kind, status: jobs.status, error: jobs.error })
       .from(jobs)
-      .where(and(eq(jobs.userId, userId), inArray(jobs.dedupeKey, [`application.prepare:${app.id}`, `application.submit:${app.id}`, `application.followup:${app.id}`])))
-      .limit(3),
+      .where(and(eq(jobs.userId, userId), inArray(jobs.dedupeKey, [`application.prepare:${app.id}`, `application.submit:${app.id}`, `application.followup:${app.id}`, `application.upgrade:${app.id}`])))
+      .limit(4),
     db.select({ id: events.id }).from(events).where(and(eq(events.applicationId, app.id), eq(events.kind, "application.unlock"))).limit(1),
   ]);
 
-  // Documents with their blocks; the source facts they cite.
-  const documentsView: DocumentView[] = docs.map((d) => {
+  // Documents with their blocks (and a few earlier versions to compare and restore); the source facts they cite.
+  const versionView = (d: GeneratedDocumentRow): DocumentVersionView => {
     const c = readContent(d.content);
+    const readable = locked ? previewReveal(c.blocks.map((b) => ({ type: b.type, factIds: b.factIds, gap: isGapBlock(b) })), c.meta.roles) : null;
     return {
       id: d.id,
       kind: d.kind,
@@ -160,21 +177,64 @@ export async function applicationView(userId: string, id: string): Promise<Appli
       language: d.language,
       version: d.version,
       label: c.meta.label,
-      blocks: c.blocks.map((b, i) => ({ type: b.type, role: c.meta.roles[i] ?? (isGapBlock(b) ? "gap" : "body"), ...(b.label ? { label: b.label } : {}), text: b.text, factIds: b.factIds, flags: b.flags })),
+      blocks: c.blocks.map((b, i) => {
+        const gap = isGapBlock(b);
+        const role = c.meta.roles[i] ?? (gap ? "gap" : "body");
+        const base = { type: b.type, role, ...(b.label ? { label: b.label } : {}) };
+        const reveal = !readable || readable[i];
+        return reveal ? { ...base, text: b.text, factIds: b.factIds, flags: b.flags } : { ...base, text: maskText(b.text), factIds: [], flags: [...b.flags, "masked"] };
+      }),
       gaps: c.meta.gaps,
       notes: c.meta.notes,
       createdAt: d.createdAt.toISOString(),
-      formats: formatsFor(d.kind),
+      formats: locked ? [] : formatsFor(d.kind),
+      composer: c.meta.composer,
+      revisions: locked ? [] : c.meta.revisions,
     };
+  };
+  const composerOf = (d: GeneratedDocumentRow) => readContent(d.content).meta.composer;
+  const documentsView: DocumentView[] = docs.map((d) => {
+    const followUp = composerOf(d) === "email_follow_up";
+    const versions = locked
+      ? []
+      : allVersions
+          .filter((x) => x.kind === d.kind && x.id !== d.id && x.version < d.version && (composerOf(x) === "email_follow_up") === followUp)
+          .slice(0, VERSIONS_SHOWN)
+          .map(versionView);
+    return { ...versionView(d), versions };
   });
 
   const labels = new Map<string, string>();
   for (const f of analyze?.requirements?.fields ?? []) labels.set(f.name, f.label);
   for (const q of analyze?.requirements?.questions ?? []) labels.set(q.id, q.prompt);
   const longKeys = new Set([...(analyze?.requirements?.fields ?? []).filter((f) => f.type === "textarea").map((f) => f.name), ...(analyze?.requirements?.questions ?? []).map((q) => q.id), "why_this"]);
+  // A tapped option reads as the option, never its code ("Within 2 weeks", not "2-weeks").
+  const choiceLabels = new Map<string, Map<string, string>>();
+  const lang = documentsView[0]?.language === "zh" ? "zh" : "en";
+  for (const f of analyze?.requirements?.fields ?? []) {
+    const opts = f.choices ?? (f.options ?? []).map((o) => ({ value: o, label: o }));
+    if (opts.length) choiceLabels.set(f.name, new Map(opts.map((o) => [o.value, o.label])));
+    // A ticked box ("I confirm…") reads as a plain yes.
+    else if (f.type === "checkbox") choiceLabels.set(f.name, new Map(["yes", "true", "on"].map((v) => [v, lang === "zh" ? "是" : "Yes"])));
+  }
+  const shownValue = (k: string, a: ApplicationAnswer): string => {
+    if (a.label) return a.label;
+    const v = answerValue(a);
+    if (k === CAREER_BREAK_KEY && typeof a.value === "string") return careerBreakDetail(a.value, lang);
+    const opts = choiceLabels.get(k);
+    if (!opts) return v;
+    return Array.isArray(a.value) ? a.value.map((x) => opts.get(x) ?? x).join(", ") : (opts.get(v) ?? v);
+  };
   const answers: AnswerView[] = Object.entries(app.answers ?? {})
     .filter(([k, a]) => !k.startsWith("material:") && !a.fileKey && answerValue(a))
-    .map(([k, a]) => ({ key: k, label: labels.get(k) ?? humanKey(k), value: answerValue(a), source: a.source, factIds: a.factIds, confirmed: a.confirmed, long: longKeys.has(k) || answerValue(a).length > 120 }));
+    // The motivation kept for the cover letter is not shown twice when the form asks it too.
+    .filter(([k, a], _, all) => !(k === "why_this" && all.some(([k2, a2]) => k2 !== k && answerValue(a2) === answerValue(a))))
+    .map(([k, a]) => {
+      const value = shownValue(k, a);
+      // Locked: the person's own answers stay theirs to read; what was drafted or filled for them waits for the unlock.
+      const masked = locked && a.source !== "user";
+      return { key: k, label: labels.get(k) ?? spotLabel(k, lang) ?? humanKey(k), value: masked ? maskText(value) : value, source: a.source, factIds: masked ? [] : a.factIds, confirmed: a.confirmed, long: longKeys.has(k) || answerValue(a).length > 120, ...(masked ? { masked: true } : {}) };
+    });
 
   // Facts cited anywhere on the page, with their source document names.
   const ids = new Set<string>();
@@ -201,7 +261,8 @@ export async function applicationView(userId: string, id: string): Promise<Appli
       documentId: shownEmail?.id ?? null,
       to: prepared?.email?.to ?? row.oppApply?.email ?? "",
       subject: shownEmail && subjIdx >= 0 ? shownEmail.blocks[subjIdx].text : (prepared?.email?.subject ?? ""),
-      body: shownEmail ? shownEmail.blocks.filter((_, i) => i !== subjIdx).map((b) => (b.type === "bullet" ? `• ${b.text}` : b.text)).join("\n\n") : (prepared?.email?.body ?? ""),
+      // The email document's blocks are already masked when locked; a prepared body without a document is masked here.
+      body: shownEmail ? shownEmail.blocks.filter((_, i) => i !== subjIdx).map((b) => (b.type === "bullet" ? `• ${b.text}` : b.text)).join("\n\n") : locked ? maskText(prepared?.email?.body ?? "") : (prepared?.email?.body ?? ""),
     };
   }
 
@@ -212,6 +273,8 @@ export async function applicationView(userId: string, id: string): Promise<Appli
   }
 
   const running = job.find((j) => j.status === "queued" || j.status === "running");
+  // After an unlock, Claude reads the profile again and writes everything in full (upgrade → prepare).
+  const writing = !locked && Boolean(running && (running.kind === "application.upgrade" || running.kind === "application.prepare"));
   const failedPrepare = job.find((j) => j.kind === "application.prepare" && j.status === "failed");
   // Nothing is working on it although it should be: the queue gave up (or the run ended early).
   const lastTouch = Math.max(app.updatedAt.getTime(), ...steps.map((s) => (s.finishedAt ?? s.startedAt ?? s.createdAt).getTime()));
@@ -240,13 +303,13 @@ export async function applicationView(userId: string, id: string): Promise<Appli
     followUpAt: iso(app.followUpAt),
     followUpsSent: app.followUpsSent,
     opportunity: brief(row.opp?.id ? row.opp : null, app.opportunityId),
-    goal: row.goal?.id ? { id: row.goal.id, label: row.goal.label } : null,
+    goal: row.goal?.id ? { id: row.goal.id, label: row.goal.label, sub: row.goal.sub ?? null } : null,
     steps: steps.map((s) => ({ n: s.n, kind: s.kind, status: s.status, summary: summarize(s.output as Record<string, unknown> | null), error: s.status === "failed" ? (s.error ?? null) : null, startedAt: iso(s.startedAt), finishedAt: iso(s.finishedAt) })),
     questions: app.questions ?? [],
     answers,
     documents: documentsView.filter((d) => d.kind !== "email"),
     email,
-    handoff: handoffStep ?? (app.status === "needs_you" || app.status === "ready" ? (prepared?.handoff ?? null) : null),
+    handoff: locked ? null : (handoffStep ?? (app.status === "needs_you" || app.status === "ready" ? (prepared?.handoff ?? null) : null)),
     evidence: app.evidence ?? null,
     outcome: app.outcome ?? null,
     facts: factMap,
@@ -257,6 +320,7 @@ export async function applicationView(userId: string, id: string): Promise<Appli
     stalled,
     unlock: Boolean(unlockEvent[0]),
     language: documentsView[0]?.language ?? "en",
+    access: { locked, unlockedAt: iso(app.unlockedAt), source: app.unlockSource ?? null, writing, paidEmail: app.paidEmail ?? null },
   };
 }
 
@@ -266,7 +330,8 @@ function humanKey(k: string): string {
 }
 
 /** Active goals for the board's filter chips. */
-export async function goalFilters(userId: string): Promise<{ id: string; label: string }[]> {
-  return db.select({ id: goals.id, label: goals.label }).from(goals).where(and(eq(goals.userId, userId), eq(goals.status, "active"))).orderBy(desc(goals.updatedAt)).limit(12);
+export async function goalFilters(userId: string, locale: string): Promise<{ id: string; label: string }[]> {
+  const rows = await db.select({ id: goals.id, label: goals.label, sub: goals.sub }).from(goals).where(and(eq(goals.userId, userId), eq(goals.status, "active"))).orderBy(desc(goals.updatedAt)).limit(12);
+  return rows.map((g) => ({ id: g.id, label: goalLabelFor(g, locale) }));
 }
 

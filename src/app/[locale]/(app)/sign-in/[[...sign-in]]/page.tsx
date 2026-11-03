@@ -63,11 +63,27 @@ export default async function SignInPage({ params, searchParams }: Props) {
   const [sp, t] = await Promise.all([searchParams, getTranslations({ locale, namespace: "common.auth" })]);
   const destination = signInDestination(sp.redirect_url, locale);
 
-  const points = [
-    { title: t("point1Title"), body: t("point1Body") },
-    { title: t("point2Title"), body: t("point2Body") },
-    { title: t("point3Title"), body: t("point3Body") },
-  ];
+  // Coming from an application drafted signed out: the draft exists, so the steps are what follows it.
+  const fromDraft = /^(?:\/zh)?\/app\/apply\//.test(destination);
+  // Coming from a buy button: what follows is the payment, not onboarding.
+  const fromBuy = /[?&]buy=/.test(destination);
+  const points = fromBuy
+    ? [
+        { title: t("buyPoint1Title"), body: t("buyPoint1Body") },
+        { title: t("buyPoint2Title"), body: t("buyPoint2Body") },
+        { title: t("point3Title"), body: t("point3Body") },
+      ]
+    : fromDraft
+    ? [
+        { title: t("draftPoint1Title"), body: t("draftPoint1Body") },
+        { title: t("draftPoint2Title"), body: t("draftPoint2Body") },
+        { title: t("point3Title"), body: t("point3Body") },
+      ]
+    : [
+        { title: t("point1Title"), body: t("point1Body") },
+        { title: t("point2Title"), body: t("point2Body") },
+        { title: t("point3Title"), body: t("point3Body") },
+      ];
 
   return (
     <>

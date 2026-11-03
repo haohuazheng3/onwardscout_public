@@ -13,7 +13,7 @@ import { TypeIcon } from "@/components/site/TypeIcon";
 import { ButtonLink, Container, Section, SectionHeading } from "@/components/ui";
 import { AUDIENCE_CONTENT } from "@/content/audiences";
 import { HOME_FAQ_IDS, faqsById } from "@/content/faq";
-import { PACKS, PLANS, TRIAL, formatPrice } from "@/content/plans";
+import { PASSES, SINGLE, formatPrice } from "@/content/plans";
 import { FREE_INCLUDES, HOME_TYPES, PRINCIPLES, STEPS, pick, type PrincipleId } from "@/content/site-copy";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
@@ -83,17 +83,17 @@ export default async function HomePage({ params }: Props) {
     a: pick(f.a, locale),
     more: f.more ? { href: f.more.href, label: pick(f.more.label, locale) } : undefined,
   }));
-  const pro = PLANS.pro;
+  const price = formatPrice(SINGLE.priceUsd);
 
   return (
     <>
       <JsonLd
         data={softwareApplicationLd(
-          [pro, PACKS.pack10, PACKS.pack40].map((o) => ({
+          [SINGLE, ...Object.values(PASSES)].map((o) => ({
             sku: o.sku,
             name: o.name[locale],
             priceUsd: o.priceUsd,
-            interval: o.interval === "month" ? "month" : "once",
+            interval: "once" as const,
             description: o.blurb[locale],
           })),
           locale,
@@ -114,7 +114,7 @@ export default async function HomePage({ params }: Props) {
               {t("home.hero.secondary")}
             </ButtonLink>
           </div>
-          <p className="mx-auto mt-5 max-w-md text-[0.88rem] leading-relaxed text-ink-4">{t("shared.freeLine", { credits: TRIAL.credits })}</p>
+          <p className="mx-auto mt-5 max-w-md text-[0.88rem] leading-relaxed text-ink-4">{t("shared.freeLine", { price })}</p>
         </div>
         <HeroDemo copy={demo} className="mx-auto mt-12 max-w-[1100px] sm:mt-16" />
       </Container>
@@ -244,7 +244,7 @@ export default async function HomePage({ params }: Props) {
         <SectionHeading
           eyebrow={t("home.pricing.eyebrow")}
           title={t("home.pricing.title")}
-          lede={t("home.pricing.lede")}
+          lede={t("home.pricing.lede", { price })}
           action={
             <ButtonLink href="/pricing" variant="ghost" iconRight={<ArrowRight size={17} aria-hidden />}>
               {t("home.pricing.cta")}
@@ -255,33 +255,20 @@ export default async function HomePage({ params }: Props) {
           <div className="pane flex min-w-0 flex-col p-6 sm:p-7">
             <p className="eyebrow">{t("home.pricing.freeName")}</p>
             <p className="num mt-3 font-display text-[2.6rem] font-semibold leading-none text-ink">{t("home.pricing.freePrice")}</p>
-            <p className="mt-2 text-[0.92rem] text-ink-3">{t("home.pricing.freeNote", { credits: TRIAL.credits, days: TRIAL.expiryDays })}</p>
+            <p className="mt-2 text-[0.92rem] text-ink-3">{t("home.pricing.freeNote")}</p>
             <CheckList className="mt-5" items={FREE_INCLUDES.slice(0, 4).map((l) => pick(l, locale))} />
           </div>
           <div className="pane-ink flex min-w-0 flex-col p-6 sm:p-7">
-            <p className="eyebrow eyebrow-accent">{pro.name[locale]}</p>
-            <p className="mt-3 flex items-baseline gap-1.5">
-              <span className="num font-display text-[2.6rem] font-semibold leading-none text-ink">{formatPrice(pro.priceUsd)}</span>
-              <span className="text-[0.92rem] text-ink-4">{t("home.pricing.perMonth")}</span>
-            </p>
-            <p className="mt-2 text-[0.92rem] text-ink-3">{t("home.pricing.proNote", { credits: pro.credits })}</p>
-            <CheckList className="mt-5" tone="accent" items={pro.features[locale].slice(1, 5)} />
+            <p className="eyebrow eyebrow-accent">{t("home.pricing.singleName")}</p>
+            <p className="num mt-3 font-display text-[2.6rem] font-semibold leading-none text-ink">{price}</p>
+            <p className="mt-2 text-[0.92rem] text-ink-3">{t("home.pricing.singleNote")}</p>
+            <CheckList className="mt-5" tone="accent" items={SINGLE.features[locale].slice(0, 4)} />
           </div>
           <div className="pane flex min-w-0 flex-col p-6 sm:p-7">
-            <p className="eyebrow">{t("home.pricing.packsName")}</p>
-            <p className="num mt-3 font-display text-[2.6rem] font-semibold leading-none text-ink">{formatPrice(PACKS.pack10.priceUsd)}+</p>
-            <p className="mt-2 text-[0.92rem] text-ink-3">
-              {t("home.pricing.packsNote", {
-                small: PACKS.pack10.credits,
-                smallPrice: formatPrice(PACKS.pack10.priceUsd),
-                large: PACKS.pack40.credits,
-                largePrice: formatPrice(PACKS.pack40.priceUsd),
-              })}
-            </p>
-            <CheckList
-              className="mt-5"
-              items={[t("home.pricing.packsValid", { days: PACKS.pack10.rolloverDays }), ...PACKS.pack10.features[locale].slice(1)]}
-            />
+            <p className="eyebrow">{t("home.pricing.passName")}</p>
+            <p className="num mt-3 font-display text-[2.6rem] font-semibold leading-none text-ink">{formatPrice(PASSES.season_returnship.priceUsd)}</p>
+            <p className="mt-2 text-[0.92rem] text-ink-3">{t("home.pricing.passNote", { price: formatPrice(PASSES.season_returnship.priceUsd), days: PASSES.season_returnship.rolloverDays })}</p>
+            <CheckList className="mt-5" items={Object.values(PASSES).map((o) => o.name[locale])} />
           </div>
         </div>
       </Section>

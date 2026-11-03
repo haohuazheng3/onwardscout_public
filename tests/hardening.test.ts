@@ -150,10 +150,11 @@ describe("billing", () => {
     expect(chargeReversed({ refunded: false, amount: 900, amount_refunded: 300, disputed: false })).toBeNull();
   });
 
-  it("sells only perks that exist: no priority processing, the brief in the app for everyone", () => {
+  it("sells only what exists: no priority processing; the full writing is what an unlock buys", () => {
     expect(Object.keys(PLANS.pro.perks).sort()).toEqual(["autoFollowUps", "weeklyDigest"]);
-    const rows = compareRows((k) => k, { mailer: true });
-    expect(rows.find((r) => r.id === "digestEmail")?.pro).toEqual({ kind: "yes" });
+    const rows = compareRows((k) => k);
+    expect(rows.some((r) => r.id === "priority")).toBe(false);
+    expect(rows.find((r) => r.id === "written")).toMatchObject({ free: { kind: "no" }, single: { kind: "yes" }, pass: { kind: "yes" } });
   });
 });
 

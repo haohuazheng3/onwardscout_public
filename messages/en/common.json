@@ -165,7 +165,15 @@
     "account": "Account",
     "failedTitle": "Sign-in didn’t load",
     "failedBody": "Our sign-in provider could not be reached. Check your connection, then try again.",
-    "failedRetry": "Try again"
+    "failedRetry": "Try again",
+    "draftPoint1Title": "Your draft is kept",
+    "draftPoint1Body": "The materials we just drafted move to your account the moment you're in.",
+    "draftPoint2Title": "Answer what only you can say",
+    "draftPoint2Body": "A few one-tap questions; the drafts update with your answers.",
+    "buyPoint1Title": "Pay on Stripe's secure page",
+    "buyPoint1Body": "After the code you're back with your choice ready; one tap opens Stripe's checkout. Card details go to Stripe; we never see them.",
+    "buyPoint2Title": "It's yours at once",
+    "buyPoint2Body": "Your credits or season pass show in your account as soon as Stripe confirms the payment."
   },
   "appNav": {
     "home": "Home",

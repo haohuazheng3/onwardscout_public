@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql, type SQL } from "drizzle-orm";
 import { cache } from "react";
 import { applyInfoSchema, opportunityGeoSchema, type ApplicationStatus, type MaterialId, type OpportunityGeo } from "@/lib/core/types";
+import { isOpportunityTypeId } from "@/lib/core/opportunity-types";
 import { db } from "@/lib/db";
 import { applications, matches, opportunities, type OpportunityRow } from "@/lib/db/schema";
 import { DEADLINE_DAYS, EFFORT_LIMITS, filtersToQuery, parseBoardFilters, tagWords, type BoardFilters } from "./filters";
@@ -533,6 +534,24 @@ export async function countPublicByType(): Promise<Record<string, number>> {
     .where(and(eq(o.status, "active"), eq(o.public, true), notClosed))
     .groupBy(o.type);
   return Object.fromEntries(rows.map((r) => [r.type, Number(r.n)]));
+}
+
+/** Open opportunities of these types in a country (worldwide ones included): is a country filter worth applying? */
+export async function countOpenInCountry(types: readonly string[], country: string): Promise<number> {
+  const known = types.filter(isOpportunityTypeId);
+  if (!known.length || !/^[A-Z]{2}$/.test(country)) return 0;
+  const rows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(o)
+    .where(
+      and(
+        eq(o.status, "active"),
+        notClosed,
+        inArray(o.type, known),
+        sql`((${o.geo}->'countries') @> jsonb_build_array(${country}::text) or ${o.geo}->>'worldwide' = 'true')`,
+      ),
+    );
+  return Number(rows[0]?.n ?? 0);
 }
 
 /* ------------------------------------------------------------------ top matches (home, digest) */

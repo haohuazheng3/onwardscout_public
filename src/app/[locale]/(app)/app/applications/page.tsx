@@ -31,7 +31,7 @@ export default async function ApplicationsPage({ params, searchParams }: { param
   const goal = typeof sp.goal === "string" && /^gol_[0-9a-z]{6,40}$/.test(sp.goal) ? sp.goal : null;
   const status = typeof sp.status === "string" && (BOARD_COLUMNS as readonly string[]).includes(sp.status) ? (sp.status as BoardColumn) : null;
 
-  const [t, cards, goals] = await Promise.all([getTranslations({ locale, namespace: "applications" }), listBoard(userId), goalFilters(userId)]);
+  const [t, cards, goals] = await Promise.all([getTranslations({ locale, namespace: "applications" }), listBoard(userId), goalFilters(userId, locale)]);
 
   return (
     <>

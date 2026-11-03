@@ -4,7 +4,8 @@ import { db } from "./db";
 import { creditEvents, creditLots, users, type CreditEventRow, type CreditLotRow } from "./db/schema";
 import type { CreditEventKind, LotKind } from "./core/types";
 import { newId } from "./ids";
-import { OFFERS, TRIAL, type Sku } from "@/content/plans";
+import { OFFERS, passForScope, scopeCovers, TRIAL, type Sku } from "@/content/plans";
+import type { RoomBalance } from "@/lib/applications/types";
 
 /*
  * The ONLY module that touches credit_lots / credit_events. This is money, so the rules live
@@ -14,7 +15,9 @@ import { OFFERS, TRIAL, type Sku } from "@/content/plans";
  *    `remaining` drops the moment an application reserves and comes back only on a release; a
  *    debit moves nothing on the lot (the reservation already took the credits), it is the
  *    ledger entry that says "spent".
- *  - Reservations draw from the earliest-expiring usable lot first (FIFO by expires_at).
+ *  - Reservations draw from the earliest-expiring usable lot first (FIFO by expires_at). A season
+ *    pass's lot is scoped to opportunity types (`scope`): it pays only for those applications and
+ *    is used before general credits for them (`usableFor`, `orderForDebit`).
  *  - Every movement is an append-only credit_events row. An application touches each lot at most
  *    once per kind (unique index on application_id + lot_id + kind), so reserve / settle /
  *    release can be replayed by a retry, a callback and a cron at the same time without double
@@ -55,6 +58,8 @@ export interface Lot {
   total: number;
   remaining: number;
   expiresAt: Date | null;
+  /** Opportunity types this lot may pay for; empty = any. */
+  scope?: string[];
   createdAt: Date;
 }
 
@@ -67,13 +72,24 @@ export interface Balance {
   expiringSoon: { amount: number; at: Date } | null;
   /** Every usable credit comes from the free trial. */
   trialOnly: boolean;
+  /** Of `available`, the credits any application can use (not tied to a season pass). */
+  general: number;
+  /** Season passes still usable (only those covering the type, when one was given). */
+  passes: PassBalance[];
+}
+
+/** What is left of a season pass: its scope (opportunity types), credits and the earliest expiry. */
+export interface PassBalance {
+  scope: string[];
+  remaining: number;
+  expiresAt: Date | null;
 }
 
 export type ReserveResult =
   | { ok: true; amount: number }
   | { ok: false; reason: "insufficient" | "invalid-amount"; available: number; needed: number };
 
-type LotLike = Pick<Lot, "remaining" | "expiresAt"> & { status?: string };
+type LotLike = Pick<Lot, "remaining" | "expiresAt"> & { status?: string; scope?: string[] };
 
 /* ------------------------------------------------------------------ pure helpers (unit-tested) */
 
@@ -84,11 +100,22 @@ export function isUsable(lot: LotLike, now: Date = new Date()): boolean {
   return true;
 }
 
-/** Lots a reservation may draw from: earliest expiry first (never-expiring last), then oldest first. */
+/** Lots that may pay for an application of this opportunity type (any type when not given: only unscoped lots). */
+export function usableFor<T extends LotLike>(lots: T[], opportunityType: string | null | undefined): T[] {
+  return lots.filter((l) => (l.scope?.length ? scopeCovers(l.scope, opportunityType) : true));
+}
+
+/**
+ * Lots a reservation may draw from: scoped lots (season passes) first, then earliest expiry
+ * (never-expiring last), then oldest first. Callers pass lots already filtered with `usableFor`.
+ */
 export function orderForDebit<T extends LotLike & Pick<Lot, "createdAt">>(lots: T[], now: Date = new Date()): T[] {
   return lots
     .filter((l) => isUsable(l, now))
     .sort((a, b) => {
+      const sa = a.scope?.length ? 0 : 1;
+      const sb = b.scope?.length ? 0 : 1;
+      if (sa !== sb) return sa - sb;
       const ea = a.expiresAt ? a.expiresAt.getTime() : Number.POSITIVE_INFINITY;
       const eb = b.expiresAt ? b.expiresAt.getTime() : Number.POSITIVE_INFINITY;
       if (ea !== eb) return ea - eb;
@@ -163,6 +190,33 @@ export function lotStatus(lot: Pick<Lot, "remaining" | "expiresAt"> & { status: 
 }
 
 /** True when the user holds credits and every usable one comes from the free trial. */
+/** Usable season-pass lots merged by scope (same pass bought twice = one line), largest first. */
+export function passBalances(lots: LotLike[], now: Date = new Date()): PassBalance[] {
+  const byScope = new Map<string, PassBalance>();
+  for (const l of lots) {
+    if (!l.scope?.length || !isUsable(l, now)) continue;
+    const key = [...l.scope].sort().join(",");
+    const seen = byScope.get(key);
+    if (!seen) byScope.set(key, { scope: [...l.scope], remaining: l.remaining, expiresAt: l.expiresAt });
+    else {
+      seen.remaining += l.remaining;
+      if (l.expiresAt && (!seen.expiresAt || l.expiresAt < seen.expiresAt)) seen.expiresAt = l.expiresAt;
+    }
+  }
+  return [...byScope.values()].sort((a, b) => b.remaining - a.remaining);
+}
+
+/** The room's numbers from a balance read for its opportunity type (passes = those covering it). */
+export function roomBalance(b: Pick<Balance, "available" | "reserved" | "passes">): RoomBalance {
+  const pass = b.passes.map((p) => ({ sku: passForScope(p.scope), remaining: p.remaining })).find((p) => p.sku !== null);
+  return { available: b.available, reserved: b.reserved, pass: pass?.sku ? { sku: pass.sku, remaining: pass.remaining } : null };
+}
+
+/** Credits not tied to a season pass. */
+export function generalAvailable(lots: LotLike[], now: Date = new Date()): number {
+  return sumAvailable(lots.filter((l) => !l.scope?.length), now);
+}
+
 export function onlyTrial(lots: (LotLike & Pick<Lot, "kind">)[], now: Date = new Date()): boolean {
   const usable = lots.filter((l) => isUsable(l, now));
   return usable.length > 0 && usable.every((l) => l.kind === "trial");
@@ -179,6 +233,8 @@ export function computeBalance(
     reserved: reservedFromEvents(events),
     expiringSoon: expiringSoon(lots, now),
     trialOnly: onlyTrial(lots, now),
+    general: generalAvailable(lots, now),
+    passes: passBalances(lots, now),
   };
 }
 
@@ -251,7 +307,7 @@ export function latestRound(
 /* ------------------------------------------------------------------ reads */
 
 function toLot(r: CreditLotRow): Lot {
-  return { id: r.id, kind: r.kind, total: r.total, remaining: r.remaining, expiresAt: r.expiresAt, createdAt: r.createdAt };
+  return { id: r.id, kind: r.kind, total: r.total, remaining: r.remaining, expiresAt: r.expiresAt, scope: r.scope ?? [], createdAt: r.createdAt };
 }
 
 async function activeLots(userId: string): Promise<CreditLotRow[]> {
@@ -278,7 +334,7 @@ async function heldByUser(userId: string): Promise<number> {
  * `trial:<userId>`; an expired or spent trial is a lot, so it is never granted twice.
  */
 async function healTrial(userId: string): Promise<boolean> {
-  if (!isCreditHolder(userId)) return false;
+  if (!isCreditHolder(userId) || TRIAL.credits <= 0) return false;
   const any = await db.select({ id: creditLots.id }).from(creditLots).where(eq(creditLots.userId, userId)).limit(1);
   if (any.length) return false;
   const person = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
@@ -289,17 +345,24 @@ async function healTrial(userId: string): Promise<boolean> {
   return true;
 }
 
-export async function getBalance(userId: string): Promise<Balance> {
+/**
+ * The person's credits. With `opportunityType`, `available` counts what an application of that
+ * type can use (general credits plus a matching season pass); without it, every usable credit.
+ */
+export async function getBalance(userId: string, opts: { opportunityType?: string | null } = {}): Promise<Balance> {
   let [lots, held] = await Promise.all([activeLots(userId), heldByUser(userId)]);
   if (lots.length === 0 && held === 0 && (await healTrial(userId))) {
     [lots, held] = await Promise.all([activeLots(userId), heldByUser(userId)]);
   }
   const usable = lots.map((r) => ({ ...toLot(r), status: r.status }));
+  const forType = opts.opportunityType !== undefined ? usableFor(usable, opts.opportunityType) : usable;
   return {
-    available: sumAvailable(usable),
+    available: sumAvailable(forType),
     reserved: held,
     expiringSoon: expiringSoon(usable),
     trialOnly: onlyTrial(usable),
+    general: generalAvailable(usable),
+    passes: passBalances(forType),
   };
 }
 
@@ -405,9 +468,9 @@ async function dropClaim(key: string, olderThan?: Date): Promise<void> {
 }
 
 /** Takes `amount` credits FIFO for one claimed round. Up to three passes against concurrent drains. */
-async function takeForRound(userId: string, key: string, amount: number): Promise<ReserveResult> {
+async function takeForRound(userId: string, key: string, amount: number, opportunityType: string | null): Promise<ReserveResult> {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const lots = (await activeLots(userId)).map(toLot);
+    const lots = usableFor((await activeLots(userId)).map(toLot), opportunityType);
     const plan = planReservation(lots, amount);
     if (!plan) return { ok: false, reason: "insufficient", available: sumAvailable(lots), needed: amount };
 
@@ -437,7 +500,7 @@ async function takeForRound(userId: string, key: string, amount: number): Promis
       await giveBackToLot(step.lotId, step.take);
     }
   }
-  const lots = (await activeLots(userId)).map(toLot);
+  const lots = usableFor((await activeLots(userId)).map(toLot), opportunityType);
   return { ok: false, reason: "insufficient", available: sumAvailable(lots), needed: amount };
 }
 
@@ -448,8 +511,9 @@ async function takeForRound(userId: string, key: string, amount: number): Promis
  * `amount` 0 (practice) holds nothing. Throws CreditsBusyError only if another reservation for the
  * same application is still running after several seconds.
  */
-export async function reserveForApplication(input: { userId: string; applicationId: string; amount: number }): Promise<ReserveResult> {
+export async function reserveForApplication(input: { userId: string; applicationId: string; amount: number; opportunityType?: string | null }): Promise<ReserveResult> {
   const { userId, applicationId, amount } = input;
+  const opportunityType = input.opportunityType ?? null;
   if (amount === 0) return { ok: true, amount: 0 };
   if (!Number.isInteger(amount) || amount < 0 || !applicationId || applicationId.includes("#") || !isCreditHolder(userId)) {
     return { ok: false, reason: "invalid-amount", available: 0, needed: amount };
@@ -469,7 +533,7 @@ export async function reserveForApplication(input: { userId: string; application
         const now = latestRound((await eventsForApplication(applicationId)).filter((e) => !isClaim(e)));
         if (now.state === "held" || now.state === "debited") return { ok: true, amount: now.reserved };
         if (now.round > round || (now.round === round && now.state === "released")) continue; // that round is over; claim the next
-        return await takeForRound(userId, key, amount);
+        return await takeForRound(userId, key, amount, opportunityType);
       } finally {
         await dropClaim(key);
       }
@@ -518,6 +582,8 @@ export interface GrantInput {
   sourceKey: string;
   expiresAt: Date | null;
   orderId?: string | null;
+  /** Season passes: the opportunity types the credits pay for. */
+  scope?: readonly string[];
 }
 
 /** Creates a lot once per sourceKey. Returns the lot and whether this call created it. */
@@ -537,6 +603,7 @@ export async function grantLot(input: GrantInput): Promise<{ lot: Lot; created: 
       sourceKey: input.sourceKey,
       orderId: input.orderId ?? null,
       expiresAt: input.expiresAt,
+      scope: [...(input.scope ?? [])],
     })
     .onConflictDoNothing({ target: creditLots.sourceKey })
     .returning();
@@ -590,6 +657,8 @@ export async function restoreLot(sourceKey: string): Promise<{ restored: number;
 
 /** The free trial (TRIAL.credits for TRIAL.expiryDays) on the first sign-in. Idempotent per user. */
 export async function grantTrial(userId: string): Promise<{ created: boolean }> {
+  // No free trial since 2026-11-03 (the preview is free, Claude writes only for paid applications).
+  if (TRIAL.credits <= 0) return { created: false };
   const { created } = await grantLot({ userId, kind: "trial", total: TRIAL.credits, sourceKey: trialSourceKey(userId), expiresAt: trialExpiry() });
   return { created };
 }

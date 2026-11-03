@@ -17,6 +17,7 @@ export const JOB_KINDS = [
   "application.prepare", // P3a: analyse, gaps, compose, render
   "application.submit", // P3a/P3b: submit through the channel after the person's tap
   "application.followup", // P3a/P3b: follow-up email after N days without a reply
+  "application.upgrade", // P3a: after an unlock, the profile and every document written again with Claude
   "sources.run", // P2b: crawl / fetch one source
   "digest.send", // P6: weekly digest
   "notify.email", // P6: "needs you" and other product email

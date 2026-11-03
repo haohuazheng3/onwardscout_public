@@ -439,6 +439,7 @@ export const COMPOSE_KINDS = [
   "answer",
   "bio",
   "one_pager",
+  "pitch_deck",
 ] as const;
 export const ComposeKind = z.enum(COMPOSE_KINDS);
 export type ComposeKind = z.infer<typeof ComposeKind>;
@@ -589,6 +590,62 @@ export const QuestionAnswer = z.object({
   reason: z.string().nullable(),
 });
 export type QuestionAnswer = z.infer<typeof QuestionAnswer>;
+
+/* ------------------------------------------------------------------ reviseDocument */
+
+/** A block of the document being revised, as stored (role from the composer when known). */
+export const ReviseBlock = z.object({
+  type: z.enum(GENERATED_BLOCK_TYPES),
+  role: z.string().default("body"),
+  label: z.string().optional(),
+  text: z.string(),
+  factIds: z.array(z.string()).default([]),
+  flags: z.array(z.enum(BLOCK_FLAGS)).default([]),
+});
+export type ReviseBlock = z.infer<typeof ReviseBlock>;
+
+/**
+ * The person's note on a draft ("make it shorter", "add a slide on our pilots", "我们月活两万")
+ * and the document as it stands. The revision keeps every claim sourced: facts, the person's
+ * answers, their earlier notes (`answer:note_<n>`, oldest first) and this note
+ * (`answer:note_<notes.length + 1>`), which is their own statement.
+ */
+export const ReviseDocumentInput = z.object({
+  /** The stored kind (cover_letter, pitch_notes, statement…). */
+  kind: z.string(),
+  /** Which composer drafted it (pitch_deck, resume, sections:research_statement…), when known. */
+  composer: z.string().nullable().default(null),
+  title: z.string(),
+  blocks: z.array(ReviseBlock),
+  feedback: z.string().trim().min(1).max(2000),
+  notes: z.array(z.string()).default([]),
+  profile: z.unknown(),
+  facts: z.array(FactRef),
+  opportunity: OpportunityInput.nullable().optional(),
+  answers: z.record(z.string(), z.string()).default({}),
+  language: Language.default("en"),
+});
+export type ReviseDocumentInput = z.input<typeof ReviseDocumentInput>;
+
+export const RevisedDocument = z.object({
+  /** False when this engine could not act on the note (the document is returned unchanged). */
+  applied: z.boolean(),
+  title: z.string(),
+  language: Language,
+  blocks: z.array(ComposedBlock),
+  gaps: z.array(ContentGap),
+  /** What changed, one short line each, in the person's language. */
+  changes: z.array(z.string()),
+  /** Why nothing changed (applied = false), in the person's language. */
+  reason: z.string().nullable(),
+  label: z.enum(["drafted_from_profile", "written_with_ai"]),
+});
+export type RevisedDocument = z.infer<typeof RevisedDocument>;
+
+/** The source id of the person's n-th note on a document (1-based). */
+export function noteId(n: number): string {
+  return `answer:note_${n}`;
+}
 
 /* ------------------------------------------------------------------ classifyReply */
 
@@ -790,6 +847,7 @@ export const PURPOSES = [
   "map_form_fields",
   "plan_browser_step",
   "recommend_directions",
+  "revise_document",
 ] as const;
 export type Purpose = (typeof PURPOSES)[number];
 
@@ -812,6 +870,11 @@ export interface CallContext {
   signal?: AbortSignal;
   /** Called by providers that spend money (anthropic) once per model response. */
   report?: (usage: UsageReport) => void;
+  /**
+   * "economy" for signed-out drafts and accounts that have never bought credits: a lighter model
+   * or effort where the output holds up (profile reading on Haiku, drafting at medium effort).
+   */
+  tier?: "standard" | "economy";
 }
 
 export interface Intelligence {
@@ -826,11 +889,14 @@ export interface Intelligence {
   planBrowserStep(input: PlanBrowserStepInput, ctx?: CallContext): Promise<BrowserStep>;
   /** The person's plan: a life path, its directions (up to three candidates, with reasons), a roadmap, strengths and gaps. */
   recommendDirections(input: RecommendDirectionsInput, ctx?: CallContext): Promise<DirectionPlan>;
+  /** A new version of a document following the person's note, every claim still sourced. */
+  reviseDocument(input: ReviseDocumentInput, ctx?: CallContext): Promise<RevisedDocument>;
 }
 
 /** Errors a provider raises; the selector falls back to the local engine on any of them. */
 export class LlmError extends Error {
-  readonly code: "refusal" | "truncated" | "invalid_output" | "timeout" | "api" | "budget" | "not_configured";
+  /** `unavailable`: the account cannot be used at all (credit balance spent, key revoked) — not worth retrying for a while. */
+  readonly code: "refusal" | "truncated" | "invalid_output" | "timeout" | "api" | "unavailable" | "budget" | "not_configured";
   readonly detail?: string;
   constructor(code: LlmError["code"], message: string, detail?: string) {
     super(message);

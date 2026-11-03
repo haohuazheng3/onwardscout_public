@@ -246,10 +246,10 @@ export const FAQS: readonly Faq[] = [
   {
     id: "credit",
     group: "billing",
-    q: bi("What is a credit?", "什么是额度？"),
+    q: bi("What does unlocking an application mean?", "解锁一份申请是什么意思？"),
     a: bi(
-      "One credit is one application submitted for you through any channel, including a handoff you confirm, or one outreach email to a new contact. Follow-ups, drafts and practice applications don't use credits.",
-      "1 个额度 = 通过任意通道替你提交 1 份申请（包括你确认过的本人提交交接），或向 1 位新联系人发送 1 封外联邮件。跟进、草稿和练习申请都不消耗额度。",
+      "Every application starts as a free preview: your documents drafted from your own files, with the first lines readable. Unlocking it ($19 once, or one credit of a season pass) has Claude write every document in full for that posting, opens the Word and PDF downloads and every form answer to copy, and lets you submit it, or hand it over step by step where the site requires your own login. Revisions are unlimited afterwards.",
+      "每份申请都从免费预览开始：依据你自己的文件起草的材料，开头几行可读。解锁（一次 $19，或申请季通行证的 1 个额度）后，Claude 会针对这条招募完整写成每份材料，开放 Word 和 PDF 下载及每个表单回答的复制，并可由我们提交，或在需要你本人登录的网站上逐步交接。之后修改不限次数。",
     ),
   },
   {
@@ -257,35 +257,35 @@ export const FAQS: readonly Faq[] = [
     group: "billing",
     q: bi("What can I do for free?", "哪些可以免费使用？"),
     a: bi(
-      "Build your profile, get matched and ranked picks, see previews and document drafts, send follow-ups and run practice applications — all free, with no time limit. New accounts also get 3 credits, valid for 60 days, to submit their first real applications.",
-      "建立档案、获得匹配并排好序的精选、查看预览和文档草稿、发送跟进邮件、进行练习申请——全部免费，没有时间限制。新账户还会获赠 3 个额度，60 天内有效，用来提交你的头几份真实申请。",
+      "Build your profile, get matched and ranked picks, preview any application (drafted from your own files, no account needed), send follow-ups and run practice applications — all free, with no time limit. You pay only to unlock the application you want written in full.",
+      "建立档案、获得匹配并排好序的精选、预览任何申请（依据你自己的文件起草，无需注册）、发送跟进邮件、进行练习申请——全部免费，没有时间限制。只有想要完整写成的那份申请才需要付费解锁。",
     ),
   },
   {
     id: "failed",
     group: "billing",
-    q: bi("What happens to my credit if a submission fails?", "如果提交失败，我的额度会怎样？"),
+    q: bi("Do I need an account to pay?", "付款需要注册账户吗？"),
     a: bi(
-      "You keep it. A credit is reserved when you confirm and only spent once the application is actually submitted. If it fails, you withdraw it, or the deadline passes first, the credit comes back automatically.",
-      "额度还是你的。你确认时额度只是被保留，只有申请真正提交成功时才会消耗。如果提交失败、你撤回申请，或先过了截止日期，额度会自动退回。",
+      "No. You can drop your résumé on a programme, see the preview and unlock it with a card without signing up. The application is attached to the email you type at checkout; signing in with that email (one code, no password) opens it from any device.",
+      "不需要。你可以在项目页放入简历、看预览并直接刷卡解锁，无需注册。申请会绑定到你付款时填写的邮箱；用该邮箱登录（一个验证码，无需密码）即可在任何设备上打开它。",
     ),
   },
   {
     id: "cancel",
     group: "billing",
-    q: bi("Can I cancel Pro at any time?", "Pro 可以随时取消吗？"),
+    q: bi("Is there a subscription?", "有订阅吗？"),
     a: bi(
-      "Yes. Cancel from Billing in your account. You keep Pro until the end of the period you paid for, and credits from that period stay usable for 30 days after it ends. Nothing renews after you cancel.",
-      "可以。在你账户的「账单」中取消即可。你可以继续使用 Pro 直到已付费周期结束，该周期的额度在周期结束后仍可使用 30 天。取消后不会再续费。",
+      "No. Every payment is one-off: $19 for one application, or $49 for a season pass that covers one kind of programme for 90 days and then simply ends. Nothing renews, so there is nothing to cancel.",
+      "没有。每笔付款都是一次性的：一份申请 $19，或 $49 的申请季通行证——覆盖一类项目 90 天，到期自动结束。不会续费，也就无需取消。",
     ),
   },
   {
     id: "expiry",
     group: "billing",
-    q: bi("Do credits expire?", "额度会过期吗？"),
+    q: bi("What is a season pass, and does it expire?", "申请季通行证是什么？会过期吗？"),
     a: bi(
-      "Yes. Free starter credits last 60 days. Pro credits stay usable for 30 days after the month they belong to. Pack credits last 180 days from purchase.",
-      "会。免费起步额度有效期 60 天。Pro 额度在所属月份结束后仍可使用 30 天。额度包中的额度自购买起 180 天内有效。",
+      "A season pass is one payment ($49) that unlocks every application of one kind for 90 days: the returnship pass covers every returnship that fits you (up to 60); the startup pass covers 10 applications to accelerators, incubators, pitch events or startup competitions. It ends after 90 days. Credits bought before November 2026 keep working as unlocks until their own expiry.",
+      "申请季通行证一次付费（$49），90 天内解锁一类项目的所有申请：返岗通行证覆盖所有适合你的返岗项目（最多 60 份）；创业通行证覆盖 10 份加速器、孵化器、路演或创业比赛申请。90 天后自动结束。2026 年 11 月前购买的额度在各自到期前仍可用于解锁。",
     ),
   },
   {
@@ -293,8 +293,8 @@ export const FAQS: readonly Faq[] = [
     group: "billing",
     q: bi("Can I get a refund?", "可以退款吗？"),
     a: bi(
-      "Yes, within 14 days of a charge, if none of the credits from that charge have been used. Write to contact@onwardscout.com from the email you sign in with. Credits spent on submitted applications can't be refunded, and failed submissions never use a credit in the first place.",
-      "可以：扣费后 14 天内，只要该笔费用对应的额度一个都没用过。请用你登录所用的邮箱写信到 contact@onwardscout.com。已用于成功提交申请的额度不能退款；而提交失败本来就不会消耗额度。",
+      "Yes, within 14 days of a charge: an unlocked application whose documents were never downloaded and which was never submitted, or a season pass that unlocked nothing yet. Write to contact@onwardscout.com from the email you paid or sign in with. Once the files were downloaded or the application went out, the work was delivered and the charge stands.",
+      "可以：扣费后 14 天内，解锁的申请从未下载过材料也从未提交，或通行证尚未解锁任何申请。请用你付款或登录所用的邮箱写信到 contact@onwardscout.com。一旦下载了文件或申请已发出，工作即已交付，费用不予退回。",
     ),
     more: { href: "/refund-policy", label: bi("Refund policy", "退款政策") },
   },

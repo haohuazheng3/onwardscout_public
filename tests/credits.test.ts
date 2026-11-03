@@ -3,6 +3,8 @@ import { PACKS, PLANS, TRIAL } from "@/content/plans";
 import {
   adjustSourceKey,
   computeBalance,
+  passBalances,
+  roomBalance,
   EXPIRING_SOON_DAYS,
   expiringSoon,
   isCreditHolder,
@@ -25,8 +27,9 @@ import type { CreditEventKind, LotKind } from "@/lib/core/types";
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = new Date("2026-10-21T12:00:00Z");
-const lot = (id: string, remaining: number, expiresInDays: number | null, opts: { createdDaysAgo?: number; status?: string; kind?: LotKind } = {}) => ({
+const lot = (id: string, remaining: number, expiresInDays: number | null, opts: { createdDaysAgo?: number; status?: string; kind?: LotKind; scope?: string[] } = {}) => ({
   id,
+  scope: opts.scope ?? [],
   kind: opts.kind ?? ("pack" as LotKind),
   remaining,
   total: Math.max(remaining, 1),
@@ -82,7 +85,8 @@ describe("lot selection (FIFO by expiry)", () => {
   });
 
   it("one submitted application costs exactly one credit from the trial first", () => {
-    const lots = [lot("pack", 10, 180), lot("trial", TRIAL.credits, TRIAL.expiryDays, { kind: "trial" })];
+    // A trial lot from before 2026-11-03 (TRIAL.credits is 0 now; older accounts still hold theirs).
+    const lots = [lot("pack", 10, 180), lot("trial", 3, TRIAL.expiryDays, { kind: "trial" })];
     expect(planReservation(lots, 1, now)).toEqual([{ lotId: "trial", take: 1 }]);
   });
 });
@@ -167,7 +171,29 @@ describe("balance", () => {
       reserved: 1,
       expiringSoon: { amount: 2, at: new Date(now.getTime() + 10 * DAY) },
       trialOnly: false,
+      general: 12,
+      passes: [],
     });
+  });
+
+  it("splits season passes from general credits", () => {
+    const lots = [
+      lot("trial", 3, 50, { kind: "trial" }),
+      lot("pass", 59, 80, { scope: ["returnship"] }),
+      lot("pass2", 10, 60, { scope: ["returnship"] }),
+      lot("gone", 5, 70, { scope: ["accelerator"], status: "revoked" }),
+    ];
+    const b = computeBalance(lots, [], now);
+    expect(b.available).toBe(72);
+    expect(b.general).toBe(3);
+    expect(b.passes).toEqual([{ scope: ["returnship"], remaining: 69, expiresAt: new Date(now.getTime() + 60 * DAY) }]);
+    expect(passBalances([lot("p", 0, 10, { scope: ["returnship"] })], now)).toEqual([]);
+  });
+
+  it("tells the room which season pass pays first", () => {
+    const covering = computeBalance([lot("trial", 3, 50, { kind: "trial" }), lot("pass", 59, 80, { scope: ["returnship"] })], [], now);
+    expect(roomBalance(covering)).toEqual({ available: 62, reserved: 0, pass: { sku: "season_returnship", remaining: 59 } });
+    expect(roomBalance(computeBalance([lot("trial", 3, 50, { kind: "trial" })], [], now)).pass).toBeNull();
   });
 });
 
@@ -186,7 +212,7 @@ describe("lot expiry", () => {
   });
   it("the trial lasts 60 days and is keyed per user", () => {
     expect(trialExpiry(now).getTime()).toBe(now.getTime() + 60 * DAY);
-    expect(TRIAL.credits).toBe(3);
+    expect(TRIAL.credits).toBe(0); // no free trial since 2026-11-03
     expect(trialSourceKey("user_abc")).toBe("trial:user_abc");
     expect(adjustSourceKey("user_abc", "goodwill-1")).toBe("adjust:user_abc:goodwill-1");
   });

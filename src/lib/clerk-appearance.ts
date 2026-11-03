@@ -30,8 +30,9 @@ export const clerkAppearance = {
   },
   elements: {
     rootBox: "!w-full !min-w-0",
-    cardBox: "!w-full !max-w-full !min-w-0 !shadow-none !border-0 !bg-transparent",
-    card: "!w-full !min-w-0 !bg-transparent !shadow-none !border-0 !p-0 !gap-6",
+    // Visible overflow and no offset: the display face's "C" overhangs its box and was clipped by a pixel.
+    cardBox: "!w-full !max-w-full !min-w-0 !shadow-none !border-0 !bg-transparent !overflow-visible",
+    card: "!w-full !min-w-0 !bg-transparent !shadow-none !border-0 !p-0 !m-0 !gap-6",
     header: "!text-left !items-start",
     headerTitle: "!font-display !text-[1.45rem] !font-bold !tracking-[-0.02em] !text-[#F2F4F1]",
     headerSubtitle: "!text-[#A3ABA6] !text-[0.95rem]",

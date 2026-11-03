@@ -9,10 +9,13 @@ import { LogoMark } from "@/components/Logo";
 export function ScoutCta({
   title = "Let your scout prepare the next one",
   body = "Drop in the résumé, deck or portfolio you already have. Onward Scout builds a sourced profile, finds opportunities you can win and prepares each application for you to approve with a tap.",
+  primary = { href: "/app/start", label: "Start free with what you have" },
   secondary,
 }: {
   title?: string;
   body?: string;
+  /** The main action: the free onboarding by default, or applying to one listing (/app/apply/<id>). */
+  primary?: { href: string; label: string };
   /** Optional second action (e.g. open this listing in the Scout board). */
   secondary?: { href: string; label: string };
 }) {
@@ -22,8 +25,8 @@ export function ScoutCta({
       <h2 className="headline mt-5 max-w-2xl text-[1.7rem] sm:text-[2.1rem]">{title}</h2>
       <p className="mt-3 max-w-2xl text-[1rem] leading-relaxed opacity-80">{body}</p>
       <div className="mt-7 flex flex-wrap gap-3">
-        <ButtonLink href="/app/start" prefetch={false} iconRight={<ArrowRight size={18} aria-hidden />}>
-          Start free with what you have
+        <ButtonLink href={primary.href} prefetch={false} iconRight={<ArrowRight size={18} aria-hidden />}>
+          {primary.label}
         </ButtonLink>
         {secondary ? (
           <ButtonLink href={secondary.href} prefetch={false} variant="ghost">

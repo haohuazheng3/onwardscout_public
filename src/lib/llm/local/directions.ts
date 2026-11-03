@@ -35,6 +35,16 @@ interface Signals {
   publications: number;
   hasVenture: boolean;
   functions: FunctionId[];
+  /** Coming back to work after time away: caregiving (T6), an older worker returning (T7), or a career break the person states with no current role. */
+  returner: boolean;
+}
+
+/** A career break in the person's own description of themselves (or a résumé line that is the break). */
+const STATED_BREAK = /\b(career break|career gap|returning to work|return(?:ing)? to the workforce|back to work|returner|returnship|stay[- ]at[- ]home (?:parent|mom|mum|dad)|time (?:off|out) to (?:care|raise)|caregiving break|full[- ]time (?:parent|caregiver|carer))\b|重返职场|职业空窗|全职(?:妈妈|爸爸)/i;
+
+export function statesCareerBreak(p: Pick<Profile, "summary" | "identity" | "experience">): boolean {
+  if (p.experience.some((e) => e.current)) return false;
+  return [p.summary ?? "", p.identity.headline ?? "", ...p.experience.map((e) => `${e.title ?? ""} ${e.organization ?? ""}`)].some((t) => STATED_BREAK.test(t));
 }
 
 function signalsOf(p: Profile): Signals {
@@ -48,6 +58,7 @@ function signalsOf(p: Profile): Signals {
     publications: p.publications.length,
     hasVenture: (p.packs.founder?.ventures.length ?? 0) > 0,
     functions: p.functions,
+    returner: codes.some((c) => c === "T6" || c === "T7") || statesCareerBreak(p),
   };
 }
 
@@ -60,6 +71,9 @@ function score(id: string, s: Signals): number {
       return (has(s, "E", "T", "P", "S5") ? 5 : 0) + (s.years >= 1 ? 1 : 0) + (s.finalYear ? 3 : 0);
     case "internship":
       return has(s, "S1", "S2", "S3", "S6", "S7") ? (s.finalYear ? 3 : 5) : 0;
+    case "returnship":
+      // Paid programmes built for people back from a break: the lead for a returner, ahead of open job postings.
+      return s.returner ? 8 : 0;
     case "graduate":
       return s.finalYear || has(s, "S5") ? 4 : has(s, "S2", "S3") ? 1 : 0;
     case "scholarship":
@@ -87,8 +101,101 @@ function score(id: string, s: Signals): number {
   }
 }
 
-function article(phrase: string): string {
-  return /^[aeiou]/i.test(phrase) && !/^(?:uni|use|eu|one)/i.test(phrase) ? `an ${phrase}` : `a ${phrase}`;
+/**
+ * How each identity reads in a sentence about the person. Labels such as "Returning after
+ * caregiving" or "Early career (0–3 years)" are names for a choice, not nouns: "You're a returning
+ * after caregiving in Data" was the result. Each code has what follows "You're" (`you`), what follows
+ * "As" (`as`, when it differs), whether `you` is a verb phrase ("returning to work after caregiving"),
+ * and how the field joins: "in Data", "focused on Data" (people in transition: the field they chose
+ * may be where they come from or where they're going) or "interested in Data" (school students).
+ */
+interface Who {
+  you: string;
+  as?: string;
+  verb?: boolean;
+  join?: "in" | "focus" | "interest";
+  zh: string;
+  zhAs: string;
+}
+const w = (you: string, zh: string, zhAs: string, more: Partial<Pick<Who, "as" | "verb" | "join">> = {}): Who => ({ you, zh, zhAs, ...more });
+
+const WHO: Partial<Record<IdentityCode, Who>> = {
+  S1: w("a high school student", "是高中生", "高中生", { join: "interest" }),
+  S2: w("an undergraduate", "是本科生", "本科生"),
+  S3: w("a master's student", "是硕士研究生", "硕士研究生"),
+  S4: w("a PhD student", "是博士研究生", "博士研究生"),
+  S5: w("a recent graduate", "是应届毕业生", "应届毕业生"),
+  S6: w("an international student", "是留学生", "留学生"),
+  S7: w("a vocational or associate-degree student", "是专科或职校学生", "专科或职校学生"),
+  E1: w("an early-career professional", "是职场新人", "职场新人"),
+  E2: w("a mid-level professional", "是有 3–8 年经验的从业者", "有 3–8 年经验的从业者"),
+  E3: w("a senior professional", "是资深从业者", "资深从业者"),
+  E4: w("a manager", "是经理或总监", "经理或总监"),
+  E5: w("an executive", "是企业高管", "企业高管"),
+  E6: w("a public-sector professional", "在体制内工作", "体制内从业者"),
+  E7: w("a skilled tradesperson", "是技术工人", "技术工人"),
+  E8: w("a service-industry professional", "在服务业工作", "服务业从业者"),
+  F1: w("a founder at the idea stage", "是还在想法阶段的创业者", "还在想法阶段的创业者"),
+  F2: w("an early-stage founder", "是早期创业者", "早期创业者"),
+  F3: w("a growth-stage founder", "是成长期公司的创始人", "成长期公司的创始人"),
+  F4: w("a serial founder", "是连续创业者", "连续创业者"),
+  F5: w("an indie developer or solo founder", "是独立开发者或一人公司创始人", "独立开发者或一人公司创始人"),
+  F6: w("a small-business owner", "是小微企业主", "小微企业主"),
+  F7: w("transforming a traditional business", "正在带领传统企业转型", "正在带领传统企业转型的经营者", { as: "someone transforming a traditional business", verb: true }),
+  F8: w("a social entrepreneur", "是社会企业创业者", "社会企业创业者"),
+  R1: w("a postdoc", "是博士后", "博士后"),
+  R2: w("an early-career academic", "是青年教师", "青年教师"),
+  R3: w("a professor", "是教授", "教授"),
+  R4: w("an industry researcher", "是企业研究员", "企业研究员"),
+  R5: w("an independent researcher", "是独立研究者", "独立研究者"),
+  R6: w("a clinical researcher", "是临床研究者", "临床研究者"),
+  C1: w("a designer", "是设计师", "设计师"),
+  C2: w("a writer", "是写作者", "写作者"),
+  C3: w("a photographer or videographer", "是摄影或视频创作者", "摄影或视频创作者"),
+  C4: w("a blogger or streamer", "是博主或主播", "博主或主播"),
+  C5: w("a musician or artist", "是音乐人或艺术家", "音乐人或艺术家"),
+  C6: w("a freelance developer", "是自由开发者", "自由开发者"),
+  C7: w("a consultant or coach", "是顾问或教练", "顾问或教练"),
+  C8: w("a translator", "是译者", "译者"),
+  C9: w("a craftsperson or independent brand owner", "是手工艺人或独立品牌主理人", "手工艺人或独立品牌主理人"),
+  P1: w("a healthcare professional", "是医护人员", "医护人员"),
+  P2: w("a lawyer", "是律师", "律师"),
+  P3: w("an accounting, audit or tax professional", "是会计、审计或税务从业者", "会计、审计或税务从业者"),
+  P4: w("an architect or licensed engineer", "是建筑师或注册工程师", "建筑师或注册工程师"),
+  P5: w("a teacher", "是教师", "教师"),
+  P6: w("a counselor or therapist", "是心理咨询师", "心理咨询师"),
+  P7: w("a licensed finance professional", "是金融持证从业者", "金融持证从业者"),
+  T1: w("between jobs", "正在找下一份工作", "正在求职的人", { as: "someone between jobs", verb: true, join: "focus" }),
+  T2: w("a career changer", "正在转行", "转行者", { join: "focus" }),
+  T3: w("back from abroad", "刚从海外回国", "海归", { as: "someone back from abroad", verb: true, join: "focus" }),
+  T4: w("planning a move abroad", "准备出国发展", "准备出国发展的人", { as: "someone moving abroad", verb: true, join: "focus" }),
+  T5: w("a veteran", "是退役军人", "退役军人", { join: "focus" }),
+  T6: w("returning to work after caregiving", "正在育儿后重返职场", "育儿后重返职场的人", { as: "someone returning after caregiving", verb: true, join: "focus" }),
+  T7: w("returning to work later in your career", "正在退休后再就业", "退休后再就业的人", { as: "someone returning to work later in their career", verb: true, join: "focus" }),
+  // T8 is the person's to state, never a description we lead with: the next identity speaks for them.
+};
+
+/** The identity a sentence about the person leads with (their first one we can phrase). */
+function whoOf(s: Pick<Signals, "codes">): Who | null {
+  for (const c of s.codes) if (WHO[c]) return WHO[c]!;
+  return null;
+}
+
+/** "an undergraduate", "someone returning after caregiving": what follows "As" in a reason. */
+function asWho(s: Signals, lang: Language): string {
+  const who = whoOf(s);
+  if (!who) return "";
+  return lang === "zh" ? who.zhAs : (who.as ?? who.you);
+}
+
+/** "You're an undergraduate in Data", "You're returning to work after caregiving, focused on Data". */
+export function describePerson(s: Pick<Signals, "codes">, area: string, place: string, lang: Language): string {
+  const who = whoOf(s);
+  if (lang === "zh") return `你${who?.zh ?? "正在寻找机会"}${area ? `，方向是${area}` : ""}${place ? `，在${place}` : ""}。`;
+  const you = who?.you ?? "someone looking for their next step";
+  const join = who?.join ?? "in";
+  const field = !area ? "" : join === "focus" ? `${who?.verb ? "," : ""} focused on ${area}` : join === "interest" ? ` interested in ${area}` : ` in ${area}`;
+  return `You're ${you}${field}${place ? `, based in ${place}` : ""}.`;
 }
 
 function count(n: number, lang: Language): string {
@@ -98,8 +205,8 @@ function count(n: number, lang: Language): string {
 /** The reason for one direction, from the person's facts and what is open. */
 function reasonFor(c: DirectionCandidate, s: Signals, p: Profile, lang: Language): string {
   const zh = lang === "zh";
-  const who = s.codes[0] ? identityLabel(s.codes[0], lang) : "";
-  const whoEn = who ? article(who.charAt(0).toLowerCase() + who.slice(1).replace(/\s*\(.*\)$/, "")) : "";
+  const who = zh ? asWho(s, lang) : "";
+  const whoEn = zh ? "" : asWho(s, lang);
   // A field is named only when the count was taken in it.
   const fn = c.field ?? "";
   const n = count(c.open, lang);
@@ -110,6 +217,8 @@ function reasonFor(c: DirectionCandidate, s: Signals, p: Profile, lang: Language
         : `${s.years >= 1 ? `With about ${Math.round(s.years)} years of work behind you, ` : ""}${s.years >= 1 ? "there are" : "There are"} ${n} open roles${fn ? ` in ${fn}` : ""} you can apply to now.`;
     case "internship":
       return zh ? `${who ? `作为${who}，` : ""}实习是通往全职的常见一步；目前有 ${n} 个${fn ? `「${fn}」方向的` : ""}实习开放。` : `${whoEn ? `As ${whoEn}, ` : ""}an internship is the usual way into a full-time role; ${n}${fn ? ` in ${fn}` : ""} are open now.`;
+    case "returnship":
+      return zh ? `重返职场计划是专为职业空窗后回归者设计的带薪项目；目前有 ${n} 个开放。` : `Returnships are paid programmes built for people coming back after a career break; ${n} are open now.`;
     case "graduate":
       return zh ? `校招和管培项目面向即将毕业的学生，目前有 ${n} 个开放。` : `Graduate and trainee programs recruit students close to graduating; ${n} are open now.`;
     case "scholarship":
@@ -147,13 +256,9 @@ function reasonFor(c: DirectionCandidate, s: Signals, p: Profile, lang: Language
 
 /** One sentence on where the person stands. */
 function summaryOf(p: Profile, s: Signals, lang: Language): string {
-  const zh = lang === "zh";
-  const who = s.codes[0] ? identityLabel(s.codes[0], lang) : "";
   const area = s.functions[0] ? functionLabel(s.functions[0], lang) : p.industries.find(isIndustryCode) ? industryLabel(p.industries.find(isIndustryCode)!, lang) : "";
   const place = p.identity.city ?? p.identity.location ?? "";
-  if (zh) return `你是${who || "正在寻找机会的人"}${area ? `，方向是${area}` : ""}${place ? `，在${place}` : ""}。`;
-  const whoEn = who ? article(who.charAt(0).toLowerCase() + who.slice(1).replace(/\s*\(.*\)$/, "")) : "someone looking for their next step";
-  return `You're ${whoEn}${area ? ` in ${area}` : ""}${place ? `, based in ${place}` : ""}.`;
+  return describePerson(s, area, place, lang);
 }
 
 /**
@@ -185,9 +290,11 @@ interface Ranked {
 }
 
 function rank(candidates: readonly DirectionCandidate[], s: Signals): Ranked[] {
+  // Returnships are aimed at caregivers (T6) in the catalog; anyone coming back after a break fits them.
+  const fits = (c: DirectionCandidate) => c.forThem || (c.id === "returnship" && s.returner);
   return candidates
     .filter((c) => c.id !== "other" && c.open > 0)
-    .map((c) => ({ c, score: score(c.id, s) + (c.forThem ? 1 : -2) + (c.open < 5 ? -1 : 0) }))
+    .map((c) => ({ c, score: score(c.id, s) + (fits(c) ? 1 : -2) + (c.open < 5 ? -1 : 0) }))
     .sort((a, b) => b.score - a.score || b.c.open - a.c.open);
 }
 
@@ -222,6 +329,8 @@ function headlineFor(id: string, p: Profile, field: string | null, months: numbe
       return zh ? `${within}拿到${inField}全职工作` : `A full-time role${inField} ${within}`;
     case "internship":
       return zh ? `${within}拿到${inField}实习` : `An internship${inField} ${within}`;
+    case "returnship":
+      return zh ? `${within}入选重返职场计划` : `A returnship ${within}`;
     case "graduate":
       return zh ? `${within}拿到校招或管培 offer` : `A graduate-program offer ${within}`;
     case "scholarship":

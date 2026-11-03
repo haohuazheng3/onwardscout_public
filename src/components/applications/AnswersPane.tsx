@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, PenLine } from "lucide-react";
+import { ChevronDown, Lock, PenLine } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button, Input, Pane, Tag, Textarea } from "@/components/ui";
@@ -47,7 +47,14 @@ export function AnswersPane({ room, editable }: { room: RoomApi; editable: boole
               <p className="min-w-0 flex-1 text-[0.86rem] font-medium text-ink-3">{a.label}</p>
               {sourceTag(a)}
             </div>
-            {editing === a.key ? (
+            {a.masked ? (
+              <p className="mt-1 flex items-start gap-2 text-[0.97rem] leading-relaxed">
+                <span aria-hidden className="min-w-0 flex-1 select-none whitespace-pre-line break-words blur-[5px] text-ink-3">
+                  {a.value}
+                </span>
+                <Lock size={15} className="mt-1 shrink-0 text-ink-4" aria-label={t("masked")} />
+              </p>
+            ) : editing === a.key ? (
               <form
                 className="mt-2 grid gap-2"
                 onSubmit={async (e) => {

@@ -81,6 +81,7 @@ export const MATERIALS: readonly MaterialDef[] = [
   m("interview_prep", "Interview and assessment prep cards", "面试与测评准备卡", "platform", "other"),
   m("document_checklist", "Document checklist", "材料清单", "platform", "other"),
   m("study_plan", "Preparation plan", "备考规划", "platform", "other"),
+  m("career_break_statement", "Career-break note", "职业空窗说明", "platform", "statement"),
 ];
 
 const BY_ID = new Map<string, MaterialDef>(MATERIALS.map((x) => [x.id, x]));

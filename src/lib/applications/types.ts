@@ -8,6 +8,14 @@ import type { BoardColumn } from "@/lib/core/state-machine";
  * use them without importing server code.
  */
 
+/** The credits an application room shows: what it can use, what is held, and the season pass that pays first. */
+export interface RoomBalance {
+  available: number;
+  reserved: number;
+  /** A season pass covering this application's type (its credits are part of `available`). */
+  pass?: { sku: "season_returnship" | "season_startup"; remaining: number } | null;
+}
+
 export interface FieldRequirement {
   name: string;
   label: string;
@@ -113,7 +121,15 @@ export interface DocumentView {
   createdAt: string;
   /** Formats the person can download. */
   formats: ("pdf" | "docx" | "pptx")[];
+  /** Which composer drafted it (pitch_deck → shown as slides). */
+  composer: string | null;
+  /** The person's notes that shaped it and what each changed, oldest first (restores flagged). */
+  revisions: { note: string; changes: string[]; at: string; restore: boolean }[];
+  /** Earlier versions, newest first (at most a few), for comparing and restoring. */
+  versions: DocumentVersionView[];
 }
+
+export type DocumentVersionView = Omit<DocumentView, "versions">;
 
 export interface AnswerView {
   key: string;
@@ -123,6 +139,22 @@ export interface AnswerView {
   factIds: string[];
   confirmed: boolean;
   long: boolean;
+  /** The application is not unlocked: `value` is a blurred stand-in, not the answer. */
+  masked?: boolean;
+}
+
+/**
+ * Whether the application's full work is paid for. Locked = the free preview: documents readable
+ * only at their start (masked blocks carry the "masked" flag), answers hidden, no downloads, no
+ * revisions, no confirm. `writing` = Claude is writing it in full right now (after an unlock).
+ */
+export interface AccessView {
+  locked: boolean;
+  unlockedAt: string | null;
+  source: "order" | "credit" | "legacy" | null;
+  writing: boolean;
+  /** The email a signed-out buyer typed at checkout (a sign-in with it claims the application). */
+  paidEmail: string | null;
 }
 
 export interface OpportunityBrief {
@@ -148,7 +180,7 @@ export interface ApplicationView {
   followUpAt: string | null;
   followUpsSent: number;
   opportunity: OpportunityBrief;
-  goal: { id: string; label: string } | null;
+  goal: { id: string; label: string; sub?: string | null } | null;
   steps: StepView[];
   questions: ApplicationQuestion[];
   answers: AnswerView[];
@@ -169,6 +201,8 @@ export interface ApplicationView {
   unlock: boolean;
   /** Write-in label of the language the documents are in. */
   language: string;
+  /** Paid or preview, and whether Claude is writing it right now. */
+  access: AccessView;
 }
 
 export interface BoardCard {

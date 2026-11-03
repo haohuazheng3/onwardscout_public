@@ -10,16 +10,22 @@ import type { HandoffPackage, SubmitResultLike } from "./types";
  * against an in-memory application with a fake channel. Transitions are always checked against
  * core/state-machine.ts here, before anything is written.
  *
- * Credits (contracts §2, CREDIT_RULES): reserved when the person confirms a submission
- * (practice = free), settled when it is submitted (incl. a confirmed handoff), released when it
- * fails or the application ends unsubmitted. A handoff keeps the credit reserved until the
- * person taps "I submitted it".
+ * Paying (CREDIT_RULES, since 2026-11-03): an application is **unlocked** first — $19 once or a
+ * credit of a pass, spent at the unlock (src/lib/applications/unlock.ts) — and only an unlocked
+ * application can be confirmed; nothing moves at confirm or submit. Practice runs are free.
+ * Applications unlocked before that date under the old rules ("legacy") still carry the old
+ * flow: a credit reserved at confirm, settled when submitted, released when it fails or ends
+ * unsubmitted (a handoff keeps it reserved until the person taps "I submitted it").
  */
 
 export interface AppState {
   status: ApplicationStatus;
   practice: boolean;
   submittedAt: Date | string | null;
+  /** Paid for (unlocked_at set); practice runs count as paid. False = the free preview. */
+  paid?: boolean;
+  /** How it was unlocked; "legacy" applications still reserve their credit at confirm. */
+  unlockSource?: "order" | "credit" | "legacy" | null;
   channel?: ChannelId;
   needsYouReason?: string | null;
   followUpsSent?: number;
@@ -55,7 +61,7 @@ export type Effect =
   | { type: "followup"; at: Date | null; sent?: number }
   | { type: "outcome"; outcome: ApplicationOutcome };
 
-export type PlanError = "not_ready" | "needs_confirmation" | "invalid_transition" | "not_submitted" | "busy" | "already_submitted" | "no_followup" | "guardian_required";
+export type PlanError = "not_ready" | "needs_confirmation" | "invalid_transition" | "not_submitted" | "busy" | "already_submitted" | "no_followup" | "guardian_required" | "unlock_required";
 
 export type Plan = { ok: true; effects: Effect[] } | { ok: false; error: PlanError };
 
@@ -71,6 +77,19 @@ export function creditCost(app: Pick<AppState, "practice">): number {
   return app.practice ? CREDIT_COST.practice : CREDIT_COST.submitApplication;
 }
 
+/** Paid for: practice, or unlocked (an application from before the paywall counts as unlocked). */
+export function isPaidFor(app: Pick<AppState, "practice" | "paid">): boolean {
+  return app.practice || app.paid === true;
+}
+
+/**
+ * Whether confirming still reserves a credit: only applications opened under the old rules
+ * ("legacy", before 2026-11-03) do; an unlock paid at the unlock, and practice is free.
+ */
+export function reservesAtConfirm(app: Pick<AppState, "practice" | "paid" | "unlockSource">): boolean {
+  return !app.practice && app.unlockSource === "legacy";
+}
+
 /* ------------------------------------------------------------------ confirm */
 
 /**
@@ -82,11 +101,13 @@ export function planConfirm(app: AppState, opts: { explicit: boolean; authorized
   if (submittedOf(app)) return fail("already_submitted");
   if (app.status !== "ready") return fail("not_ready");
   if (!opts.explicit && !opts.authorized) return fail("needs_confirmation");
+  // The free preview is never submitted: unlocking (paying) comes first.
+  if (!isPaidFor(app)) return fail("unlock_required");
   // Minors (identity S1) submit only once a parent or guardian's email is on their profile (honesty rule 5).
   if (opts.guardianRequired && !app.practice) return fail("guardian_required");
   const actor: Actor = opts.explicit ? "user" : "system";
   if (!canTransition(app.status, "submitting", actor, { submitted: false })) return fail("invalid_transition");
-  const cost = creditCost(app);
+  const cost = reservesAtConfirm(app) ? creditCost(app) : 0;
   return ok([
     ...(cost > 0 ? [{ type: "reserve", amount: cost } as Effect] : []),
     { type: "transition", to: "submitting", actor },
@@ -442,6 +463,10 @@ export function applyEffects(app: MemoryApp, effects: Effect[], now = new Date()
 export function memoryApp(init: Partial<MemoryApp> & Pick<AppState, "status">): MemoryApp {
   return {
     practice: false,
+    // Tests of the submission flow concern paid applications; the default is the pre-2026-11-03
+    // shape (credit reserved at confirm) so the credit arithmetic below stays exercised.
+    paid: true,
+    unlockSource: "legacy",
     submittedAt: null,
     channel: "CH2",
     needsYouReason: null,

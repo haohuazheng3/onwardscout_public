@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { profileSchema } from "@/lib/core/types";
 import { extractFile } from "@/lib/ingest/extract";
-import { QuoteChecker, buildProfile, parseTraction } from "@/lib/llm/build";
+import { QuoteChecker, buildProfile, parseTraction, gpa, occupationOfTitle } from "@/lib/llm/build";
 import { localExtractProfile } from "@/lib/llm/local/extract";
 import { parseCitation } from "@/lib/llm/local/research";
 import { findDateRange, totalYears } from "@/lib/llm/local/text";
@@ -272,5 +272,23 @@ describe("local extraction — LinkedIn 'Save to PDF' export", () => {
     expect(p.certifications.map((c) => c.name)).toEqual(["Certified Usability Analyst"]);
     expect(p.education[0]).toMatchObject({ institution: "University of Texas at Austin", degree: "Bachelor of Science", field: "Human Factors and Ergonomics", startDate: "2014", endDate: "2018" });
     expect(out.identities.map((g) => g.code)).toEqual(["E3"]);
+  });
+});
+
+describe("titles and grades read the way people write them (walk 2026-11-02)", () => {
+  it("an intern title names its occupation through the discipline", () => {
+    expect(occupationOfTitle("Software Engineering Intern")?.code).toBe("software-engineer");
+    expect(occupationOfTitle("Data Science Intern")?.code).toBe("data-scientist");
+    expect(occupationOfTitle("Product Management Intern")?.code).toBe("product-manager");
+    expect(occupationOfTitle("Software Engineer")?.code).toBe("software-engineer");
+    expect(occupationOfTitle("Teaching Assistant")?.code).toBe("teaching-assistant");
+    expect(occupationOfTitle("Intern")).toBeUndefined();
+  });
+
+  it("a grade out of 10 keeps its scale", () => {
+    expect(gpa("CGPA 8.7 / 10")).toEqual({ value: 8.7, scale: 10 });
+    expect(gpa("3.8/4.0")).toEqual({ value: 3.8, scale: 4 });
+    expect(gpa("85/100")).toEqual({ value: 85, scale: 100 });
+    expect(gpa("3.6")).toEqual({ value: 3.6, scale: 4 });
   });
 });

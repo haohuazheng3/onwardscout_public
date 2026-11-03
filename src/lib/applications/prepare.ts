@@ -7,20 +7,26 @@ import { db } from "@/lib/db";
 import { applications, documents, generatedDocuments, type ApplicationRow, type GeneratedDocumentRow, type OpportunityRow } from "@/lib/db/schema";
 import { answerStrings, composeDocumentWith, factRefs, latestDocuments, loadComposeContext, opportunityInput, resolveLanguage, type ComposeContext } from "@/lib/documents";
 import { dropOptionalGaps } from "@/lib/documents/build";
+import { CAREER_BREAK_KEY } from "@/lib/documents/career-break";
 import { downloadName, isGapBlock, plainText, readContent, toStored } from "@/lib/documents/content";
+import { spotLabel } from "@/lib/documents/spots";
 import { actualProvider, getIntelligence, readProfile } from "@/lib/llm";
 import type { JobContext } from "@/lib/jobs/registry";
 import type { JobResult } from "@/lib/jobs/state";
 import { addStep, appError, ApplicationError, enqueuePrepare, execute, finishStep, latestStepOutput, loadApplication, patchApplication, transition } from "./engine";
-import { computeGaps, openRequired, questionsFromDocumentGaps, type ComposePlan } from "./gaps";
+import { computeGaps, hasStaleQuestions, isAnswered, missingFiles, openRequired, questionsFromDocumentGaps, type ComposePlan } from "./gaps";
+import { fileName, filesBlockConfirm, isLinkAnswer, laterMaterial, materialOf } from "./materials";
 import { planConfirm, planPrepareStep } from "./plan";
 import type { FieldRequirement, PreparedPackage, RequirementsLike } from "./types";
 import { guardianMissing } from "./submit";
+import { planState } from "./unlock";
 
 /*
  * Job `application.prepare` (plan §7.1 step 5): channel → analyze → requirements → gaps
- * (choice-first questions; the application waits in `needs_info` until the person answers) →
- * compose documents, answers and the outreach email from facts → the prepared package → `ready`.
+ * (choice-first questions) → compose documents, answers and the outreach email from facts —
+ * drafted BEFORE the questions are put to the person, with a highlighted spot wherever only
+ * they can answer → `needs_info` while questions are open (answering re-runs the job, which
+ * redrafts what had a spot) → the prepared package → `ready`.
  * Re-runnable: every stage reads the current state, documents already drafted for this
  * application are kept unless they still contain gaps, and the job yields before its deadline.
  */
@@ -40,6 +46,10 @@ async function previousAnswers(userId: string, exceptId: string): Promise<Record
   for (const r of rows) {
     for (const [name, a] of Object.entries(r.answers ?? {})) {
       if (!a?.confirmed || a.source !== "user" || typeof a.value !== "string" || a.value.length > 200) continue;
+      if (name === CAREER_BREAK_KEY) {
+        out[CAREER_BREAK_KEY] = a.value;
+        continue;
+      }
       const k = fieldKey({ name, label: name, placeholder: null });
       if (k && !k.user) out[k.key] = a.value; // later rows overwrite: newest wins
     }
@@ -110,6 +120,20 @@ export async function buildPrepared(app: ApplicationRow, opp: OpportunityRow, re
     email = { to: opp.apply.email ?? "", subject, body };
   }
   const handoff = buildHandoff(opp, req as Requirements, flat, files);
+  const lang = docs[0]?.language?.startsWith("zh") ? "zh" : "en";
+  // Files only the person holds: a link they gave is copied like any field; one still missing is
+  // named, so the handoff never pretends the package is complete.
+  for (const [key, a] of Object.entries(answers)) {
+    if (!key.startsWith("material:") || a.fileKey || !isLinkAnswer(a.value)) continue;
+    handoff.fields.push({ label: fileName({ id: key, fieldName: key, prompt: key.replace(/^material:/, "") }, lang), value: String(a.value).trim() });
+  }
+  for (const q of app.questions ?? []) {
+    if (q.kind !== "file" || isAnswered(answers, q.fieldName ?? q.id)) continue;
+    const label = fileName(q, lang);
+    const m = materialOf(q);
+    const later = m ? laterMaterial(m, opp.type) : false;
+    handoff.notes.push(later ? (lang === "zh" ? `之后如果主办方要求：${label}。做好后可以在这里补上。` : `Later, if the organiser asks: ${label}. You can add it here when it's ready.`) : q.required !== false ? (lang === "zh" ? `官方表单需要：${label}。我们这里还没有，请在提交时上传。` : `The official form needs: ${label}. We don't have it yet: attach it when you submit.`) : lang === "zh" ? `可选：${label}。` : `Optional: ${label}.`);
+  }
   return { answers: flat, files, ...(email ? { email } : {}), handoff };
 }
 
@@ -139,7 +163,8 @@ export async function refreshPrepared(app: ApplicationRow): Promise<void> {
 }
 
 async function composeAll(app: ApplicationRow, ctx: ComposeContext, plans: ComposePlan[], req: RequirementsLike, lang: "en" | "zh", job: JobContext | null, recompose: boolean) {
-  const ai = getIntelligence({ userId: app.userId });
+  // Claude only once this application is unlocked (paid); the preview is the local engine's.
+  const ai = getIntelligence({ userId: app.userId, applicationId: app.id });
   const existing = await latestDocuments(app.userId, app.id);
   const answersStr = answerStrings(app.answers);
   const labels = new Map<string, string>([...req.fields.map((f) => [f.name, f.label] as [string, string]), ...req.questions.map((q) => [q.id, q.prompt] as [string, string])]);
@@ -147,17 +172,21 @@ async function composeAll(app: ApplicationRow, ctx: ComposeContext, plans: Compo
   const gaps: { key: string; question: string }[] = [];
   for (const p of plans) {
     const had = existing.find((d) => d.kind === p.kind && readContent(d.content).meta.composer !== "email_follow_up");
-    if (had && !recompose && !readContent(had.content).blocks.some(isGapBlock)) {
-      docs.push(had);
-      continue;
-    }
-    if (job && job.timeLeftMs() < 20_000) return { docs, gaps, yielded: true };
     const answerRows =
       p.kind === "answers"
         ? Object.entries(app.answers ?? {})
             .filter(([k, a]) => !k.startsWith("material:") && !a.fileKey && a.value !== null)
-            .map(([k, a]) => ({ key: k, label: labels.get(k) ?? k, value: Array.isArray(a.value) ? a.value.join(", ") : String(a.value), factIds: a.factIds }))
+            .map(([k, a]) => ({ key: k, label: labels.get(k) ?? spotLabel(k, lang) ?? k, value: Array.isArray(a.value) ? a.value.join(", ") : String(a.value), factIds: a.factIds }))
         : undefined;
+    // An answers sheet with nothing on it yet is not a document: it is laid out once there are answers.
+    if (answerRows && !answerRows.some((r) => r.value.trim())) continue;
+    // Drafted before the questions were answered, the answers sheet is laid out again when they change.
+    const staleAnswers = Boolean(had && answerRows && readContent(had.content).blocks.filter((b) => b.type === "field").map((b) => b.text).join("\u0000") !== answerRows.map((r) => r.value.trim()).filter(Boolean).join("\u0000"));
+    if (had && !recompose && !staleAnswers && !readContent(had.content).blocks.some(isGapBlock)) {
+      docs.push(had);
+      continue;
+    }
+    if (job && job.timeLeftMs() < 20_000) return { docs, gaps, yielded: true };
     const { row, gaps: g } = await composeDocumentWith(
       { userId: app.userId, applicationId: app.id, kind: p.kind, opportunityId: app.opportunityId, language: lang },
       { material: p.material, context: ctx, ai, answers: answersStr, answerRows },
@@ -193,11 +222,17 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
   let app = await loadApplication(applicationId);
   if (!app) return { status: "done", result: { skipped: "missing" } };
   if (!["draft", "needs_info", "preparing"].includes(app.status)) return { status: "done", result: { skipped: app.status } };
-  if (app.status === "needs_info" && openRequired(app.questions, app.answers).length) return { status: "done", result: { waiting: "answers" } };
 
   try {
     const ctx = await loadComposeContext(app.userId, app.opportunityId);
     const opp = ctx.opportunity;
+    // Waiting for answers with the materials already drafted: nothing to do until they come. An
+    // application that started waiting before anything was drafted gets its drafts now, and one
+    // still waiting on the questions asked before the spots were folded is asked again, folded.
+    // An unlock asks for everything written again (`recompose`) even while questions are open.
+    if (app.status === "needs_info" && !recompose && openRequired(app.questions, app.answers).length && !hasStaleQuestions(app.questions ?? [], opp?.type) && (await latestDocuments(app.userId, app.id)).length) {
+      return { status: "done", result: { waiting: "answers" } };
+    }
     if (!opp) {
       if (app.status === "draft") await execute(app, [{ type: "transition", to: "needs_you", actor: "system", needsYouReason: "opportunity_missing" }, { type: "notify", key: "needs_you" }]);
       return { status: "done", result: { skipped: "opportunity_missing" } };
@@ -235,7 +270,7 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
 
     // 2. gaps
     const s2 = await addStep(app.id, "gaps");
-    const ai = getIntelligence({ userId: app.userId });
+    const ai = getIntelligence({ userId: app.userId, applicationId: app.id });
     const profile = readProfile(ctx.profile ?? {});
     const facts = factRefs(ctx.facts);
     const files = await documentsOnFile(app.userId);
@@ -284,10 +319,12 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
     const open = openRequired(gaps.questions, merged).length;
     await finishStep(s2.id, "done", { asked: gaps.questions.length, open, settled: Object.keys(gaps.autoAnswers).length, attached: gaps.attach.length, compose: gaps.compose as unknown as JsonObject[] } as JsonObject);
 
-    const afterGaps = planPrepareStep(app, "gaps", open);
+    // Draft first (owner principle 2026-10-30): the materials are written before anything is
+    // asked, so the first thing the person sees is the work, with highlighted spots only they
+    // can fill; the questions come after. Open questions no longer stop the composition.
+    const afterGaps = planPrepareStep(app, "gaps", 0);
     if (!afterGaps.ok) throw appError(afterGaps.error);
     app = (await execute(app, afterGaps.effects)).app;
-    if (app.status !== "preparing") return settleWaiting(app.id, { status: app.status, open });
 
     // 3. compose
     const s3 = await addStep(app.id, "compose", { documents: gaps.compose.map((c) => c.kind) });
@@ -298,13 +335,17 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
     }
     await finishStep(s3.id, "done", { documents: composed.docs.map((d) => ({ id: d.id, kind: d.kind, version: d.version })) as unknown as JsonObject[], gaps: composed.gaps.length });
 
-    const docQuestions = questionsFromDocumentGaps(composed.gaps, app.answers ?? {}, lang).filter((q) => !(app!.questions ?? []).some((x) => x.id === q.id));
-    if (docQuestions.length) {
-      app = await patchApplication(app, { questions: [...(app.questions ?? []), ...docQuestions] as ApplicationQuestion[] });
-      const back = planPrepareStep(app, "composed", docQuestions.length);
-      if (!back.ok) throw appError(back.error);
-      app = (await execute(app, back.effects)).app;
-      return settleWaiting(app.id, { status: app.status, documentGaps: docQuestions.length });
+    const docQuestions = questionsFromDocumentGaps(composed.gaps, app.answers ?? {}, lang, { profile, accountEmail: userRow?.email ?? null, oppType: opp.type }).filter((q) => !(app!.questions ?? []).some((x) => x.id === q.id));
+    if (docQuestions.length) app = await patchApplication(app, { questions: [...(app.questions ?? []), ...docQuestions] as ApplicationQuestion[] });
+    // Only what the drafts cannot do without holds it here: optional and file items wait in the room.
+    const docOpen = openRequired(docQuestions, app.answers ?? {}).length;
+    if (open > 0 || docOpen > 0) {
+      if (app.status === "preparing") {
+        const back = planPrepareStep(app, "composed", open + docOpen);
+        if (!back.ok) throw appError(back.error);
+        app = (await execute(app, back.effects)).app;
+      }
+      return settleWaiting(app.id, { status: app.status, open, documentGaps: docOpen });
     }
 
     // 4. preview: the prepared package (answers, files, email, handoff)
@@ -314,9 +355,11 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
     if (!toReady.ok) throw appError(toReady.error);
     app = (await execute(app, toReady.effects)).app;
 
-    // 5. a standing authorization for this category submits without a tap (never for practice).
-    if (!app.practice && (await canAutoSubmit(app.userId, opp.type))) {
-      const plan = planConfirm(app, { explicit: false, authorized: true, guardianRequired: await guardianMissing(app.userId) });
+    // 5. a standing authorization for this category submits without a tap (never for practice,
+    // never while a file the organiser needs is still missing).
+    const filesWait = missingFiles(app.questions ?? [], app.answers ?? {}).length > 0 && filesBlockConfirm(app);
+    if (!app.practice && !filesWait && (await canAutoSubmit(app.userId, opp.type))) {
+      const plan = planConfirm(planState(app), { explicit: false, authorized: true, guardianRequired: await guardianMissing(app.userId) });
       if (plan.ok) {
         try {
           app = (await execute(app, plan.effects)).app;
@@ -333,9 +376,13 @@ export async function prepareJob(job: JobContext): Promise<JobResult> {
   }
 }
 
-/** Re-prepares after answers changed: needs_info → preparing (the person's answers) and runs the job. */
-export async function resumePreparation(app: ApplicationRow): Promise<ApplicationRow> {
-  if (app.status === "needs_info" && !openRequired(app.questions, app.answers).length) {
+/**
+ * Re-prepares after answers changed: needs_info → preparing (the person's answers) and runs the
+ * job. `refold`: questions stored before the spots were folded are asked again, folded, even
+ * though some are still open (hasStaleQuestions).
+ */
+export async function resumePreparation(app: ApplicationRow, opts: { refold?: boolean } = {}): Promise<ApplicationRow> {
+  if (app.status === "needs_info" && (opts.refold || !openRequired(app.questions, app.answers).length)) {
     let next: ApplicationRow;
     try {
       next = await transition(app, "preparing", "user");

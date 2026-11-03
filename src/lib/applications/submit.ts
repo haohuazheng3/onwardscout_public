@@ -4,10 +4,14 @@ import { isIdentityCode, isMinor } from "@/lib/core";
 import type { JsonObject } from "@/lib/core/types";
 import type { JobContext } from "@/lib/jobs/registry";
 import type { JobResult } from "@/lib/jobs/state";
+import { isGapBlock, latestDocuments, readContent } from "@/lib/documents";
 import { getOpportunity } from "@/lib/opportunities";
 import { addStep, appError, ApplicationError, execute, finishStep, firstFollowUpAt, isFirstSubmission, latestHandoff, latestPrepared, loadApplication, requireApplication, type ExecuteResult } from "./engine";
+import { missingFiles } from "./gaps";
+import { filesBlockConfirm } from "./materials";
 import { planConfirm, planHandoffDone, planSubmitResult } from "./plan";
 import type { SubmitResultLike } from "./types";
+import { planState } from "./unlock";
 
 /*
  * Confirm & submit (plan §7.1 step 5, honesty rule 2): the person's explicit tap (or a standing
@@ -42,8 +46,14 @@ export async function confirmApplication(userId: string, applicationId: string):
   const app = await requireApplication(applicationId, userId);
   const opp = await getOpportunity(app.opportunityId);
   if (practiceMismatch(app, opp)) throw appError("invalid_request", 400);
-  const plan = planConfirm(app, { explicit: true, guardianRequired: !app.practice && (await guardianMissing(userId)) });
+  const plan = planConfirm(planState(app), { explicit: true, guardianRequired: !app.practice && (await guardianMissing(userId)) });
   if (!plan.ok) throw appError(plan.error);
+  // A placeholder never goes out: a spot only the person can fill (e.g. added by a revision) must be filled first.
+  if ((await latestDocuments(userId, app.id)).some((d) => readContent(d.content).blocks.some(isGapBlock))) throw appError("document_gaps");
+  // A file the organiser needs is attached by us on the channels we submit through; on a handoff
+  // the person attaches it on the official form (the handoff says so). Later items never wait.
+  const files = missingFiles(app.questions ?? [], app.answers ?? {});
+  if (files.length && filesBlockConfirm(app)) throw appError("files_missing", 409, { files: files.map((q) => q.prompt) });
   if (app.channel === "CH4") {
     // Opt-outs, the 30-day rule and the minor rule are explained before the credit is reserved.
     const to = (await latestPrepared(app.id))?.email?.to?.trim();

@@ -69,7 +69,7 @@ function sourcesStamp(rows: readonly Pick<DocumentRow, "id" | "status" | "extrac
 /** Full extractions per anonymous draft per day that may use the model (the rest run locally). */
 export const ANON_MODEL_EXTRACTIONS_PER_DAY = 5;
 
-export async function queueExtraction(ownerId: string, opts: { locale?: "en" | "zh"; force?: boolean } = {}): Promise<{ queued: boolean }> {
+export async function queueExtraction(ownerId: string, opts: { locale?: "en" | "zh"; force?: boolean; applicationId?: string } = {}): Promise<{ queued: boolean }> {
   // One waiting extraction is enough: it reads every document when it runs, so a burst of
   // uploads, notes or deletions collapses into it instead of queueing one full extraction each.
   const waiting = await db
@@ -81,12 +81,12 @@ export async function queueExtraction(ownerId: string, opts: { locale?: "en" | "
   const rows = await db.select({ id: documents.id, status: documents.status, extraction: documents.extraction }).from(documents).where(eq(documents.userId, ownerId));
   const stamp = opts.force ? `${sourcesStamp(rows)}:${Date.now()}` : sourcesStamp(rows);
   await ensureHandlers();
-  // Anonymous drafts: a few model-backed extractions a day (forced re-reads count too); later
-  // ones in the same day use the local engine, so the draft still updates at no model cost.
-  const local = ownerId.startsWith("anon_") && !(await rateLimit(`extract:anon:${ownerId}`, ANON_MODEL_EXTRACTIONS_PER_DAY, 24 * 3600)).ok;
+  // Claude reads a profile only for an unlocked application (the read its unlock pays for, named
+  // by `applicationId`); every other extraction — uploads, signed-out drafts, edits — runs on the
+  // local engine (src/lib/llm/index.ts).
   const res = await enqueueAndRun(
     "profile.extract",
-    { userId: ownerId, locale: opts.locale ?? "en", ...(local ? { local: true } : {}) },
+    { userId: ownerId, locale: opts.locale ?? "en", ...(opts.applicationId ? { applicationId: opts.applicationId } : {}) },
     { userId: ownerId, dedupeKey: `profile.extract:${ownerId}:${stamp}`, maxMs: 180_000 },
   );
   if (res.created) await setProfileStatus(ownerId, "parsing");

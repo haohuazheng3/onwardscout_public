@@ -4,7 +4,7 @@
  * document in both locales against it.
  */
 import { z } from "zod";
-import { PACKS, PLANS, TRIAL, formatPrice } from "@/content/plans";
+import { PACKS, PASSES, PLANS, SINGLE, TRIAL, formatPrice } from "@/content/plans";
 import { CONTENT_UPDATED, SITE, SITE_ZH, type Locale } from "@/lib/site";
 import { fillVars } from "./inline-markup";
 
@@ -81,6 +81,11 @@ export function legalVars(locale: Locale): Record<string, string | number> {
     updated: CONTENT_UPDATED,
     trialCredits: TRIAL.credits,
     trialDays: TRIAL.expiryDays,
+    unlockPrice: formatPrice(SINGLE.priceUsd),
+    passPrice: formatPrice(PASSES.season_returnship.priceUsd),
+    passDays: PASSES.season_returnship.rolloverDays,
+    passReturnships: PASSES.season_returnship.credits,
+    passStartup: PASSES.season_startup.credits,
     proPrice: formatPrice(PLANS.pro.priceUsd),
     proCredits: PLANS.pro.credits,
     proRollover: PLANS.pro.rolloverDays,

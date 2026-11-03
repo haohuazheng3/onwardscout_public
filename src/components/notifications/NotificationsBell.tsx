@@ -34,7 +34,7 @@ interface ListResponse {
 
 const PAGE = 20;
 const FRESH_MS = 30_000;
-const KINDS = ["needs_you", "submitted", "reply", "progress", "new_matches", "digest", "billing", "system"] as const;
+const KINDS = ["needs_you", "submitted", "reply", "progress", "new_matches", "digest", "billing", "deadline", "system"] as const;
 
 let cache: { items: Item[]; more: boolean; at: number } | null = null;
 

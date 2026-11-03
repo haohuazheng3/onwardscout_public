@@ -58,6 +58,7 @@ export function Uploader({
   compact = false,
   showNote = true,
   showExisting = true,
+  building = false,
 }: {
   mode: ApiMode;
   locale: string;
@@ -69,6 +70,8 @@ export function Uploader({
   showNote?: boolean;
   /** List sources added before this visit (off where another list already shows them). */
   showExisting?: boolean;
+  /** The profile is still being built from the files read so far (status phase "building"). */
+  building?: boolean;
 }) {
   const t = useTranslations("onboarding.upload");
   const tc = useTranslations("common");
@@ -336,6 +339,7 @@ export function Uploader({
                 progress={item.progress}
                 error={item.error}
                 server={item.documentId ? byId.get(item.documentId) : undefined}
+                building={building}
                 onRemove={() => void removeItem(item)}
                 onRetry={item.phase === "error" && !item.rejected ? () => update(item.key, { phase: "queued", error: undefined }) : undefined}
                 onReparse={item.documentId ? () => void reparse(item.documentId!) : undefined}
@@ -349,6 +353,7 @@ export function Uploader({
                 phase="done"
                 progress={1}
                 server={shown(d)}
+                building={building}
                 onRemove={() => void removeDoc(d.id)}
                 onReparse={() => void reparse(d.id)}
               />
@@ -446,6 +451,7 @@ function FileRow({
   progress,
   error,
   server,
+  building,
   onRemove,
   onRetry,
   onReparse,
@@ -457,11 +463,14 @@ function FileRow({
   progress: number;
   error?: string;
   server?: StatusDoc;
+  building?: boolean;
   onRemove: () => void;
   onRetry?: () => void;
   onReparse?: () => void;
 }) {
   const t = useTranslations("onboarding.upload");
+  // Read, but the profile is still being put together from it: counts come once that is done.
+  const assembling = Boolean(building) && phase === "done" && server?.status === "parsed" && !Object.values(server.counts ?? {}).some((n) => n > 0);
   const reading = phase === "done" && (!server || server.status === "uploaded" || server.status === "parsing");
   const failed = phase === "error" || server?.status === "failed";
   const parsed = phase === "done" && server?.status === "parsed";
@@ -485,9 +494,9 @@ function FileRow({
           <p className="mt-1 flex items-center gap-2 text-[0.85rem] text-ink-3">
             <ScoutDot live /> {t("saving")}
           </p>
-        ) : reading ? (
+        ) : reading || assembling ? (
           <p className="mt-1 flex items-center gap-2 text-[0.85rem] text-ink-3">
-            <ScoutDot live /> {t("reading")}
+            <ScoutDot live /> {assembling ? t("assembling") : t("reading")}
           </p>
         ) : parsed ? (
           <div className="mt-1 text-[0.85rem] text-ink-3">

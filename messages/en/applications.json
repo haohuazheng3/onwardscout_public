@@ -140,6 +140,7 @@
     "save": "Save answer",
     "useThese": "Use {count, plural, one {this reason} other {these reasons}}",
     "pickUpTo": "Pick up to 3 that are true for you",
+    "autoSave": "Saved in a moment. Tap another one if it is also true.",
     "writeOwn": "Write my own",
     "ownPlaceholder": "One or two sentences in your own words",
     "agree": "I agree",
@@ -149,6 +150,8 @@
     "rewrite": "Rewrite",
     "rewriting": "Rewriting…",
     "upload": "Choose a file",
+    "pasteLink": "Paste a link instead",
+    "linkLabel": "Link for {name}",
     "uploading": "Uploading… {percent}%",
     "uploaded": "Uploaded: {name}",
     "fileHint": "PDF, Word, PowerPoint, images, ZIP or MP4, up to 20 MB",
@@ -157,9 +160,18 @@
     "moreLater": "{count, plural, one {# more question after these} other {# more questions after these}}",
     "uploadFailed": "That file didn't upload. Try again."
   },
+  "files": {
+    "title": "Files only you have",
+    "lede": "They never hold up your drafts. Add each one when you have it.",
+    "needed": "Needed to submit",
+    "neededHandoff": "Asked on the official form",
+    "later": "Later, if they ask",
+    "optional": "Optional",
+    "handoffNote": "You submit this one on the official form, so you can attach it there. Add it here too and it's in your handoff."
+  },
   "documents": {
     "title": "Documents",
-    "lede": "Every sentence comes from your documents or your own answers. Tap a sentence to see where it came from, or to change it.",
+    "lede": "Every sentence comes from your documents, your answers or your notes. Look it over, tell the AI what to change, and submit when it reads right.",
     "tabs": "Documents in this application",
     "empty": "No documents for this application: the form only needs your answers.",
     "labels": {
@@ -189,7 +201,59 @@
     "downloading": "Preparing {format}…",
     "fallbackDocx": "The Chinese PDF font couldn't load just now, so you got the Word file. It looks the same in Word, WPS or Pages.",
     "notes": "Note",
-    "quote": "“{quote}”"
+    "quote": "“{quote}”",
+    "fromNote": "From your note",
+    "view": {
+      "slides": "Slides",
+      "text": "Text & sources",
+      "label": "How to view this document"
+    },
+    "slide": "Slide {n} of {total}",
+    "revise": {
+      "title": "Tell the AI what to change",
+      "hint": "Say it the way you'd say it to a friend helping you. Anything new you state (a number, a customer) is used as your own words.",
+      "placeholder": {
+        "deck": "e.g. Lead with traction, add our 3 pilot customers, cut the market slide",
+        "resume": "e.g. Put the data projects first and keep it to one page",
+        "letter": "e.g. Shorter, and open with the project I'm proudest of",
+        "general": "e.g. Shorter and more specific about results"
+      },
+      "submit": "Revise",
+      "working": "Revising your {kind}…",
+      "workingBody": "Usually 20–60 seconds. The current version stays until the new one is ready.",
+      "changed": "What changed in version {n}",
+      "done": "Version {n} is ready",
+      "failed": "Couldn't revise it",
+      "suggestions": "Suggestions",
+      "chips": {
+        "shorter": "Make it shorter",
+        "confident": "More confident",
+        "specific": "More specific about results",
+        "toZh": "Write it in Chinese",
+        "toEn": "Write it in English",
+        "deckTraction": "Lead with traction",
+        "deckProblem": "Make the problem hit harder",
+        "deckCompetition": "Add a slide on competition",
+        "deckFewer": "Fewer words per slide",
+        "resumeRole": "Tailor it more to this role",
+        "resumeNumbers": "Show results with numbers",
+        "resumeOnePage": "Keep it to one page",
+        "letterProject": "Open with my strongest project",
+        "letterWarm": "Warmer tone"
+      }
+    },
+    "versions": {
+      "title": "Versions",
+      "current": "v{n} · current",
+      "older": "v{n}",
+      "viewing": "You're looking at version {n}. The current version is what will be submitted.",
+      "back": "Back to the current version",
+      "restore": "Use this version",
+      "restored": "Version {n} is back as the current version",
+      "noteLabel": "Your note: “{note}”"
+    },
+    "maskedHint": "Unlock to read the rest",
+    "lockedDownloads": "Downloads open with the unlock"
   },
   "answers": {
     "title": "Answers",
@@ -202,7 +266,8 @@
     "edit": "Edit",
     "save": "Save",
     "cancel": "Cancel",
-    "saved": "Answer saved"
+    "saved": "Answer saved",
+    "masked": "Hidden until unlocked"
   },
   "email": {
     "title": "Email",
@@ -229,9 +294,15 @@
     "title": "Ready for your tap",
     "lede": "Look over the documents and answers. When you confirm, we submit exactly what you see.",
     "practiceLede": "This is a practice run. When you submit, it goes to our sandbox form and you'll see the confirmation, just like a real one.",
+    "ledeHandoff": "Look over the documents and answers. When you start, a step-by-step panel opens with every answer and file in the official form's order, ready to paste.",
+    "ledeMailto": "Look over the email. When you confirm, your email app opens with it ready to send.",
     "via": "We submit through {channel}.",
-    "cost": "Uses 1 credit",
+    "viaHandoff": "You submit it yourself on the official page. We can't do it for you there: it needs your login, a robot check, or the site forbids automated submissions.",
+    "viaMailto": "Your own email app sends it; connect Gmail to have it sent for you.",
+    "cost": "Unlocked: nothing more to pay",
     "costFree": "Free: practice runs never use credits",
+    "costPass": "Paid by your {name}",
+    "passLeft": "{count, plural, one {# application} other {# applications}} left on it",
     "balance": "You have {count, plural, one {# credit} other {# credits}} available",
     "balanceUnknown": "Your balance appears in the top bar",
     "short": "You need 1 credit to submit. Credits come back if a submission fails or you withdraw before it goes out.",
@@ -242,13 +313,20 @@
     "buttonEmail": "Confirm & send email",
     "buttonEmailMailto": "Confirm & prepare email",
     "submitting": "Submitting…",
+    "starting": "Getting it ready…",
     "fine": "By confirming, you ask Onward Scout to submit this application on your behalf with the documents and answers above. The credit is only spent once it is submitted.",
+    "finePractice": "Practice runs go to our own sandbox form. Nothing reaches a real organisation and no credit is used.",
+    "fineHandoff": "We don't send anything here: you submit on the official page. The credit is held now and only spent when you tell us you submitted; withdraw and it comes back.",
+    "fineEmail": "By confirming, you ask Onward Scout to send this email from your Gmail, exactly as written above. The credit is only spent once it is sent.",
+    "fineMailto": "We don't send anything: your email app does. The credit is held now and only spent when you tell us it was sent; withdraw and it comes back.",
     "noCredits": "Not enough credits",
     "waitingQuestions": "Answer the questions first, then you can confirm.",
     "preparing": "We're still preparing this application.",
     "submitted": "Submitted. Nothing else to do right now.",
     "retryFailed": "The last attempt didn't go through. Nothing was sent and the credit is back. Try again when you're ready.",
-    "unsavedEmail": "Your email has unsaved changes: they are saved when you confirm."
+    "unsavedEmail": "Your email has unsaved changes: they are saved when you confirm.",
+    "filesNeeded": "Before this can be submitted, add what the organiser needs: {files}. Use the files list (a link works too), then confirm.",
+    "filesOnForm": "The official form also asks for: {files}. Attach it there when you submit, or add it in the files list so it's in your handoff."
   },
   "handoff": {
     "title": "Your handoff",
@@ -355,7 +433,7 @@
     "proposal": "Proposal",
     "bio": "Bio",
     "press_release": "Press release",
-    "pitch_notes": "Pitch notes",
+    "pitch_notes": "Pitch deck",
     "other": "Document"
   },
   "stalled": {
@@ -383,6 +461,104 @@
       "minor": "Email outreach isn't available for high-school students. Use the prepared text with a parent or teacher instead.",
       "recently_contacted": "You wrote to this person in the last 30 days. We wait 30 days before writing to the same person again (from {date}).",
       "invalid_email": "That isn't an email address we can write to."
-    }
+    },
+    "document_gaps": "A document still has a highlighted spot only you can fill. Fill it (or ask for a version without it) before submitting.",
+    "files_missing": "The organiser needs a file only you have. Add it in the list of files (or paste a link), then submit.",
+    "revise_unavailable": "That change can't be made automatically right now. You can edit any sentence directly.",
+    "unlock_required": "Unlock this application first: it is then written in full, downloadable and ready to submit."
+  },
+  "apply": {
+    "metaTitle": "Apply with Onward Scout",
+    "eyebrow": "Apply with Onward Scout",
+    "title": "Your application to {target}",
+    "readyTitle": "Your draft for {target} is ready",
+    "lede": {
+      "returnship": "Drop your résumé, even an old one. In about two minutes you will see a returner résumé, a cover letter and a career-break note for this programme, drafted from your own experience. Free, and no account needed to start.",
+      "startup": "Drop your deck, one-pager or a few notes about the company. In about two minutes you will see a pitch deck and a one-pager for this programme, drafted from what you have. Free, and no account needed to start.",
+      "default": "Drop your résumé. In about two minutes you will see a tailored résumé and a cover letter for this programme, drafted from your own experience. Free, and no account needed to start.",
+      "returning": "Drafting from what you already gave us, so there's nothing to drop this time. It takes about two minutes, and you look at it before anything happens."
+    },
+    "readyLede": "This is the free preview, drafted from your own documents (the first lines are readable, the rest opens with the unlock). The highlighted spots are things only you can say.",
+    "steps": {
+      "label": "How this works",
+      "drop": "Drop your résumé",
+      "draft": "We draft it",
+      "save": "You look, then save",
+      "unlock": "You look, then unlock",
+      "written": "Claude writes it in full",
+      "finish": "Sign in, download, submit"
+    },
+    "closedTitle": "This round has closed",
+    "closedBody": "You can still get your materials ready for the next round.",
+    "dropTitle": "Start with what you already have",
+    "dropBody": "A résumé or CV (PDF, Word), a LinkedIn or portfolio link: whatever is quickest.",
+    "privacy": "Your files stay private. Nothing is sent to anyone, and nothing is submitted without your tap.",
+    "drafting": "Drafting your materials for {target}…",
+    "writing": "Writing",
+    "kinds": {
+      "resume_variant": "Résumé",
+      "cover_letter": "Cover letter",
+      "statement": "Career-break note",
+      "pitch_notes": "Pitch deck",
+      "one_pager": "One-pager"
+    },
+    "spots": "{n, plural, one {# spot only you can fill} other {# spots only you can fill}}",
+    "errorTitle": "We couldn’t start the draft",
+    "retry": "Try again",
+    "documentsLabel": "Your documents",
+    "saveTitle": "Or save it first, free",
+    "saveBody": "Sign in with your email (we send a code, no password) to keep this preview and come back to it. Unlock whenever you are ready.",
+    "saveBodyQuestions": "Sign in with your email (we send a code, no password) to keep this preview. Then {n, plural, one {one quick question} other {# quick questions}}, and unlock whenever you are ready.",
+    "save": "Save it, free",
+    "official": "Official page",
+    "savingToast": "Taking you to sign in — your draft is kept.",
+    "saveNote": "Nothing is submitted without your tap. Logins, CAPTCHAs and interviews stay with you.",
+    "paidTitle": "Your application to {target} is paid for",
+    "paidLede": "Claude is writing it in full now. Sign in with the email you paid with to open it, download the files and submit.",
+    "paymentFailedTitle": "We couldn’t confirm that payment yet",
+    "paymentFailedBody": "If you were charged, the application still opens: Stripe tells us about every payment and we check again every day. Write to support@onwardscout.com if it isn't open within ten minutes.",
+    "paidLedeDone": "Claude has written it in full. Sign in with the email you paid with to download the files and submit."
+  },
+  "unlock": {
+    "title": "Unlock this application",
+    "once": "once",
+    "lede": "Claude writes every document in full from your résumé and this posting. You get Word and PDF downloads, every form answer ready to copy, and the submission or a step-by-step handoff.",
+    "includes": {
+      "claude": "Every document written in full with Claude, for this posting",
+      "files": "Word and PDF downloads",
+      "answers": "Every form answer ready to copy, with its source",
+      "submit": "Submitted for you where the form allows it; a step-by-step handoff where it doesn't"
+    },
+    "previewNote": "What you see now is the free preview: drafted by our template engine from your files, with the first lines readable. Unlocking replaces it with Claude's version in about two minutes.",
+    "pay": "Unlock for {price}",
+    "payInstead": "Or pay {price} once",
+    "useCredit": "Unlock with 1 credit",
+    "usePass": "Unlock with my {name}",
+    "creditsLeft": "{count, plural, one {# credit} other {# credits}} left",
+    "passLeft": "{count, plural, one {# application} other {# applications}} left on it",
+    "saveFirst": "Save it first, free",
+    "fine": "Secure checkout by Stripe. Pay once, no subscription. Nothing is submitted without your tap.",
+    "opening": "Opening checkout…",
+    "working": "Unlocking…",
+    "payFailed": "Checkout didn’t open",
+    "creditFailed": "We couldn’t unlock it",
+    "creditDone": "Unlocked. Claude is writing your application now.",
+    "unlockedTitle": "Unlocked",
+    "writingTitle": "Claude is writing your application",
+    "writingBody": "Your résumé is read again in full and every document is written for this posting. About two minutes; this page updates on its own.",
+    "doneBody": "Written in full. Download, copy or change anything, then confirm.",
+    "paidTag": "Paid",
+    "paidSignInTitle": "Sign in to open it",
+    "paidSignInBody": "Claude is writing your application now. Sign in with {email} (we send a code, no password) to open it, download the files and submit. It is attached to that email, so you can come back from any device.",
+    "paidSignInBodyNoEmail": "Claude is writing your application now. Sign in with the email you used at checkout to open it, download the files and submit.",
+    "paidSignIn": "Sign in to open it",
+    "paidNote": "Nothing is submitted without your tap. Logins, CAPTCHAs and interviews stay with you.",
+    "lockedToast": "Unlock this application first",
+    "lockedToastBody": "Downloads, revisions and submitting are part of the unlock.",
+    "goUnlock": "Unlock",
+    "pendingTitle": "Your bank is still confirming the payment",
+    "pendingBody": "Reload this page in a moment. The application opens on its own the second it clears.",
+    "paidSignInBodyDone": "Claude has written your application in full. Sign in with {email} (we send a code, no password) to download the files and submit. It is attached to that email, so you can come back from any device.",
+    "paidSignInBodyNoEmailDone": "Claude has written your application in full. Sign in with the email you used at checkout to download the files and submit."
   }
 }

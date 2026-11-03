@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { degreeWithField } from "@/lib/core/labels";
 import { partialDateSchema } from "@/lib/core/types";
 
 /*
@@ -129,7 +130,7 @@ export function fixClaim(target: PathTarget, value: unknown, locale: "en" | "zh"
       body = zh ? `${s(v.organization)} ${s(v.title)}` : `${s(v.title)} at ${s(v.organization)}`;
       break;
     case "education":
-      body = [s(v.degree), s(v.field), s(v.institution)].filter(Boolean).join(zh ? "，" : ", ");
+      body = [degreeWithField(s(v.degree), s(v.field), zh ? "，" : ", "), s(v.institution)].filter(Boolean).join(zh ? "，" : ", ");
       break;
     case "projects":
     case "certifications":

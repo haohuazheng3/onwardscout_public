@@ -285,6 +285,11 @@ describe("money, cost and eligibility lines (only what the organiser published)"
     expect(moneyLine({ kind: "stipend", min: 2000, max: 2000, currency: "EUR", period: "month" })).toBe("€2,000 a month stipend");
     expect(moneyLine({ kind: "prize", min: 1000, max: 5000, currency: null, period: null })).toBe("1,000–5,000 in prizes");
     expect(moneyLine({ kind: "grant", min: null, max: null, currency: "USD", period: null })).toBeNull();
+    // Rupee amounts in the Indian grouping their readers use (two lakh, four crore).
+    expect(moneyLine({ kind: "prize", min: 200000, max: 200000, currency: "INR", period: null })).toBe("₹2,00,000 in prizes");
+    expect(moneyLine({ kind: "investment", min: null, max: 40000000, currency: "INR", period: null })).toBe("Up to ₹4,00,00,000 investment");
+    expect(moneyLine({ kind: "stipend", min: 30000, max: 30000, currency: "INR", period: "month" })).toBe("₹30,000 a month stipend");
+    expect(moneyLine({ kind: "prize", min: 1000000, max: 1000000, currency: "USD", period: null })).toBe("$1,000,000 in prizes");
     expect(benefitLine({ summary: "Mentorship and office space", money: null, perks: [], visaSponsorship: null, travelSupport: null, housing: null })).toBe("Mentorship and office space");
     expect(benefitLine(null)).toBeNull();
   });

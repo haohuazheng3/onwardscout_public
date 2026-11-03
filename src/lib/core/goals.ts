@@ -421,6 +421,16 @@ export function subGoalLabel(id: SubGoalId, locale: Locale | string): string {
   return localize(getSubGoal(id).label, locale);
 }
 
+/**
+ * A goal's name in the reader's language: our name for its sub-goal (stored in whichever language
+ * the goal was set in), or the person's own name for it, untouched.
+ */
+export function goalLabelFor(goal: { sub: string | null; label: string }, locale: Locale | string): string {
+  if (!goal.sub || !isSubGoalId(goal.sub)) return goal.label;
+  const def = getSubGoal(goal.sub);
+  return goal.label === def.label.en || goal.label === def.label.zh ? localize(def.label, locale) : goal.label;
+}
+
 /** Sub-goals that pursue a given opportunity type (e.g. `accelerator` → G3.4, G3.12, G9.3). */
 export function subGoalsForOpportunityType(type: OpportunityTypeId): SubGoalDef[] {
   return SUB_GOALS.filter((s) => s.opportunityTypes.includes(type));

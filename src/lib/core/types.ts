@@ -168,7 +168,7 @@ export const MATERIAL_IDS = [
   "talk_proposal", "artist_statement", "media_kit", "project_proposal", "application_form", "nomination_packet",
   "grant_application", "evidence_list", "license", "certificate", "performance_record", "promotion_case",
   "negotiation_script", "transfer_request", "job_description", "outreach_email", "book_proposal", "article",
-  "campaign_copy", "requirements_brief", "interview_prep", "document_checklist", "study_plan",
+  "campaign_copy", "requirements_brief", "interview_prep", "document_checklist", "study_plan", "career_break_statement",
 ] as const;
 export type MaterialId = (typeof MATERIAL_IDS)[number];
 export const materialIdSchema = z.enum(MATERIAL_IDS);
@@ -883,6 +883,8 @@ export const applicationAnswerSchema = z.object({
   confirmed: z.boolean().default(false),
   /** R2 key of an uploaded/generated file for `file` fields. */
   fileKey: z.string().nullable().default(null),
+  /** What the person tapped, when the value is an option's code ("Within 2 weeks" for "2-weeks"). */
+  label: z.string().optional(),
 });
 export type ApplicationAnswer = z.infer<typeof applicationAnswerSchema>;
 
@@ -1019,7 +1021,7 @@ export type LotStatus = (typeof LOT_STATUSES)[number];
 export const CREDIT_EVENT_KINDS = ["reserve", "debit", "release", "grant", "revoke"] as const;
 export type CreditEventKind = (typeof CREDIT_EVENT_KINDS)[number];
 
-export const ORDER_KINDS = ["pack", "subscription"] as const;
+export const ORDER_KINDS = ["pack", "subscription", "single"] as const;
 export type OrderKind = (typeof ORDER_KINDS)[number];
 
 export const ORDER_STATUSES = ["paid", "refunded", "disputed"] as const;

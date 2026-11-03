@@ -1,4 +1,5 @@
 import { readProfile, ComposeInput, type BlockRole, type ComposedBlock, type ComposedDocument, type ContentGap, type QuestionKey } from "../types";
+import { isBreakRole } from "./roles";
 import type { BLOCK_FLAGS, GENERATED_BLOCK_TYPES, Profile } from "@/lib/core/types";
 import { FactView, type Backed, type VentureView } from "./factview";
 import { countWords, hasCjk, isQuantified, joinList, lowerFirst, stripTrailingPunct, uniq } from "./text";
@@ -121,6 +122,10 @@ class Draft {
   bullet(s: Sent | null, priority = 40): void {
     if (s && s.ids.length) this.push({ role: "body", type: "bullet", sentences: [s], priority, flags: [] });
   }
+  /** A number on a slide: what is measured (label) and the figure, verbatim from the source. */
+  metric(label: string, s: Sent | null, priority = 80): void {
+    if (s && s.ids.length) this.push({ role: "body", type: "field", label, sentences: [s], priority, flags: [] });
+  }
   /** The person's own words, verbatim. */
   answer(key: string, text: string, priority = 80): void {
     this.push({ role: "body", type: "paragraph", sentences: [{ text: text.trim(), ids: [`answer:${key}`] }], priority, flags: [] });
@@ -232,8 +237,13 @@ interface Highlight {
   score: number;
 }
 
+/** The person's roles, most relevant first, without the career break written as a role (not a job to cite). */
+function rankedJobs(ctx: Ctx) {
+  return ctx.view.rankedExperiences().filter((e) => !isBreakRole(e.value));
+}
+
 function topHighlights(ctx: Ctx, limit: number): Highlight[] {
-  const exps = ctx.view.rankedExperiences().slice(0, 4);
+  const exps = rankedJobs(ctx).slice(0, 4);
   const out: Highlight[] = [];
   exps.forEach((e, rank) => {
     for (const h of e.value.highlights) {
@@ -276,13 +286,18 @@ function highlightSentence(ctx: Ctx, h: Highlight, again = false): Sent {
   return { text: again ? `${ctx.third ? `${name}'s` : "My"} work there also included ${lowerFirst(h.text)}.` : `At ${org}, ${ctx.third ? `${name}'s` : "my"} work included ${lowerFirst(h.text)}.`, ids: h.ids };
 }
 
-/** Highlights as consecutive sentences, avoiding "At X, … At X, …" repetition. */
+/**
+ * Highlights as consecutive sentences, avoiding "At X, … At X, …" repetition: grouped by
+ * organisation (two roles at the same bank read as one stretch there), in order of first mention.
+ */
 function highlightSentences(ctx: Ctx, hs: Highlight[]): Sent[] {
-  return hs.map((h, i) => highlightSentence(ctx, h, i > 0 && hs[i - 1].exp.id === h.exp.id));
+  const orgs = [...new Set(hs.map((h) => h.exp.organization))];
+  const grouped = orgs.flatMap((o) => hs.filter((h) => h.exp.organization === o));
+  return grouped.map((h, i) => highlightSentence(ctx, h, i > 0 && grouped[i - 1].exp.organization === h.exp.organization));
 }
 
 function currentRoleSentence(ctx: Ctx, withYears = true): Sent | null {
-  const exps = ctx.view.rankedExperiences();
+  const exps = rankedJobs(ctx);
   const cur = exps.find((e) => e.value.current && e.value.employmentType !== "internship");
   const years = withYears ? ctx.view.years(ctx.now) : null;
   const name = ctx.view.firstName() ?? "";
@@ -402,9 +417,12 @@ function coverLetter(ctx: Ctx, tone: string, contactName: string | null | undefi
   const zh = lang === "zh";
   doc.greeting(greetingFor(ctx, contactName, tone, "Dear Hiring Manager,", "尊敬的招聘负责人："));
   if (opp) {
-    const jobLike = JOB_TYPES.has(opp.type);
-    if (zh) doc.context(jobLike ? `我希望应聘${org ? `贵司的` : ""}${opp.name}一职。` : `我希望申请${opp.name}${org && !opp.name.includes(org) ? `（${org}）` : ""}。`);
-    else doc.context(jobLike ? `I'm writing to apply for the ${opp.name} position${org ? ` at ${org}` : ""}.` : `I'm writing to apply to ${opp.name}${org && !opp.name.includes(org) ? ` at ${org}` : ""}.`);
+    // A programme's name is not a "position" ("the 2027 EMEA Returnship Programme position").
+    const programme = /\b(program(me)?s?|returnships?|fellowships?|scheme|initiative|placements?|academy)\b|计划|项目/i.test(opp.name);
+    const jobLike = JOB_TYPES.has(opp.type) && !programme;
+    const atOrg = org && !opp.name.includes(org);
+    if (zh) doc.context(jobLike ? `我希望应聘${org ? `贵司的` : ""}${opp.name}一职。` : `我希望申请${atOrg ? `${org}的` : ""}${opp.name}。`);
+    else doc.context(jobLike ? `I'm writing to apply for the ${opp.name} position${org ? ` at ${org}` : ""}.` : `I'm writing to apply ${programme ? "for the" : "to"} ${opp.name}${atOrg ? ` at ${org}` : ""}.`);
   }
   doc.body([currentRoleSentence(ctx)], 70);
   doc.body(highlightSentences(ctx, topHighlights(ctx, 3)), 60);
@@ -521,7 +539,7 @@ function investorEmail(ctx: Ctx, tone: string, contactName: string | null | unde
 function recruiterEmail(ctx: Ctx, tone: string, contactName: string | null | undefined): string {
   const { doc, lang, opp, org } = ctx;
   const zh = lang === "zh";
-  const cur = ctx.view.rankedExperiences()[0];
+  const cur = rankedJobs(ctx)[0];
   const headline = ctx.view.headline();
   const subjectIds = [...(cur?.ids ?? []), ...(headline?.ids ?? [])];
   const who = headline?.value ?? cur?.value.title;
@@ -668,7 +686,7 @@ function bio(ctx: Ctx): string {
   const name = ctx.view.name();
   const first = ctx.view.firstName();
   const sentences: Array<Sent | null> = [];
-  const exps = ctx.view.rankedExperiences();
+  const exps = rankedJobs(ctx);
   const cur = exps.find((e) => e.value.current) ?? null;
   if (name && cur) {
     sentences.push(
@@ -760,7 +778,7 @@ function onePager(ctx: Ctx): string {
       h("Selected publications", "代表论文");
       for (const p of pubs) doc.bullet({ text: `${p.value.title}${p.value.venue ? `, ${p.value.venue}` : ""}${p.value.year ? ` (${p.value.year})` : ""}`, ids: p.ids }, 65);
     }
-    const exps = ctx.view.rankedExperiences().slice(0, 4);
+    const exps = rankedJobs(ctx).slice(0, 4);
     if (exps.length) {
       h("Experience", "经历");
       for (const e of exps) doc.bullet({ text: zh ? `${e.value.organization} · ${e.value.title}${e.value.startDate ? `（${e.value.startDate.slice(0, 4)}–${e.value.current ? "至今" : (e.value.endDate ?? "").slice(0, 4)}）` : ""}` : `${e.value.title}, ${e.value.organization}${e.value.startDate ? ` (${e.value.startDate.slice(0, 4)}–${e.value.current ? "present" : (e.value.endDate ?? "").slice(0, 4)})` : ""}`, ids: e.ids }, 60);
@@ -784,10 +802,131 @@ function onePager(ctx: Ctx): string {
   return zh ? "一页纸简介" : `One-pager${v ? ` — ${v.company.value}` : ""}`;
 }
 
+/* ------------------------------------------------------------------ pitch deck */
+
+const METRIC = /(?:[$€£¥]\s?)?\d[\d,.]*(?:\s?(?:[kKmMbB](?![a-zA-Z])|万|亿|%|x(?![a-zA-Z])|×))?\+?/;
+
+/**
+ * A traction line as a slide metric: the figure and what it measures ("2,000 monthly active
+ * users" → 2,000 · Monthly active users). Only when the line is about the number: it leads, or
+ * the rest is a short label. Years are never metrics.
+ */
+export function metricOf(text: string): { value: string; label: string } | null {
+  const t = stripTrailingPunct(text.trim());
+  const m = METRIC.exec(t);
+  if (!m) return null;
+  const value = m[0].trim();
+  if (/^(19|20)\d{2}$/.test(value)) return null;
+  const rest = `${t.slice(0, m.index)} ${t.slice(m.index + m[0].length)}`
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s,:;：，–—-]+|[\s,:;：，–—-]+$/g, "")
+    .trim();
+  if (!rest) return null;
+  if (m.index > 0 && countWords(rest) > 4) return null;
+  return { value, label: hasCjk(rest) ? rest : `${rest[0].toUpperCase()}${rest.slice(1)}` };
+}
+
+/**
+ * The founder's pitch deck, one heading per slide (src/lib/documents/deck.ts reads it back):
+ * title · problem · solution · market · business model · traction (figures as metrics) · team ·
+ * the ask · contact. A slide appears only when a fact or the person's answer backs it; the
+ * problem and the product are asked for when missing, because a deck says nothing without them.
+ */
+function pitchDeck(ctx: Ctx): string {
+  const { doc, lang } = ctx;
+  const zh = lang === "zh";
+  const v = ctx.view.venture();
+  const slide = (en: string, cn: string) => doc.heading(zh ? cn : en);
+  const said = (key: string): Sent | null => {
+    const text = ctx.answers[key]?.trim();
+    return text ? { text: stripTrailingPunct(text), ids: [`answer:${key}`] } : null;
+  };
+  const from = (f: Backed<string> | null | undefined, key: string): Sent | null => (f ? { text: stripTrailingPunct(quoteForeign(ctx, f.value)), ids: f.ids } : said(key));
+  const name = ctx.view.name();
+
+  // 1. Title: the company, what it does, who presents it.
+  const pitch = from(v?.field("oneLiner"), "startup_description");
+  if (v) doc.heading(v.company.value, v.company.ids);
+  else if (pitch && name) doc.heading(name.value, name.ids);
+  else {
+    doc.gap("startup_description", zh ? "你的公司或项目叫什么？一句话介绍它做什么。" : "What's your company or project called, and what does it do in one sentence?", zh ? "【公司名称与一句话介绍】" : "[Your company and what it does, in one sentence]", 99);
+    return zh ? "路演 Deck" : "Pitch deck";
+  }
+  if (pitch) doc.body([pitch], 95);
+  const role = v?.field("role");
+  if (name) doc.bullet({ text: role ? `${name.value} · ${role.value}` : name.value, ids: [...name.ids, ...(role?.ids ?? [])] }, 90);
+
+  // 2–5. The story.
+  const problem = from(v?.field("problem"), "problem");
+  slide("The problem", "问题");
+  if (problem) doc.body([problem], 90);
+  else doc.gap("problem", zh ? "你们解决的是谁的什么问题？" : "Who has the problem you solve, and what is it?", zh ? "【谁遇到了什么问题】" : "[Who has the problem, and what it is]", 90);
+  const product = from(v?.field("product"), "product");
+  slide("Our solution", "解决方案");
+  if (product) doc.body([product], 90);
+  else doc.gap("product", zh ? "你们的产品为他们做什么？" : "What does your product do for them?", zh ? "【产品做什么】" : "[What your product does]", 90);
+  const market = from(v?.field("market"), "market");
+  if (market) {
+    slide("Market", "市场");
+    doc.body([market], 70);
+  }
+  const model = from(v?.field("businessModel"), "business_model");
+  if (model) {
+    slide("Business model", "商业模式");
+    doc.body([model], 70);
+  }
+
+  // 6. Traction: figures first.
+  const lines = v?.traction() ?? [];
+  const told = said("traction");
+  if (lines.length || told) {
+    slide("Traction", "进展与数据");
+    let metrics = 0;
+    for (const t of lines.slice(0, 8)) {
+      const m = metrics < 4 ? metricOf(t.value) : null;
+      if (m) {
+        doc.metric(m.label, { text: m.value, ids: t.ids }, 85);
+        metrics++;
+      } else doc.bullet({ text: stripTrailingPunct(quoteForeign(ctx, t.value)), ids: t.ids }, 80);
+    }
+    if (told) doc.body([told], 80);
+  }
+
+  // 7. Team.
+  const team = v?.team() ?? [];
+  if (team.length) {
+    slide("Team", "团队");
+    for (const m of team.slice(0, 6)) {
+      const parts = [m.value.name, m.value.role, m.value.background].filter(Boolean);
+      doc.bullet({ text: parts.join(zh ? "，" : " · "), ids: m.ids }, 60);
+    }
+  }
+
+  // 8. The ask.
+  const raising = v?.raising() ?? null;
+  const use = from(v?.field("useOfFunds"), "use_of_funds");
+  if (raising || use) {
+    slide("The ask", "融资需求");
+    if (raising) {
+      const round = v?.field("round");
+      doc.metric(zh ? "本轮融资" : "Raising", { text: round && !raising.value.toLowerCase().includes(round.value.toLowerCase()) ? `${raising.value} · ${round.value}` : raising.value, ids: [...raising.ids, ...(round?.ids ?? [])] }, 85);
+    }
+    if (use) doc.body([{ text: zh ? `资金用途：${use.text}` : `Use of funds: ${lowerFirst(use.text)}`, ids: use.ids }], 80);
+  }
+
+  // 9. Contact.
+  const contact = contactLine(ctx.view);
+  if (contact.text) {
+    slide("Contact", "联系方式");
+    doc.body([{ text: [name?.value, contact.text].filter(Boolean).join(" · "), ids: [...(name?.ids ?? []), ...contact.ids] }], 99);
+  }
+  return zh ? `路演 Deck${v ? ` — ${v.company.value}` : ""}` : `Pitch deck${v ? ` — ${v.company.value}` : ""}`;
+}
+
 /* ------------------------------------------------------------------ application answers */
 
 const QUESTION_PATTERNS: Array<[QuestionKey, RegExp]> = [
-  ["why_this", /\bwhy (do you want|are you (interested|applying)|this|us|our|join|apply)|what (draws|attracts|interests) you|motivation|why (would|should) (you|we)|why now\b|为什么(想|要|申请|选择|加入)|申请动机|吸引你/i],
+  ["why_this", /\bwhy (do you want|are you (interested|applying)|this|us|our|join|apply)|what (draws|attracts|interests) you|motivation|why (would|should) (you|we)|why now\b|\breasons? (you|for) (want|wish|apply|choos)|为什么(想|要|申请|选择|加入)|申请动机|吸引你/i],
   ["proud_project", /proud|accomplishment|achievement you|most (impressive|significant)|project you('| a)re|best work|tell us about a project|最自豪|最有成就|代表作|印象最深的项目/i],
   ["startup_description", /describe (your|the) (company|startup|business|product)|what does your (company|startup) do|company description|elevator pitch|one[- ]liner|介绍(你的|一下)?(公司|项目|产品)|项目简介/i],
   ["problem", /what problem|problem (are you|you're) solving|pain point|解决什么问题|痛点/i],
@@ -983,6 +1122,9 @@ export function localCompose(raw: ComposeInput): ComposedDocument {
       break;
     case "one_pager":
       title = onePager(ctx);
+      break;
+    case "pitch_deck":
+      title = pitchDeck(ctx);
       break;
     case "answer": {
       const key = input.questionKey ?? (input.question ? classifyQuestion(input.question) : "other");

@@ -539,9 +539,36 @@ function currencyOf(sign: string): string | null {
   return null;
 }
 
-const SCALE: Record<string, number> = { k: 1e3, thousand: 1e3, m: 1e6, mm: 1e6, million: 1e6, mn: 1e6, b: 1e9, bn: 1e9, billion: 1e9 };
+const SCALE: Record<string, number> = {
+  k: 1e3, thousand: 1e3, m: 1e6, mm: 1e6, million: 1e6, mn: 1e6, b: 1e9, bn: 1e9, billion: 1e9,
+  // South Asian scale words: 1 lakh = 1,00,000 = 100,000; 1 crore = 1,00,00,000 = 10,000,000.
+  l: 1e5, lakh: 1e5, lakhs: 1e5, lac: 1e5, lacs: 1e5, cr: 1e7, crore: 1e7, crores: 1e7,
+};
+/*
+ * The number, in the groupings people write it in:
+ *   Indian / South Asian "2,00,000", "12,00,000", "1,00,00,000" (3 digits last, then pairs) — tried
+ *   before the Western form, which cannot match it and would otherwise fall through to a bare "2";
+ *   Western "1,500", "1,000,000"; spaced "1 000 000"; dotted "10.000", "1.250.000" (see readNumber);
+ *   plain "1500", "1.5".
+ * A bare number directly followed by a group separator and a digit ("2,0000", "€2,5 million") is a
+ * grouping we cannot read with confidence: no match at all rather than a wrong, tiny amount.
+ */
 const AMOUNT_RE =
-  /(us\$|hk\$|nt\$|nz\$|ca\$|au\$|c\$|a\$|s\$|r\$|\$|€|£|¥|₹|₩|₪|\b(?:usd|eur|gbp|cad|aud|hkd|sgd|twd|brl|nzd|chf|jpy|cny|rmb|inr|krw|sek|nok|dkk|pln|aed|sar|mxn|zar|ils)\b)\s?(\d{1,3}(?:,\d{3})+|\d{1,3}(?: \d{3})+(?!\d)|\d+(?:\.\d+)?)\s?(k|m|mm|mn|bn|b|thousand|million|billion)?\b/gi;
+  /(us\$|hk\$|nt\$|nz\$|ca\$|au\$|c\$|a\$|s\$|r\$|\$|€|£|¥|₹|₩|₪|\brs\.?|\b(?:usd|eur|gbp|cad|aud|hkd|sgd|twd|brl|nzd|chf|jpy|cny|rmb|inr|krw|sek|nok|dkk|pln|aed|sar|mxn|zar|ils)\b)\s?(\d{1,2}(?:,\d{2})+,\d{3}|\d{1,3}(?:,\d{3})+|\d{1,3}(?: \d{3})+(?!\d)|[1-9]\d{0,2}(?:\.\d{3})+(?![.,]?\d)|\d+(?:\.\d+)?(?![,.]\d))\s?(k|m|mm|mn|bn|b|thousand|million|billion|lakhs?|lacs?|l|crores?|cr)?\b/gi;
+
+/** "Rs" is the rupee of several countries: Indian unless the place names only one of the others. */
+const OTHER_RUPEES: Record<string, string> = { PK: "PKR", LK: "LKR", NP: "NPR" };
+
+/**
+ * The numeric value of AMOUNT_RE's number group. Commas and spaces only ever group digits; a dot
+ * is a decimal point ("1.5 million", "2.50"), except in the dotted thousands form "10.000" /
+ * "1.250.000" (whole groups of three, no leading zero, no scale word after it), which is how much
+ * of Europe and Latin America writes ten thousand — read as a decimal it would be €10.
+ */
+function readNumber(digits: string, scaled: boolean): number {
+  if (!scaled && /^[1-9]\d{0,2}(?:\.\d{3})+$/.test(digits)) return Number(digits.replace(/\./g, ""));
+  return Number(digits.replace(/[,\s]/g, ""));
+}
 
 export interface MoneyMention {
   amount: number;
@@ -550,11 +577,16 @@ export interface MoneyMention {
   text: string;
 }
 
-/** Money mentions with an explicit currency ("$500,000", "CAD $70,000", "€1.5 million", "HK$344,400"). */
+/**
+ * Money mentions with an explicit currency ("$500,000", "CAD $70,000", "€1.5 million", "HK$344,400",
+ * "₹2,00,000", "INR 5 lakh", "Rs. 1.5 lakh", "INR 4 Cr").
+ */
 export function moneyMentions(text: string, opts: { countries?: readonly string[] } = {}): MoneyMention[] {
   const out: MoneyMention[] = [];
   // "¥" is yen in Japan and yuan in China: only read it when the place says which.
   const yen = opts.countries?.includes("JP") && !opts.countries.includes("CN") ? "JPY" : opts.countries?.includes("CN") && !opts.countries.includes("JP") ? "CNY" : null;
+  const otherRupees = opts.countries?.includes("IN") ? [] : [...new Set((opts.countries ?? []).map((c) => OTHER_RUPEES[c]).filter(Boolean))];
+  const rupee = otherRupees.length === 1 ? otherRupees[0] : "INR";
   for (const m of text.matchAll(AMOUNT_RE)) {
     let sign = m[1];
     if (sign === "¥") {
@@ -565,9 +597,9 @@ export function moneyMentions(text: string, opts: { countries?: readonly string[
     const before = text.slice(Math.max(0, (m.index ?? 0) - 5), m.index ?? 0);
     const code = /\b(usd|cad|aud|hkd|sgd|nzd|twd)\s*$/i.exec(before)?.[1];
     if (code && sign === "$") sign = code;
-    const currency = currencyOf(sign);
+    const currency = /^rs\.?$/i.test(sign) ? rupee : currencyOf(sign);
     if (!currency) continue;
-    const base = Number(m[2].replace(/[,\s]/g, ""));
+    const base = readNumber(m[2], Boolean(m[3]));
     const scale = m[3] ? (SCALE[m[3].toLowerCase()] ?? 1) : 1;
     if (!Number.isFinite(base) || base <= 0) continue;
     out.push({ amount: Math.round(base * scale), currency, index: m.index ?? 0, text: m[0].trim() });
@@ -619,7 +651,8 @@ export function parseMoney(text: string | null | undefined, kind: MoneyKind, opt
   const head = text.slice(0, first.index).toLowerCase();
   let min: number | null = first.amount;
   let max: number | null = first.amount;
-  if (second && /^\s*(?:-|–|—|to)\s*$/i.test(text.slice(first.index + first.text.length, second.index))) {
+  const ranged = Boolean(second && /^\s*(?:-|–|—|to)\s*$/i.test(text.slice(first.index + first.text.length, second.index)));
+  if (ranged && second) {
     min = Math.min(first.amount, second.amount);
     max = Math.max(first.amount, second.amount);
   } else if (/\b(up to|max(?:imum)?|as much as|no more than)\s*$/.test(head.slice(-20))) {
@@ -627,16 +660,22 @@ export function parseMoney(text: string | null | undefined, kind: MoneyKind, opt
   } else if (/\b(from|at least|minimum|min\.?)\s*$/.test(head.slice(-14))) {
     max = null;
   }
-  const after = text.slice(first.index, first.index + first.text.length + 40).toLowerCase();
-  const period: MoneyPeriod | null = /(per|a|\/)\s?(year|yr|annum)|annual|yearly|p\.a\./.test(after) || /^annual/.test(head.trim().split(" ").pop() ?? "")
+  // The period belongs to the amount it follows: the window stops at the next amount, so
+  // "INR 20,000 for the training; INR 40,000 per month" does not make the 20,000 monthly.
+  const last = ranged && second ? second : first;
+  const next = mentions[ranged ? 2 : 1];
+  const after = text.slice(first.index, Math.min(last.index + last.text.length + 40, next?.index ?? Infinity)).toLowerCase();
+  // …or it leads the amount: "Monthly salary of Rs. 30,000", "Annual stipend of $40,000".
+  const lead = /\b(monthly|annual|yearly|weekly|daily|hourly)\s+(?:living\s+)?(?:salary|stipend|allowance|pay|payment|wages?|honorarium|grant|scholarship|fellowship|funding)\s+(?:of\s+)?$/.exec(head)?.[1] ?? "";
+  const period: MoneyPeriod | null = /(per|a|\/)\s?(year|yr|annum)|annual|yearly|p\.a\./.test(after) || /^annual/.test(head.trim().split(" ").pop() ?? "") || /^(annual|yearly)$/.test(lead)
     ? "year"
-    : /(per|a|\/)\s?month|monthly/.test(after)
+    : /(per|a|\/)\s?month|monthly/.test(after) || lead === "monthly"
       ? "month"
-      : /(per|a|\/)\s?week|weekly/.test(after)
+      : /(per|a|\/)\s?week|weekly/.test(after) || lead === "weekly"
         ? "week"
-        : /(per|a|\/)\s?day|daily/.test(after)
+        : /(per|a|\/)\s?day|daily/.test(after) || lead === "daily"
           ? "day"
-          : /(per|an|\/)\s?hour|hourly/.test(after)
+          : /(per|an|\/)\s?hour|hourly/.test(after) || lead === "hourly"
             ? "hour"
             : null;
   return { kind, min, max, currency: first.currency, period };

@@ -9,7 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { outcomeStatus, type OutcomeChoice } from "@/lib/applications/plan";
 import { boardColumn } from "@/lib/core/state-machine";
 import type { ApplicationStatus, ApplicationQuestion } from "@/lib/core/types";
-import { answerKeyOf, LIVE_STATUSES, type ApplicationView } from "@/lib/applications/types";
+import { answerKeyOf, LIVE_STATUSES, type ApplicationView, type RoomBalance } from "@/lib/applications/types";
 import { call, RequestError, startDownload } from "./api";
 
 /*
@@ -20,7 +20,7 @@ import { call, RequestError, startDownload } from "./api";
  */
 
 type View = ApplicationView;
-type Resp = { application: View | null; balance?: { available: number; reserved: number } | null; unlock?: boolean };
+type Resp = { application: View | null; balance?: RoomBalance | null; unlock?: boolean };
 
 const UNLOCK_KEY = "os:unlock-tracked";
 
@@ -70,7 +70,7 @@ interface EmailDraft {
   body: string;
 }
 
-export function useApplication(initial: View, initialBalance: { available: number; reserved: number } | null) {
+export function useApplication(initial: View, initialBalance: RoomBalance | null) {
   const t = useTranslations("applications");
   const tc = useTranslations("common");
   const router = useRouter();
@@ -86,7 +86,9 @@ export function useApplication(initial: View, initialBalance: { available: numbe
   const prevStatus = useRef<ApplicationStatus>(initial.status);
   const [slow, setSlow] = useState(false);
 
-  const available = shell.state === "ready" && shell.available !== null ? shell.available : (balance?.available ?? null);
+  // What THIS application can use (general credits plus a pass covering its type). The top bar's
+  // total is a different number (every credit), so it is re-read, never overwritten with this one.
+  const available = balance?.available ?? null;
 
   /*
    * The outreach email being edited (EmailPane). Held here, not in the pane, so "Confirm & send"
@@ -145,7 +147,7 @@ export function useApplication(initial: View, initialBalance: { available: numbe
       }
       if (r.balance) {
         setBalance(r.balance);
-        updateAppStatus({ available: r.balance.available, reserved: r.balance.reserved });
+        void refreshAppStatus();
       }
     },
     [settle],
@@ -200,7 +202,10 @@ export function useApplication(initial: View, initialBalance: { available: numbe
       } catch (err) {
         setView(before);
         const message = applicationErrorMessage(err, t as unknown as Translator, msgs.generic);
-        if (err instanceof RequestError && err.status === 402) {
+        const code = err instanceof RequestError && typeof err.data?.code === "string" ? err.data.code : null;
+        if (code === "unlock_required") {
+          toast.error(t("unlock.lockedToast"), { body: t("unlock.lockedToastBody"), action: { label: t("unlock.goUnlock"), onClick: () => document.getElementById("unlock-pane")?.scrollIntoView({ behavior: "smooth", block: "center" }) } });
+        } else if (err instanceof RequestError && err.status === 402) {
           toast.error(t("confirm.noCredits"), { body: message, action: { label: t("confirm.buy"), onClick: () => router.push("/app/billing") } });
         } else {
           toast.error(failTitle ?? tc("errors.rolledBack"), { body: message });
@@ -221,7 +226,8 @@ export function useApplication(initial: View, initialBalance: { available: numbe
         `answer:${q.id}`,
         (v) => {
           const questions = v.questions.filter((x) => x.id !== q.id);
-          const stillOpen = questions.some((x) => x.required !== false);
+          // Files never hold the drafts back (materials.ts): only the questions do.
+          const stillOpen = questions.some((x) => x.required !== false && x.kind !== "file");
           const shown = typeof payload.value === "string" ? payload.value : Array.isArray(payload.value) ? payload.value.join(", ") : (payload.custom ?? "");
           const answers = shown && q.kind !== "file" ? [...v.answers.filter((a) => a.key !== answerKeyOf(q)), { key: answerKeyOf(q), label: q.prompt, value: shown, source: "user" as const, factIds: [], confirmed: true, long: shown.length > 120 }] : v.answers;
           const status: ApplicationStatus = v.status === "needs_info" && !stillOpen ? "preparing" : v.status;
@@ -265,7 +271,10 @@ export function useApplication(initial: View, initialBalance: { available: numbe
       () => call<Resp>(`/api/applications/${viewRef.current.id}/confirm`, { json: { confirm: true } }, msgs),
       t("toasts.confirmFailed"),
     );
-    if (r && cost > 0 && !r.balance && shell.available !== null) updateAppStatus({ available: Math.max(0, shell.available - cost), reserved: shell.reserved + cost });
+    if (r && cost > 0 && !r.balance) {
+      setBalance((b) => (b ? { ...b, available: Math.max(0, b.available - cost), reserved: b.reserved + cost, pass: b.pass ? { ...b.pass, remaining: Math.max(0, b.pass.remaining - cost) } : b.pass } : b));
+      if (shell.available !== null) updateAppStatus({ available: Math.max(0, shell.available - cost), reserved: shell.reserved + cost });
+    }
     return r;
   }, [msgs, mutate, saveEmailIfDirty, shell.available, shell.reserved, t]);
 
@@ -347,6 +356,18 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     [msgs, mutate],
   );
 
+  /** "Tell the AI what to change": a new version of one document (the current one stays until it's ready). */
+  const reviseDocument = useCallback(
+    (documentId: string, note: string) =>
+      mutate(`revise:${documentId}`, null, () => call<Resp & { documentId: string; changes: string[] }>(`/api/applications/${viewRef.current.id}/revise`, { json: { documentId, note } }, msgs), t("documents.revise.failed")),
+    [msgs, mutate, t],
+  );
+
+  const restoreDocument = useCallback(
+    (documentId: string) => mutate(`restore:${documentId}`, null, () => call<Resp & { documentId: string }>(`/api/applications/${viewRef.current.id}/restore`, { json: { documentId } }, msgs)),
+    [msgs, mutate],
+  );
+
   const regenerateDraft = useCallback(
     (questionId: string) => mutate(`draft:${questionId}`, null, () => call<Resp & { draft?: string }>(`/api/applications/${viewRef.current.id}/regenerate`, { json: { questionId } }, msgs)),
     [msgs, mutate],
@@ -383,13 +404,26 @@ export function useApplication(initial: View, initialBalance: { available: numbe
         startDownload(r.url, r.filename);
         if (r.fallback) toast.info(t("documents.fallbackDocx"));
       } catch (err) {
-        toast.error(t("toasts.downloadFailed"), { body: err instanceof Error ? err.message : undefined });
+        if (err instanceof RequestError && err.data?.code === "unlock_required") {
+          toast.error(t("unlock.lockedToast"), { body: t("unlock.lockedToastBody"), action: { label: t("unlock.goUnlock"), onClick: () => document.getElementById("unlock-pane")?.scrollIntoView({ behavior: "smooth", block: "center" }) } });
+        } else toast.error(t("toasts.downloadFailed"), { body: err instanceof Error ? err.message : undefined });
       } finally {
         setBusy(null);
       }
     },
     [msgs, t],
   );
+
+  /** "Unlock with 1 credit" (a pass or an older pack): the application opens and Claude starts writing. */
+  const unlockWithCredit = useCallback(async () => {
+    const r = await mutate("unlock", null, () => call<Resp>("/api/drafts/unlock", { json: { method: "credit", applicationId: viewRef.current.id } }, msgs), t("unlock.creditFailed"));
+    if (r?.application && !r.application.access.locked) {
+      track("unlock_paid", { applicationId: r.application.id, method: "credit" });
+      toast.success(t("unlock.creditDone"));
+      void refreshAppStatus();
+    }
+    return r;
+  }, [msgs, mutate, t]);
 
   const downloadOwnFile = useCallback(
     async (documentId: string) => {
@@ -411,6 +445,7 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     busy,
     slow,
     available,
+    pass: balance?.pass ?? null,
     refresh,
     retryPreparation,
     answer,
@@ -425,10 +460,13 @@ export function useApplication(initial: View, initialBalance: { available: numbe
     setEmailDraft,
     emailDirty,
     regenerateDocument,
+    reviseDocument,
+    restoreDocument,
     regenerateDraft,
     followUp,
     download,
     downloadOwnFile,
+    unlockWithCredit,
     msgs,
   };
 }

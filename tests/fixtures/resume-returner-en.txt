@@ -1,0 +1,21 @@
+Elena Marsh
+London, United Kingdom · elena.marsh.cv@example.com · +44 7700 900123 · linkedin.com/in/elenamarsh-example
+Right to work in the UK (British citizen)
+Profile
+Business analyst with eight years in retail banking change programmes, returning to work after a five-year career break caring for my two young children (2020–2025). Strong in SQL, Excel and Power BI, requirements gathering and process redesign. Refreshed my data skills in 2025 with the Google Data Analytics Certificate.
+Career break
+Full-time parent and carer Mar 2020 – Sep 2025
+Cared full time for my two children while my partner worked abroad.
+Treasurer of the Hackney Wick Parents' Association (2022–2025): ran a £14,000 annual budget and moved the accounts to a shared Google Sheets ledger.
+Completed the Google Data Analytics Professional Certificate (Coursera, June 2025).
+Experience
+Senior Business Analyst — Northbridge Bank plc, London Jan 2016 – Feb 2020
+Led requirements for the mortgage application redesign: 42 user stories, cut average processing time from 21 to 13 days.
+Built Power BI dashboards for the retail lending team used weekly by 60 branch managers.
+Wrote SQL reports on 3 million customer accounts for the FCA affordability review.
+Business Analyst — Northbridge Bank plc, London Sep 2013 – Dec 2015
+Mapped 30 back-office processes for the payments migration; identified £400k a year in duplicate manual checks.
+Education
+BSc Economics (2:1) — University of Leeds 2009 – 2012
+Skills
+SQL · Excel · Power BI · Jira · requirements gathering · process mapping

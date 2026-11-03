@@ -1,8 +1,9 @@
 /**
- * The Free / Packs / Pro comparison on /pricing, derived from src/content/plans.ts so a price,
- * credit amount or perk can never disagree with the catalog. Pure: takes a translator, returns rows.
+ * The Free preview / One application / Season pass comparison on /pricing, derived from
+ * src/content/plans.ts so a price, a credit amount or a perk can never disagree with the catalog.
+ * Pure: takes a translator, returns rows.
  */
-import { PACKS, PLANS, TRIAL, formatPrice, perCreditUsd, type Offer } from "@/content/plans";
+import { PASSES, SINGLE, formatPrice, type Offer } from "@/content/plans";
 
 export type CompareCell = { kind: "yes" } | { kind: "no" } | { kind: "text"; text: string };
 
@@ -10,8 +11,8 @@ export interface CompareRow {
   id: string;
   label: string;
   free: CompareCell;
-  packs: CompareCell;
-  pro: CompareCell;
+  single: CompareCell;
+  pass: CompareCell;
 }
 
 type T = (key: string, values?: Record<string, string | number>) => string;
@@ -19,53 +20,40 @@ type T = (key: string, values?: Record<string, string | number>) => string;
 const yes: CompareCell = { kind: "yes" };
 const no: CompareCell = { kind: "no" };
 const text = (t: string): CompareCell => ({ kind: "text", text: t });
-const perk = (on: boolean): CompareCell => (on ? yes : no);
 
-/**
- * `t` resolves keys under `site.pricing.compare`. `mailer`: product email is configured (the
- * weekly brief by email is a Pro perk; until email is on it says so instead of promising it).
- */
-export function compareRows(t: T, opts: { mailer?: boolean } = {}): CompareRow[] {
-  const pro = PLANS.pro;
-  const pack = PACKS.pack10;
+/** `t` resolves keys under `site.pricing.compare`. */
+export function compareRows(t: T): CompareRow[] {
+  const returnship = PASSES.season_returnship;
+  const startup = PASSES.season_startup;
   return [
     {
-      id: "credits",
-      label: t("rowCredits"),
-      free: text(t("creditsFree", { credits: TRIAL.credits, days: TRIAL.expiryDays })),
-      packs: text(t("creditsPacks", { small: PACKS.pack10.credits, large: PACKS.pack40.credits, days: pack.rolloverDays })),
-      pro: text(t("creditsPro", { credits: pro.credits, days: pro.rolloverDays })),
-    },
-    { id: "core", label: t("rowCore"), free: yes, packs: yes, pro: yes },
-    { id: "practice", label: t("rowPractice"), free: yes, packs: yes, pro: yes },
-    { id: "channels", label: t("rowChannels"), free: yes, packs: yes, pro: yes },
-    {
-      id: "followups",
-      label: t("rowFollowUps"),
-      free: text(t("followUpsTap")),
-      packs: text(pack.perks.autoFollowUps ? t("followUpsAuto") : t("followUpsTap")),
-      pro: text(pro.perks.autoFollowUps ? t("followUpsAuto") : t("followUpsTap")),
-    },
-    // The weekly brief itself is in the app for everyone; only its email copy is a Pro perk.
-    { id: "digest", label: t("rowDigest"), free: yes, packs: yes, pro: yes },
-    {
-      id: "digestEmail",
-      label: t("rowDigestEmail"),
-      free: no,
-      packs: perk(pack.perks.weeklyDigest),
-      pro: pro.perks.weeklyDigest ? (opts.mailer ? yes : text(t("comingSoon"))) : no,
+      id: "price",
+      label: t("rowPrice"),
+      free: text(t("priceFree")),
+      single: text(t("priceSingle", { price: formatPrice(SINGLE.priceUsd) })),
+      pass: text(t("pricePass", { price: formatPrice(returnship.priceUsd), days: returnship.rolloverDays })),
     },
     {
-      id: "renewal",
-      label: t("rowRenewal"),
-      free: text(t("renewalNone")),
-      packs: text(t("renewalPacks")),
-      pro: text(t("renewalPro")),
+      id: "applications",
+      label: t("rowApplications"),
+      free: text(t("applicationsFree")),
+      single: text(t("applicationsSingle")),
+      pass: text(t("applicationsPass", { returnships: returnship.credits, startup: startup.credits })),
     },
+    { id: "core", label: t("rowCore"), free: yes, single: yes, pass: yes },
+    { id: "preview", label: t("rowPreview"), free: yes, single: yes, pass: yes },
+    { id: "written", label: t("rowWritten"), free: no, single: yes, pass: yes },
+    { id: "files", label: t("rowFiles"), free: no, single: yes, pass: yes },
+    { id: "answers", label: t("rowAnswers"), free: no, single: yes, pass: yes },
+    { id: "submit", label: t("rowSubmit"), free: no, single: yes, pass: yes },
+    { id: "revisions", label: t("rowRevisions"), free: no, single: text(t("revisionsUnlimited")), pass: text(t("revisionsUnlimited")) },
+    { id: "deadlines", label: t("rowDeadlines"), free: yes, single: yes, pass: yes },
+    { id: "practice", label: t("rowPractice"), free: yes, single: yes, pass: yes },
+    { id: "account", label: t("rowAccount"), free: text(t("accountNone")), single: text(t("accountNone")), pass: text(t("accountNeeded")) },
   ];
 }
 
-/** "$0.73" — the price of one credit in an offer, for the pack and plan cards. */
-export function perCreditLabel(offer: Offer): string {
-  return formatPrice(perCreditUsd(offer));
+/** "$0.82" — the price of one application on a pass, for its card. */
+export function perApplicationLabel(offer: Offer): string {
+  return formatPrice(Math.round((offer.priceUsd / Math.max(1, offer.credits)) * 100) / 100);
 }

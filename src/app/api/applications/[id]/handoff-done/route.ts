@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { applicationView, completeHandoff } from "@/lib/applications";
 import { BAD_INPUT, NOT_FOUND, fromError, isAppId, ok, readJson } from "@/lib/applications/http";
-import { getBalance } from "@/lib/credits";
+import { getBalance, roomBalance } from "@/lib/credits";
 import { withErrorCapture } from "@/lib/errors";
 import { headObject } from "@/lib/files";
 import { rateLimit, tooMany } from "@/lib/ratelimit";
@@ -35,8 +35,10 @@ export const POST = withErrorCapture("/api/applications/[id]/handoff-done", asyn
   }
   try {
     const res = await completeHandoff(session.userId, id, { url: b.url || null, reference: b.reference ?? null, note: b.note ?? null, screenshotKey: b.screenshotKey ?? null });
-    const [view, balance] = await Promise.all([applicationView(session.userId, id), getBalance(session.userId).catch(() => null)]);
-    return ok({ application: view, unlock: res.unlock, balance: balance ? { available: balance.available, reserved: balance.reserved } : null });
+    const view = await applicationView(session.userId, id);
+    // The room shows what THIS application can use (a matching season pass counts).
+    const balance = await getBalance(session.userId, { opportunityType: view?.opportunity.type ?? null }).catch(() => null);
+    return ok({ application: view, unlock: res.unlock, balance: balance ? roomBalance(balance) : null });
   } catch (err) {
     return fromError(err);
   }

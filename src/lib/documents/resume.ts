@@ -1,5 +1,7 @@
 import type { GeneratedBlock, Profile } from "@/lib/core/types";
 import { FactView, type Backed } from "@/lib/llm/local/factview";
+import { degreeWithField } from "@/lib/core/labels";
+import { isBreakRole } from "@/lib/llm/local/roles";
 import { hasCjk, isQuantified, stripTrailingPunct } from "@/lib/llm/local/text";
 import type { FactRef, OpportunityInput } from "@/lib/llm/types";
 import type { DocumentGap } from "./content";
@@ -105,6 +107,8 @@ export interface ResumeInput {
   /** Caps keep a one- to two-page résumé. */
   maxRoles?: number;
   maxBulletsPerRole?: number;
+  /** Returnships: the break as the person named it, shown as the most recent entry (career-break.ts). */
+  careerBreak?: { detail: string; since: string | null; ids: string[] } | null;
 }
 
 export function buildResume(input: ResumeInput): ResumeBuild {
@@ -159,14 +163,21 @@ export function buildResume(input: ResumeInput): ResumeBuild {
     }));
     const keep = new Set(scored.sort((a, b) => b.score - a.score).slice(0, input.maxRoles ?? 5).map((x) => x.e.value.id));
     heading("experience");
+    if (input.careerBreak) {
+      const cb = input.careerBreak;
+      push("entry", { type: "field", label: zh ? "职业空窗" : "Career break", text: cb.since ? formatRange(cb.since, null, true, lang) : "", factIds: cb.ids, flags: [] });
+      push("body", { type: "bullet", text: cb.detail, factIds: cb.ids, flags: [] });
+    }
     for (const e of exps) {
       if (!keep.has(e.value.id)) continue;
+      // The break has its own line above: the résumé's own break entry is not listed as a role.
+      if (input.careerBreak && isBreakRole(e.value)) continue;
       const x = e.value;
       const when = formatRange(x.startDate, x.endDate, x.current, lang);
       const where = [when, x.location].filter(Boolean).join(" · ");
       push("entry", { type: "field", label: foreign(zh ? `${x.organization} · ${x.title}` : `${x.title} · ${x.organization}`), text: where, factIds: e.ids, flags: [] });
       const bullets = x.highlights
-        .map((h, i) => ({ h: stripTrailingPunct(h), score: overlap(h, kw) * 2 + (isQuantified(h) ? 2 : 0) - i * 0.1 }))
+        .map((h, i) => ({ h: bulletCase(stripTrailingPunct(h)), score: overlap(h, kw) * 2 + (isQuantified(h) ? 2 : 0) - i * 0.1 }))
         .filter((b) => b.h.length >= 6)
         .sort((a, b) => b.score - a.score)
         .slice(0, input.maxBulletsPerRole ?? 4);
@@ -195,7 +206,8 @@ export function buildResume(input: ResumeInput): ResumeBuild {
     heading("education");
     for (const e of edu.slice(0, 3)) {
       const x = e.value;
-      const what = [x.degree, x.field].filter(Boolean).join(zh ? " · " : ", ");
+      // "BSc Economics" already names its field: no "BSc Economics, Economics".
+      const what = degreeWithField(x.degree, x.field, zh ? " · " : ", ");
       push("entry", { type: "field", label: foreign(zh ? [x.institution, what].filter(Boolean).join(" · ") : [what || null, x.institution].filter(Boolean).join(" · ")), text: [formatRange(x.startDate, x.endDate, x.current, lang), x.gpa ? `GPA ${x.gpa.value}/${x.gpa.scale}` : null].filter(Boolean).join(" · "), factIds: e.ids, flags: [] });
       if (x.honors.length) push("body", { type: "bullet", text: foreign(x.honors.slice(0, 3).join(zh ? "；" : "; ")), factIds: e.ids, flags: [] });
     }
@@ -261,4 +273,9 @@ export function buildResume(input: ResumeInput): ResumeBuild {
 
   const title = zh ? `${name?.value ?? ""}简历`.trim() : `${name?.value ? `${name.value} — ` : ""}Résumé`;
   return { title, blocks, roles, gaps, notes: [...notes] };
+}
+
+/** A bullet starts with a capital ("ran a £14,000 budget" → "Ran a £14,000 budget"); "iOS", "eBay" stay as written. */
+function bulletCase(s: string): string {
+  return /^[a-z][a-z]/.test(s) ? s[0].toUpperCase() + s.slice(1) : s;
 }

@@ -2,6 +2,7 @@ import { matchIdentityCues, isValidStage } from "@/lib/core/identities";
 import type { IdentityCode, Profile } from "@/lib/core/types";
 import { professionalYears } from "../build";
 import type { IdentityGuess } from "../types";
+import { byRecency, isSideRole } from "./roles";
 
 /*
  * Identity inference (plan §2): which of S/E/F/R/C/P/T the person is, from the structured
@@ -51,6 +52,38 @@ const TITLE_RULES: Array<{ code: IdentityCode; re: RegExp; score: number }> = [
 
 const FREELANCE = /\b(freelance|freelancer|self[- ]employed|independent|contract(or)?|own studio|studio founder)\b|自由职业|独立|接单|工作室/i;
 
+/**
+ * The person's own words that they study now, at the start of their headline or summary
+ * ("Third-year computer science student…", "Master's student in statistics", "Currently pursuing
+ * a B.Tech…"), with the level they name. Mentions of other people's studies ("mentoring student
+ * founders"), past ones ("former student athlete") and job titles ("Student Success Manager") don't count.
+ */
+const SELF_STUDENT = /^(?:i'?m\s+|i am\s+|currently\s+)?(?:an?\s+)?((?:(?:first|second|third|fourth|fifth|final|pre-final|penultimate|1st|2nd|3rd|4th|5th)[- ]year\s+)?(?:[\p{L}&'’.-]+\s+){0,5}?)(student|undergraduate|undergrad|phd candidate|doctoral candidate)(?=\s*(?:$|[,.;:!?|·•()–—-])|\s+(?:at|in|of|from|who|with|and|studying|majoring|pursuing|looking|seeking|interested|passionate|based|building|currently|specializing|specialising|focused|@)\b)/iu;
+const PURSUING = /^(?:i'?m\s+|i am\s+)?(?:currently\s+)?(?:pursuing|studying for|completing|doing)\s+(?:an?\s+|my\s+)?(b\.?\s?(?:e|tech|sc|s|a|com)\b|bachelor|m\.?\s?(?:sc|s|a|tech|eng)\b|master|mba|ph\.?\s?d|doctorate)/i;
+const NOT_SELF = /\b(former|ex|alumn\w*|mentor\w*|teach\w*|coach\w*|tutor\w*|help\w*|support\w*|serv\w*|for|with|of|to)\b/i;
+
+export function statedStudy(profile: Pick<Profile, "summary" | "identity">): { level: "high_school" | "bachelor" | "master" | "doctorate"; quote: string } | null {
+  const firstSentence = (profile.summary ?? "").split(/(?<=[.!?。])\s+/)[0] ?? "";
+  for (const text of [profile.identity.headline ?? "", firstSentence]) {
+    const t = text.trim();
+    if (!t) continue;
+    const self = SELF_STUDENT.exec(t);
+    const pursuing = self ? null : PURSUING.exec(t);
+    if (self && NOT_SELF.test(self[1] ?? "")) continue;
+    const said = self?.[0] ?? pursuing?.[0];
+    if (!said) continue;
+    const level = /\b(ph\.?\s?d|doctoral|doctorate)\b/i.test(said)
+      ? "doctorate"
+      : /\b(master'?s|msc|m\.\s?sc|m\.?s\b|mba|m\.?\s?tech|m\.?eng|graduate student)\b/i.test(said)
+        ? "master"
+        : /\b(high school|secondary school|highschool)\b/i.test(said)
+          ? "high_school"
+          : "bachelor";
+    return { level, quote: said.trim() };
+  }
+  return null;
+}
+
 function yearOf(d: string | null | undefined): number | null {
   const m = /^(\d{4})/.exec(d ?? "");
   return m ? Number(m[1]) : null;
@@ -94,18 +127,26 @@ export function inferIdentities(profile: Profile, texts: string[], opts: { now?:
     else if (e.level === "doctorate") add("S4", 5, zh ? `${where}博士在读` : `PhD student at ${where}`, studentYearStage("doctorate", left));
     else if (e.level === "associate" || e.level === "vocational") add("S7", 5, zh ? `${where}专科/职业教育在读` : `Studying at ${where} (associate/vocational)`);
   }
+  // The person says so ("Third-year computer science student…") though no degree in progress was read.
+  const stated = studying.length ? null : statedStudy(profile);
+  if (stated) {
+    const code: IdentityCode = stated.level === "doctorate" ? "S4" : stated.level === "master" ? "S3" : stated.level === "high_school" ? "S1" : "S2";
+    add(code, 4, zh ? `自述：${stated.quote}` : `In your words: "${stated.quote}"`);
+  }
+  const student = studying.length > 0 || stated !== null;
   // Recent graduate: a degree finished within the last 12 months and no long full-time career.
   const latest = profile.education.filter((e) => !e.current && e.endDate).sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? ""))[0];
   const years = professionalYears(profile, now);
-  if (latest && !studying.length) {
+  if (latest && !student) {
     const since = -(monthsUntil(latest.endDate, now) ?? -99);
     if (since >= 0 && since <= 12 && years < 1.5) add("S5", 4, zh ? `${latest.endDate?.slice(0, 4)} 年从${latest.institution}毕业` : `Graduated from ${latest.institution} in ${latest.endDate?.slice(0, 7)}`, since <= 6 ? "within_6_months" : "within_12_months");
   }
 
-  /* professionals: years and seniority from the current or latest role */
-  const current = profile.experience.find((e) => e.current) ?? profile.experience[0];
-  const employed = profile.experience.some((e) => e.current && e.employmentType !== "internship" && e.employmentType !== "volunteer");
-  if (profile.experience.length && !(studying.length && years < 1)) {
+  /* professionals: years and seniority from the current or latest job (internships and assistantships aren't jobs here) */
+  const jobs = profile.experience.filter((e) => !isSideRole(e, { student }));
+  const current = byRecency(jobs)[0] ?? null;
+  const employed = jobs.some((e) => e.current);
+  if (jobs.length && !(student && years < 1)) {
     const yrs = Math.round(years * 10) / 10;
     const base = current ? (zh ? `${current.organization} ${current.title}，约 ${yrs} 年工作经验` : `${current.title} at ${current.organization}, about ${yrs} years of experience`) : "";
     if (years < 3) add("E1", 3, base);
@@ -185,8 +226,8 @@ export function inferIdentities(profile: Profile, texts: string[], opts: { now?:
   }
 
   /* transitions */
-  const latestJob = [...profile.experience].sort((a, b) => (b.endDate ?? "9999").localeCompare(a.endDate ?? "9999"))[0];
-  if (latestJob && !profile.experience.some((e) => e.current) && !studying.length && latestJob.endDate) {
+  const latestJob = byRecency(jobs)[0];
+  if (latestJob && !profile.experience.some((e) => e.current) && !student && latestJob.endDate) {
     const gap = -(monthsUntil(latestJob.endDate, now) ?? 0);
     if (gap >= 3) add("T1", gap >= 6 ? 3 : 2, zh ? `${latestJob.endDate} 后暂无在职经历` : `No current role since ${latestJob.endDate}`, gap >= 6 ? "long_gap" : "in_transition");
   }
@@ -205,7 +246,7 @@ export function inferIdentities(profile: Profile, texts: string[], opts: { now?:
   for (const m of matchIdentityCues(allText, { limit: 12 })) {
     if (m.code === "T8") continue;
     // A finished degree mentions "bachelor"/"master" too: student codes need current study.
-    if (["S1", "S2", "S3", "S4", "S7"].includes(m.code) && !studying.length) continue;
+    if (["S1", "S2", "S3", "S4", "S7"].includes(m.code) && !student) continue;
     add(m.code, Math.min(2, m.score * 0.5), zh ? `关键词：${m.hits.slice(0, 3).join("、")}` : `Cues: ${m.hits.slice(0, 3).join(", ")}`);
   }
 
@@ -224,7 +265,7 @@ export function inferIdentities(profile: Profile, texts: string[], opts: { now?:
   // Academic researchers (postdoc, faculty) are not placed on the employee seniority ladder.
   if (["R1", "R2", "R3"].some((c) => (byCode.get(c as IdentityCode)?.score ?? 0) >= 3)) for (const c of ["E1", "E2", "E3"] as IdentityCode[]) byCode.delete(c);
   // A current student isn't also "early career" from internships alone.
-  if (studying.length && !employed) for (const c of ["E1", "E2", "E3", "E4"] as IdentityCode[]) byCode.delete(c);
+  if (student && !employed) for (const c of ["E1", "E2", "E3", "E4", "T1"] as IdentityCode[]) byCode.delete(c);
   // Minors: S1 excludes outreach-oriented guesses that need an adult (founder/outreach codes stay, the person confirms).
 
   const out: IdentityGuess[] = [];
@@ -239,6 +280,24 @@ export function inferIdentities(profile: Profile, texts: string[], opts: { now?:
 }
 
 /** Roles to pre-select on the profile (inferred: true until the person confirms). */
+/**
+ * The model's guesses, with what the documents state outright put first: a person with no current
+ * role whose résumé says they are returning from a career break is T6 even if the model ranked
+ * "career changer" (T2) higher — the onboarding pre-selects the first code it finds. Someone in
+ * a job who once mentions parental leave keeps the model's order.
+ */
+export function preferExplicitCues(model: IdentityGuess[], local: IdentityGuess[], profile: Pick<Profile, "experience">): IdentityGuess[] {
+  if (profile.experience.some((e) => e.current)) return model;
+  const explicit = local.filter((g) => g.code === "T6");
+  if (!explicit.length) return model;
+  const top = Math.max(0.6, ...model.map((g) => g.confidence));
+  const lead = explicit.map((g) => {
+    const fromModel = model.find((m) => m.code === g.code);
+    return { ...(fromModel ?? g), confidence: Math.min(0.95, Math.max(fromModel?.confidence ?? g.confidence, top)) };
+  });
+  return [...lead, ...model.filter((m) => !lead.some((l) => l.code === m.code))];
+}
+
 export function rolesFromGuesses(guesses: IdentityGuess[], threshold = 0.55): Profile["roles"] {
   return guesses
     .filter((g) => g.confidence >= threshold)

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { fillVars, isSafeHref, parseInline, plainInline, splitHash } from "@/components/site/inline-markup";
 import { LEGAL_DOCS, LEGAL_DOC_KEYS, fillLegalDoc, legalDocStrings, legalVars, readLegalDoc, type LegalDoc } from "@/components/site/legal-doc";
 import { THEME_KEY } from "@/components/theme";
-import { PACKS, PLANS, TRIAL, formatPrice } from "@/content/plans";
+import { PACKS, PASSES, PLANS, SINGLE, TRIAL, formatPrice } from "@/content/plans";
 import { mergeMessages } from "@/i18n/messages";
 import { LOCALE_COOKIE } from "@/i18n/routing";
 import { AUDIENCES } from "@/i18n/site-nav";
@@ -93,14 +93,17 @@ describe("legal documents", () => {
     expect(() => readLegalDoc(dup, "dup")).toThrow(/duplicate section id/);
   });
 
-  it("fills prices and credit rules from the plans catalog", () => {
+  it("fills prices and the paying rules from the plans catalog", () => {
     const vars = legalVars("en");
     expect(vars.proPrice).toBe(formatPrice(PLANS.pro.priceUsd));
+    expect(vars.unlockPrice).toBe(formatPrice(SINGLE.priceUsd));
+    expect(vars.passPrice).toBe(formatPrice(PASSES.season_returnship.priceUsd));
     expect(vars.trialCredits).toBe(TRIAL.credits);
     expect(vars.packDays).toBe(PACKS.pack10.rolloverDays);
     const terms = text(doc("en", "terms"));
-    expect(terms).toContain(`Pro costs ${formatPrice(PLANS.pro.priceUsd)} per month for ${PLANS.pro.credits} credits`);
-    expect(terms).toContain(`${TRIAL.credits} free credits, valid for ${TRIAL.expiryDays} days`);
+    expect(terms).toContain(`Unlocking one application costs ${formatPrice(SINGLE.priceUsd)}, paid once`);
+    expect(terms).toContain(`A season pass costs ${formatPrice(PASSES.season_returnship.priceUsd)}, paid once, and lasts ${PASSES.season_returnship.rolloverDays} days`);
+    expect(terms).toContain(`Pro months at ${formatPrice(PLANS.pro.priceUsd)}`);
   });
 
   it("privacy names every processor we run and the analytics deep capture", () => {
@@ -146,12 +149,13 @@ describe("legal documents", () => {
     expect(t).not.toMatch(/\b(Ltd|Inc\.|LLC|GmbH|Pte|registered (office|address|in)|company number|courts of (Delaware|England|California|Singapore))\b/);
   });
 
-  it("the refund policy states the 14-day rules and that failed submissions never cost a credit", () => {
+  it("the refund policy states the 14-day rules for an unlock and a pass, and that failing never costs anything", () => {
     const r = text(doc("en", "refunds"));
-    expect(r).toMatch(/Within 14 days of a Pro charge, if none of the credits from that charge have been used/);
-    expect(r).toMatch(/A pack is refundable in full within 14 days of purchase if none of its credits have been used/);
-    expect(r).toMatch(/failed submission never needs a refund/i);
-    expect(r).toMatch(/keep Pro and its credits until the end of the period/);
+    expect(r).toMatch(/Within 14 days of the charge, if the application's documents were never downloaded and it was never submitted/);
+    expect(r).toMatch(/refundable in full within 14 days of purchase if no application was unlocked with it/);
+    expect(r).toMatch(/failed submission never costs anything/i);
+    expect(r).toMatch(/no subscription, so there is nothing to cancel/);
+    expect(r).toContain(formatPrice(SINGLE.priceUsd));
     expect(r).toContain(SITE.email);
   });
 

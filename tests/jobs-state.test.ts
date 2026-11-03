@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { loadHandler, registerModule } from "@/lib/jobs/handlers";
 import { JOB_KINDS, clearRegistry, registerJob, registeredJob, registeredKinds } from "@/lib/jobs/registry";
-import { BACKOFF_MAX_MS, PermanentJobError, backoffMs, canTransition, decide, isTerminal } from "@/lib/jobs/state";
+import { BACKOFF_MAX_MS, MAX_INLINE_WAIT_MS, PermanentJobError, backoffMs, canTransition, decide, inlineWaitMs, isTerminal } from "@/lib/jobs/state";
 
 const mid = () => 0.5; // no jitter
 
@@ -57,7 +57,7 @@ describe("registry and handler loading", () => {
   afterEach(() => clearRegistry());
 
   it("lists the kinds other features use", () => {
-    expect(JOB_KINDS).toEqual(["profile.parse", "profile.extract", "matches.refresh", "application.prepare", "application.submit", "application.followup", "sources.run", "digest.send", "notify.email"]);
+    expect(JOB_KINDS).toEqual(["profile.parse", "profile.extract", "matches.refresh", "application.prepare", "application.submit", "application.followup", "application.upgrade", "sources.run", "digest.send", "notify.email"]);
   });
 
   it("registers handlers directly and from a module's jobHandlers export", async () => {
@@ -71,5 +71,18 @@ describe("registry and handler loading", () => {
 
   it("a kind without a registered handler or loader resolves to null (the runner retries it slowly)", async () => {
     expect(await loadHandler("nobody.handles.this")).toBeNull();
+  });
+});
+
+describe("inlineWaitMs (resuming a job that continues after a short delay)", () => {
+  it("waits out a short delay when the budget allows it", () => {
+    expect(inlineWaitMs(3000, 200_000, 25_000)).toBe(3000);
+    expect(inlineWaitMs(0, 200_000, 25_000)).toBe(0);
+    expect(inlineWaitMs(-500, 200_000, 25_000)).toBe(0);
+  });
+  it("leaves long delays and tight budgets to the next drain", () => {
+    expect(inlineWaitMs(MAX_INLINE_WAIT_MS + 1, 200_000, 25_000)).toBeNull();
+    expect(inlineWaitMs(3000, 27_000, 25_000)).toBeNull();
+    expect(inlineWaitMs(3000, 28_000, 25_000)).toBe(3000);
   });
 });

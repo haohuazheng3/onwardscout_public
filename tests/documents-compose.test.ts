@@ -99,7 +99,8 @@ describe("buildDocument — every kind stays sourced", () => {
 
   it("turns missing facts into explicit gaps (empty profile)", async () => {
     const resume = await build({ kind: "resume_variant", profile: {}, facts: [], opportunity: JOB, language: "en" });
-    expect(resume.gaps.map((g) => g.key).sort()).toEqual(["experience", "name"]);
+    // The name is a profile value: its spot is keyed like the profile field it asks for (spots.ts).
+    expect(resume.gaps.map((g) => g.key).sort()).toEqual(["experience", "full_name"]);
     expect(resume.content.blocks.every((b) => isGapBlock(b) || b.type === "heading")).toBe(true);
     assertHonest(resume.content, []);
 

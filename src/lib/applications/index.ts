@@ -22,7 +22,7 @@ export { dueFollowUps } from "./followup";
 export { needsYouCount, pipelineSummary, listBoard, applicationView, goalFilters } from "./queries";
 export { confirmApplication, completeHandoff } from "./submit";
 export { approveFollowUp, skipFollowUp } from "./followup";
-export { answerQuestion, editAnswers, editDocument, editEmail, regenerate, recordOutcome, recordReply, withdrawApplication } from "./actions";
+export { answerQuestion, editAnswers, editDocument, editEmail, regenerate, recordOutcome, recordReply, restoreDocument, reviseDocument, withdrawApplication } from "./actions";
 export { ApplicationError } from "./engine";
 export type { ApplicationView, BoardCard } from "./types";
 

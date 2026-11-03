@@ -2,6 +2,7 @@ import { getSubGoal, subGoalAppliesTo, subGoalsOf } from "@/lib/core/goals";
 import { groupOfIdentity } from "@/lib/core/types";
 import { defaultGoalsFor } from "@/lib/core/matrix";
 import { isOccupationCode, occupationLabel } from "@/lib/core/occupations";
+import { goalOccupation } from "@/lib/llm/local/roles";
 import { renderSuccessDefinitions, type RenderedSuccess, type SuccessParams } from "@/lib/core/success";
 import type { GoalFamily, IdentityCode, IdentityGroup, Profile, SubGoalId } from "@/lib/core/types";
 
@@ -67,9 +68,10 @@ export function successParams(profile: Profile, locale: "en" | "zh"): SuccessPar
   const p: SuccessParams = {};
   const j = profile.packs.jobSeeker;
   const target = j?.targetOccupations.find(isOccupationCode);
-  const occ = profile.occupations.find(isOccupationCode);
-  if (target) p.role = occupationLabel(target, locale);
-  else if (occ) p.role = occupationLabel(occ, locale);
+  // The role the person named, else their most recent main role in their field (never a side role
+  // such as a teaching assistantship: "Land a Teaching Assistant internship" was wrong for an engineer).
+  const occ = target ?? goalOccupation(profile);
+  if (occ) p.role = occupationLabel(occ, locale);
   const venture = profile.packs.founder?.ventures[0];
   if (j?.salaryMin) {
     p.salary = j.salaryMin;

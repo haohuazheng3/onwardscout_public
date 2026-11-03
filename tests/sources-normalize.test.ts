@@ -215,6 +215,60 @@ describe("money, fees, equity", () => {
     expect(parseMoney("About $197K in listed prizes (mostly sponsor in-kind)", "prize")).toBeNull();
     expect(parseMoney("Living allowance", "stipend")).toBeNull();
   });
+  it("reads Indian digit grouping and lakh / crore (₹2,00,000 is two lakh, never ₹2)", () => {
+    const read = (t: string, countries?: string[]) => moneyMentions(t, { countries }).map((m) => [m.amount, m.currency]);
+    expect(read("₹2,00,000")).toEqual([[200000, "INR"]]);
+    expect(read("INR 2,00,000")).toEqual([[200000, "INR"]]);
+    expect(read("₹12,00,000+ prize pool")).toEqual([[1200000, "INR"]]);
+    expect(read("₹1,00,00,000")).toEqual([[10000000, "INR"]]);
+    expect(read("₹1,25,000 and ₹75,000")).toEqual([[125000, "INR"], [75000, "INR"]]);
+    expect(read("₹2 lakh")).toEqual([[200000, "INR"]]);
+    expect(read("INR 10 lakhs")).toEqual([[1000000, "INR"]]);
+    expect(read("₹5L")).toEqual([[500000, "INR"]]);
+    expect(read("Rs. 1.5 lakh")).toEqual([[150000, "INR"]]);
+    expect(read("Rs 5,00,000/-")).toEqual([[500000, "INR"]]);
+    expect(read("Rs.30,000")).toEqual([[30000, "INR"]]);
+    expect(read("₹1 crore")).toEqual([[10000000, "INR"]]);
+    expect(read("INR 4 Cr (~US$470K)")).toEqual([[40000000, "INR"], [470000, "USD"]]);
+    expect(read("INR 4Cr")).toEqual([[40000000, "INR"]]);
+    // "Rs" is also the rupee of Pakistan, Sri Lanka and Nepal: the place decides, India by default.
+    expect(read("Rs 50,000", ["PK"])).toEqual([[50000, "PKR"]]);
+    expect(read("Rs 50,000", ["IN", "PK"])).toEqual([[50000, "INR"]]);
+    // Words that merely end in "rs" are not rupees.
+    expect(read("24 hrs 10 users 5")).toEqual([]);
+    const k = parseMoney("Winner ₹2,00,000; First Runner Up ₹1,50,000; Second Runner Up ₹1,00,000; Special Track & Event Prizes ₹90,000", "prize");
+    expect(k).toEqual({ kind: "prize", min: 200000, max: 200000, currency: "INR", period: null });
+    expect(parseMoney("Up to Rs 5,00,000 per project (honorarium up to 35%)", "grant")).toEqual({ kind: "grant", min: null, max: 500000, currency: "INR", period: null });
+    expect(parseMoney("INR 5 lakh grant to each of the top 2 incubatees", "investment")?.max).toBe(500000);
+  });
+  it("keeps Western and other groupings right, and refuses groupings it cannot read", () => {
+    const read = (t: string) => moneyMentions(t).map((m) => m.amount);
+    expect(read("$1,000,000")).toEqual([1000000]);
+    expect(read("$1,500")).toEqual([1500]);
+    expect(read("€12,345")).toEqual([12345]);
+    expect(read("€1 000 000")).toEqual([1000000]);
+    expect(read("$1,000.50")).toEqual([1000]);
+    expect(read("£1.5k")).toEqual([1500]);
+    expect(read("€1.5 million")).toEqual([1500000]);
+    expect(read("$2.5m")).toEqual([2500000]);
+    expect(read("€10.000")).toEqual([10000]);
+    expect(read("€1.250.000")).toEqual([1250000]);
+    expect(read("$500 last year")).toEqual([500]);
+    expect(read("$5,000-$10,000")).toEqual([5000, 10000]);
+    // A comma or dot straight after a bare number that is no grouping we know: nothing, never "€2".
+    expect(read("€2,5 million")).toEqual([]);
+    expect(read("₹2,0000")).toEqual([]);
+  });
+  it("gives a period to the amount it belongs to", () => {
+    // The training payment is one-off; "per month" belongs to the internship pay after it.
+    expect(parseMoney("INR 20,000 for the training; INR 40,000 per month during the six-month internship", "salary")).toEqual({ kind: "salary", min: 20000, max: 20000, currency: "INR", period: null });
+    expect(parseMoney("Monthly salary of Rs. 30,000 plus city compensation allowance of Rs. 6,000-12,600", "stipend")).toEqual({ kind: "stipend", min: 30000, max: 30000, currency: "INR", period: "month" });
+    expect(parseMoney("Monthly stipend of Rs 24,500 over a 23-month residential programme", "stipend")?.period).toBe("month");
+    expect(parseMoney("Annual stipend of $12,000 plus full tuition waiver", "scholarship")?.period).toBe("year");
+    // "Annual" describing the event, not the payment, gives no period.
+    expect(parseMoney("Annual competition with a $10,000 prize", "prize")?.period).toBeNull();
+    expect(parseMoney("$101,401-$131,826 annual stipend", "stipend")?.period).toBe("year");
+  });
   it("application fees only when the text says it is one", () => {
     expect(parseApplicationFee("$35 application fee")).toEqual({ amount: 35, currency: "USD" });
     expect(parseApplicationFee("£15 per entry (free voucher available via survey)")).toEqual({ amount: 15, currency: "GBP" });

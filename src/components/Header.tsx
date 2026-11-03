@@ -12,8 +12,8 @@ import { cx } from "./ui";
 
 /*
  * The public header: one floating glass pill. It renders in (site) without Clerk, so it
- * never asks who is signed in: "Sign in" goes to /sign-in and "Start free" to /app/start;
- * the proxy sends a signed-out visitor from /app/start to /sign-in and back afterwards.
+ * never asks who is signed in: "Sign in" goes to /sign-in and back to the page it was pressed
+ * on, and "Start free" to /app/start (which also works signed out).
  */
 
 type NavItem = { href: string; key: "howItWorks" | "opportunities" | "pricing" | "blog"; englishOnly?: boolean };
@@ -112,6 +112,7 @@ function ForMenu() {
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations("common");
   const locale = useLocale();
+  const pathname = usePathname();
   const isActive = useIsActive();
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -204,7 +205,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
             {/* The two actions stay in reach while the menu scrolls. */}
             <div className="sticky bottom-0 -mx-3 -mb-3 mt-3 grid grid-cols-2 gap-2 rounded-b-[var(--radius-pane)] bg-pane px-4 pb-4 pt-3 shadow-[0_-12px_24px_-16px_rgba(18,22,20,0.25)]">
-              <Link href="/sign-in" prefetch={false} onClick={onClose} className="btn btn-ghost btn-block">
+              <Link href={signInHref(pathname)} prefetch={false} onClick={onClose} className="btn btn-ghost btn-block">
                 {t("nav.signIn")}
               </Link>
               <Link href="/app/start" prefetch={false} onClick={onClose} className="btn btn-primary btn-block">
@@ -217,6 +218,16 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
       ) : null}
     </dialog>
   );
+}
+
+/**
+ * "Sign in" returns to the page it was pressed on (a listing, a guide…), so someone who signs in
+ * while reading about a programme lands back on it with "apply for me" one tap away. The home
+ * page and the sign-in page itself go to the default destination (the dashboard).
+ */
+function signInHref(pathname: string): string {
+  if (!pathname || pathname === "/" || pathname.startsWith("/sign-in")) return "/sign-in";
+  return `/sign-in?redirect_url=${encodeURIComponent(pathname)}`;
 }
 
 export function Header() {
@@ -271,7 +282,7 @@ export function Header() {
         <div className="flex items-center gap-1.5">
           <LocaleSwitcher size="sm" className="hidden md:inline-flex lg:hidden xl:inline-flex" />
           <Link
-            href="/sign-in"
+            href={signInHref(pathname)}
             prefetch={false}
             className="press hidden min-h-[40px] items-center whitespace-nowrap rounded-full px-3.5 text-[0.94rem] font-medium text-ink-2 transition-colors hover:text-ink sm:inline-flex"
           >
