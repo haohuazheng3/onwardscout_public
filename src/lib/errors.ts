@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { waitUntil } from "@vercel/functions";
 import { db } from "./db";
 import { errorGroups } from "./db/schema";
@@ -65,13 +65,11 @@ export function fingerprintOf(name: string, frame: string, route: string | null 
   return createHash("sha1").update(`${name}|${anchor}|${route ?? ""}`).digest("hex");
 }
 
-const NOTIFY_EVERY_MS = 6 * 60 * 60 * 1000;
-
 /**
  * React hydration mismatches reported by browsers (#418/#423/#425, "Hydration failed").
  * React recovers by rendering on the client, and in the field they come from extensions,
  * translation tools (very common on a bilingual site) or outdated engines rewriting the DOM
- * before hydration. They stay in the inbox as warnings instead of turning /api/health red.
+ * before hydration. They stay in the inbox as warnings instead of counting as severe.
  */
 const HYDRATION = /Minified React error #(418|423|425)\b|Hydration failed|error while hydrating|did not match the client/i;
 
@@ -80,7 +78,10 @@ export function effectiveSeverity(source: ErrorSource, requested: Severity, mess
   return requested;
 }
 
-/** Sources whose unresolved errors make /api/health answer 503: our own code, never anonymous browser reports. */
+/**
+ * Sources whose unresolved severe errors count as "severe" (reported by /api/health, listed in the
+ * daily error digest): our own code, never anonymous browser reports. They never make health 503.
+ */
 export const HEALTH_SOURCES: readonly ErrorSource[] = ["server", "edge", "worker", "cron"];
 
 const OUR_BUNDLE = /\/_next\/static\//;
@@ -89,7 +90,7 @@ const EXTENSION = /(chrome|moz|safari|safari-web)-extension:\/\//;
 /**
  * The severity the server accepts from an anonymous browser report. The client's own label is
  * a hint only: "error" stands when the stack runs through our bundle and no extension, so a
- * forged payload can fill the inbox with warnings at most, never page the owner or turn health red.
+ * forged payload can fill the inbox with warnings at most, never page the owner or reach the digest.
  */
 export function clientSeverity(requested: Severity, stack: string | undefined): Severity {
   if (requested !== "error") return "warn";
@@ -108,8 +109,9 @@ function runInBackground(p: Promise<unknown>): Promise<void> | void {
 
 /**
  * Record an error in the inbox. Never throws: if the database itself is down the error is
- * still written to the platform logs (where /api/health also goes red). Owner alerts for
- * severe server-side errors are throttled to one per fingerprint every 6 hours.
+ * still written to the platform logs (and /api/health answers 503 for the database). Owner alerts for
+ * severe server-side errors: one email when a group first becomes severe, never again for that
+ * group (it stays listed in the daily error digest, src/lib/error-digest.ts, until resolved).
  */
 export async function captureError(err: unknown, opts: CaptureOptions = {}): Promise<void> {
   const n = normalizeError(err);
@@ -156,10 +158,16 @@ export async function captureError(err: unknown, opts: CaptureOptions = {}): Pro
 
     const row = rows[0];
     // Browser reports never page anyone: they are reviewed in the inbox (anonymous input can be forged at will).
-    const shouldNotify =
-      row && source !== "client" && row.severity === "error" && (!row.notifiedAt || Date.now() - new Date(row.notifiedAt).getTime() > NOTIFY_EVERY_MS);
+    // One email per group, ever: recurrences (and regressions) of a known group go to the daily digest.
+    const shouldNotify = row && source !== "client" && row.severity === "error" && !row.notifiedAt;
     if (shouldNotify) {
-      await db.update(errorGroups).set({ notifiedAt: sql`now()` }).where(eq(errorGroups.id, row.id));
+      // Claim the email atomically, so concurrent first occurrences send it once.
+      const claimed = await db
+        .update(errorGroups)
+        .set({ notifiedAt: sql`now()` })
+        .where(and(eq(errorGroups.id, row.id), isNull(errorGroups.notifiedAt)))
+        .returning({ id: errorGroups.id });
+      if (claimed.length === 0) return;
       const text = [
         `${n.name}: ${n.message}`,
         "",

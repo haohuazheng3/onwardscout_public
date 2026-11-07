@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { captureError } from "@/lib/errors";
 import { queueStats } from "@/lib/jobs/queue";
 import { DRAIN_DEPTH_HEADER, kickDrain, runDue } from "@/lib/jobs/runner";
-import { notifyOwner } from "@/lib/notify";
+import { reportAlarm } from "@/lib/ops-alarm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +14,8 @@ export const maxDuration = 300;
 
 /** app_state key the admin jobs/diagnostics pages read: the summary of the last drain. */
 const CRON_JOBS_STATE_KEY = "cron:jobs:last";
+/** The owner alarm of the scheduled drain (src/lib/ops-alarm.ts; state in R2, not in the database). */
+const DRAIN_ALARM = { name: "drain", title: "hourly job drain (also the database probe)" } as const;
 
 /*
  * Drains the job queue. Called hourly by Vercel Cron (GET) and on demand by kickDrain() (POST),
@@ -56,6 +58,7 @@ async function drain(req: Request): Promise<Response> {
       .values({ key: CRON_JOBS_STATE_KEY, value: summary })
       .onConflictDoUpdate({ target: appState.key, set: { value: summary, updatedAt: sql`now()` } })
       .catch((err) => captureError(err, { route: "/api/cron/jobs", source: "cron", severity: "warn" }));
+    if (req.method === "GET") await reportAlarm({ ...DRAIN_ALARM, ok: true, detail: `The scheduled /api/cron/jobs run at ${startedAt.toISOString()} succeeded.` }).catch((e: unknown) => console.error("[cron/jobs] owner alarm failed", e));
     return Response.json(
       { ...summary, outcomes: report.outcomes.slice(0, 50).map((o) => ({ id: o.id, kind: o.kind, status: o.status, ms: o.ms, ...(o.error ? { error: o.error.slice(0, 200) } : {}) })) },
       { headers: { "Cache-Control": "no-store" } },
@@ -63,13 +66,15 @@ async function drain(req: Request): Promise<Response> {
   } catch (err) {
     await captureError(err, { route: "/api/cron/jobs", source: "cron" });
     // The hourly drain is also the database probe (the scheduled health check is shallow, so it
-    // never wakes the database off the hour): when the scheduled run fails, tell the owner —
-    // the error inbox may be unreachable for the same reason.
+    // never wakes the database off the hour): a failed scheduled run feeds the owner alarm, which
+    // emails on a change of state only (DOWN after 2 failed runs in a row, a daily reminder,
+    // RECOVERED) — the error inbox may be unreachable for the same reason.
     if (req.method === "GET") {
-      await notifyOwner({
-        subject: "Onward Scout: the hourly job drain failed",
-        text: `The scheduled /api/cron/jobs run failed at ${startedAt.toISOString()}.\n\n${err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 1000) : String(err).slice(0, 1000)}`,
-      }).catch((e: unknown) => console.error("[cron/jobs] owner alert failed", e));
+      await reportAlarm({
+        ...DRAIN_ALARM,
+        ok: false,
+        detail: `The scheduled /api/cron/jobs run failed at ${startedAt.toISOString()}.\n\n${err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 1000) : String(err).slice(0, 1000)}`,
+      }).catch((e: unknown) => console.error("[cron/jobs] owner alarm failed", e));
     }
     return Response.json({ error: "The job drain failed; it has been logged." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }

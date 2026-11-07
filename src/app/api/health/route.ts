@@ -9,10 +9,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Self-diagnosis, probed by the mail worker (every 30 min) and GitHub Actions (every 6 h).
- * 503 when the database is unreachable, a required variable is missing or invalid, or the
- * error inbox holds unresolved severe errors raised by our own code (server, edge, worker,
- * cron; anonymous browser reports never count). Optional features are reported, not required.
+ * Self-diagnosis, probed by GitHub Actions (.github/workflows/health.yml, every 6 h, shallow).
+ * 200 while the site can serve; 503 only when the database is unreachable or a required
+ * variable is missing or invalid. Open errors in the error inbox are reported
+ * (`errors.unresolvedSevere`: our own code's unresolved severe errors) but never make the answer
+ * non-200: they reach the owner once a day in the error digest (src/lib/error-digest.ts), not as
+ * a health alarm. Optional features are reported, not required.
  *
  * The public answer carries booleans and counts only. Names of missing variables, the commit
  * and the database error text go only to a caller presenting `Authorization: Bearer CRON_SECRET`.
@@ -52,7 +54,8 @@ export async function GET(req: Request) {
   const problems = envProblems();
   const f = features();
   const configOk = problems.missing.length === 0 && problems.invalid.length === 0;
-  const ok = dbOk && configOk && unresolved === 0;
+  // Informational only: open errors never turn health red (see the doc comment above).
+  const ok = dbOk && configOk;
   const body = {
     ok,
     env: VERCEL_ENV,

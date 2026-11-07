@@ -6,6 +6,7 @@ import { deleteAnonymousDraft, staleAnonymousIds } from "@/lib/data-export";
 import { db } from "@/lib/db";
 import { appState, contactMessages, errorGroups, inboxMessages, jobs, opportunities, rateLimits, sandboxSubmissions } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { sendErrorDigest } from "@/lib/error-digest";
 import { captureError } from "@/lib/errors";
 import { sweepExpired } from "@/lib/jobs/queue";
 import { DEADLINE_GRACE_MS, expirePastDeadlines } from "@/lib/sources/expiry";
@@ -53,6 +54,9 @@ const RETENTION = {
  *  6. Retention: test mail after 7 days, rate-limit rows after 2 days, practice-form
  *     submissions after 90 days, error reports after 12 months, messages to us 2 years after
  *     the last activity (privacy policy, "How long we keep data").
+ *  7. Error digest (src/lib/error-digest.ts): when our own code has unresolved severe errors,
+ *     one summary email to the owner per UTC day (none when nothing is open). Read-only on the
+ *     inbox; /api/health no longer turns red for open errors, so this is how they surface.
  */
 export async function GET(req: Request) {
   if (!bearerMatches(req, env("CRON_SECRET"))) {
@@ -149,7 +153,9 @@ export async function GET(req: Request) {
     { testMail: 0, rateLimits: 0, sandbox: 0, errors: 0, contact: 0 },
   );
 
-  const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, expiredOpportunities, anonymous, jobs: jobsReport, credits, retention, errors };
+  const digest = await step("digest", () => sendErrorDigest(now), { sent: false, severeOpen: -1, reason: "failed" });
+
+  const summary = { ranAt: now.toISOString(), tookMs: Date.now() - started, expiredOpportunities, anonymous, jobs: jobsReport, credits, retention, digest, errors };
   await db
     .insert(appState)
     .values({ key: STATE_KEY, value: summary })

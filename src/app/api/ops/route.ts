@@ -16,7 +16,7 @@ export const maxDuration = 60;
  * Authorization: Bearer CRON_SECRET. The same drills exist for signed-in admins at
  * /api/admin/diagnostics; this route only adds a token-authenticated door for automation.
  *
- *  POST ?action=throw          deliberate server error → error inbox (severity error) → /api/health 503 → owner alert
+ *  POST ?action=throw          deliberate server error → error inbox (severity error) → owner alert the first time the group appears (health stays 200, counts it)
  *  POST ?action=errors         the open error groups (newest first): name, message, source, route, count, severity
  *  POST ?action=resolve-drills resolve every open error whose message starts with "Diagnostics:"
  *  POST ?action=owner-alert    one owner alert through the mail worker

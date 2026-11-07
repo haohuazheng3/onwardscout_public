@@ -14,6 +14,7 @@ import { requireEnv } from "./env";
  *   generated/<userId>/<genId>.<ext>       rendered documents (PDF, DOCX, PPTX)
  *   screens/<userId>/<appId>/<n>.png       browser-agent step screenshots
  *   backups/<YYYY-MM-DD>.sql.gz            nightly database dumps (GitHub Actions)
+ *   ops/alarms/<name>.json                 owner-alarm memory (src/lib/ops-alarm.ts), outside the database
  */
 
 export type Disposition = "inline" | "attachment";
